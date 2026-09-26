@@ -56,9 +56,9 @@ Bench biologists and bioinformaticians constantly encounter repetitive yet criti
 
 ## 🚀 Key Features
 
-* **Standardized Solution & NanoDrop Predictor**: Computes required mass (µg, ng) and moles (nmol, pmol) for target solutions (e.g., $4\,\mu	ext{M}$ in $500\,\mu	ext{L}$), generates pipetting dilution recipes, and predicts exact NanoDrop readings ($A_{260}$, $A_{260}/A_{280}$, and $	ext{ng}/\mu	ext{L}$).
+* **Standardized Solution & NanoDrop Predictor**: Computes required mass (µg, ng) and moles (nmol, pmol) for target solutions (e.g., $4\,\mu	ext{M}$ in $500\,\mu	ext{L}$), generates pipetting dilution recipes, and predicts exact NanoDrop readings ($A_{260}$, $A_{260}/A_{280}$, and $ext{ng}/\mu ext{L}$).
 * **Fluorophore Modification & Degree of Labeling (DOL)**: Database of fluorophores (FAM, Cy3, Cy5, Alexa Fluor 488/546/594/647, Texas Red, TAMRA, ROX, ATTO 488/647N, BHQ quenchers) with exact MW additions, correction factors ($CF_{260}, CF_{280}$), and dye-to-biomolecule DOL calculations.
-* **Gel Migration & Ladder Simulation**: Simulates band positions for 1 kb DNA, 100 bp DNA, low-range oligo, and prestained protein ladders using logarithmic relative mobility ($R_f = a - b \log_{10}(	ext{size})$) with ASCII lane diagrams.
+* **Gel Migration & Ladder Simulation**: Simulates band positions for 1 kb DNA, 100 bp DNA, low-range oligo, and prestained protein ladders using logarithmic relative mobility \(R_f = a - b \log_{10}(\text{size})\) with ASCII lane diagrams.
 * **E. coli Growth & Yield Modeling**: Computes doubling times across LB, 2xYT, TB, and M9 media at 18–37°C, projects hours to reach induction $OD_{600}$ (0.6–0.8), and predicts theoretical plasmid DNA yields (pUC, pET, pBR322) and recombinant protein yields.
 * **PCR Protocol Optimization**: Computes polymerase-specific annealing temperatures ($T_a$), elongation times (Taq vs. Q5/Phusion vs. Kapa), generates touchdown PCR schedules, and suggests GC enhancers (DMSO, Betaine) for difficult templates.
 * **IVT Stoichiometry**: Tracks per-NTP usage, residual concentrations, incorporation efficiency, inorganic pyrophosphate ($PP_i$) precipitation risks, and transcript turnover ratios.
@@ -174,9 +174,9 @@ res = prepare_standard_solution(
 **Output Highlights:**
 - `required_mass_ug`: Total mass needed ($23.02\,\mu	ext{g}$).
 - `required_moles_nmol`: Total moles ($2.000	ext{ nmol}$).
-- `expected_nanodrop_ng_ul`: Target concentration reading ($46.03\,	ext{ng}/\mu	ext{L}$).
-- `expected_nanodrop_a260_1cm`: Normalized $A_{260}$ reading ($1.151	ext{ AU}$).
-- `expected_nanodrop_a260_1mm`: Physical pedestal reading ($0.1151	ext{ AU}$).
+- `expected_nanodrop_ng_ul`: Target concentration reading (\(46.03\,\text{ng}/\mu\text{L}\)).
+- `expected_nanodrop_a260_1cm`: Normalized \(A_{260}\) reading (\(1.151\,\text{AU}\)).
+- `expected_nanodrop_a260_1mm`: Physical pedestal reading (\(0.1151\,\text{AU}\)).
 - `preparation_instructions`: Exact pipetting instructions for bench technicians.
 
 ### 2. Fluorophore Modifications & Degree of Labeling (DOL)
@@ -362,39 +362,7 @@ All 114 automated tests pass with 100% test coverage across core mathematical, p
 
 BioLabCalc is configured for automated Continuous Delivery to [PyPI](https://pypi.org/project/biolabcalc/) using GitHub Actions and PyPI Trusted Publishing (OIDC).
 
-### Method 1: Automated Release via GitHub Actions (Recommended)
-1. Ensure `__version__` in `src/biolabcalc/__init__.py` and `version` in `pyproject.toml` match your release tag (e.g. `0.2.0`).
-2. Tag your commit and push to GitHub:
-   ```bash
-   git tag v0.2.0
-   git push origin v0.2.0
-   ```
-   *Or create a new Release from the GitHub web interface.*
-3. The `.github/workflows/publish.yml` workflow triggers automatically, builds the `.tar.gz` sdist and `.whl` binary wheel, validates metadata with `twine check`, and publishes the release directly to PyPI.
 
-### Method 2: Manual Local Upload via Twine
-To publish manually from your local development environment:
-```bash
-# 1. Install build and twine
-pip install build twine
-
-# 2. Build the distributions
-python -m build
-
-# 3. Verify integrity
-twine check dist/*
-
-# 4. Upload to TestPyPI (optional dry-run)
-python scripts/release.py --test-pypi
-
-# 5. Upload to production PyPI
-python scripts/release.py --pypi
-# Or:
-twine upload dist/*
-```
-
-
----
 
 ## ⚖️ Legal & Compliance Notice
 
