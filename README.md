@@ -47,7 +47,7 @@ Bench biologists and bioinformaticians constantly encounter repetitive yet criti
 * **Preparing standardized solutions** (e.g., *"How do I make 4 µM ssRNA in 500 µL, and what exact ng/µL concentration and A260 absorbance should I see on the NanoDrop?"*).
 * **Fluorophore labeling & modifications** (mass shifts, spectral parameters, and Degree of Labeling [DOL] efficiency for FAM, Cy3, Cy5, Alexa Fluor, ATTO dyes, and quenchers).
 * **Gel electrophoresis simulation & ladder alignment** (mapping DNA/protein band sizes to 1 kb, 100 bp, or prestained protein ladders and calculating relative migration distances $R_f$).
-* **E. coli expression scheduling & yield prediction** (calculating doubling times, hours from inoculation to induction $OD_{600}$, and theoretical plasmid or recombinant protein yields).
+* **E. coli expression scheduling & yield prediction** (calculating doubling times, hours from inoculation to induction OD₆₀₀, and theoretical plasmid or recombinant protein yields).
 * **Reaction optimization & troubleshooting** (evaluating in vitro transcription NTP consumption, PCR dNTP limits, touchdown profiles, and Pace et al. $A_{280}$ extinction coefficients).
 
 **BioLabCalc** combines a clean Python scientific API, an instant terminal CLI tool, and a built-in Excel extension (`openpyxl`) that generates publication-grade, interactive laboratory notebooks containing live formulas.
@@ -56,10 +56,10 @@ Bench biologists and bioinformaticians constantly encounter repetitive yet criti
 
 ## 🚀 Key Features
 
-* **Standardized Solution & NanoDrop Predictor**: Computes required mass (µg, ng) and moles (nmol, pmol) for target solutions (e.g., $4\,\mu	ext{M}$ in $500\,\mu	ext{L}$), generates pipetting dilution recipes, and predicts exact NanoDrop readings ($A_{260}$, $A_{260}/A_{280}$, and $	ext{ng}/\mu	ext{L}$).
-* **Fluorophore Modification & Degree of Labeling (DOL)**: Database of fluorophores (FAM, Cy3, Cy5, Alexa Fluor 488/546/594/647, Texas Red, TAMRA, ROX, ATTO 488/647N, BHQ quenchers) with exact MW additions, correction factors ($CF_{260}, CF_{280}$), and dye-to-biomolecule DOL calculations.
-* **Gel Migration & Ladder Simulation**: Simulates band positions for 1 kb DNA, 100 bp DNA, low-range oligo, and prestained protein ladders using logarithmic relative mobility ($R_f = a - b \log_{10}(	ext{size})$) with ASCII lane diagrams.
-* **E. coli Growth & Yield Modeling**: Computes doubling times across LB, 2xYT, TB, and M9 media at 18–37°C, projects hours to reach induction $OD_{600}$ (0.6–0.8), and predicts theoretical plasmid DNA yields (pUC, pET, pBR322) and recombinant protein yields.
+* **Standardized Solution & NanoDrop Predictor**: Computes required mass (µg, ng) and moles (nmol, pmol) for target solutions (e.g., 4 µM in 500 µL), generates pipetting dilution recipes, and predicts exact NanoDrop readings ($A_{260}$, $A_{260}/A_{280}$, and ng/µL).
+* **Fluorophore Modification & Degree of Labeling (DOL)**: Database of fluorophores (FAM, Cy3, Cy5, Alexa Fluor 488/546/594/647, Texas Red, TAMRA, ROX, ATTO 488/647N, BHQ quenchers) with exact MW additions, correction factors ($CF_{260}$, $CF_{280}$), and dye-to-biomolecule DOL calculations.
+* **Gel Migration & Ladder Simulation**: Simulates band positions for 1 kb DNA, 100 bp DNA, low-range oligo, and prestained protein ladders using logarithmic relative mobility ($R_f = a - b \cdot \log_{10}(\text{size})$) with ASCII lane diagrams.
+* **E. coli Growth & Yield Modeling**: Computes doubling times across LB, 2xYT, TB, and M9 media at 18–37°C, projects hours to reach induction OD₆₀₀ (0.6–0.8), and predicts theoretical plasmid DNA yields (pUC, pET, pBR322) and recombinant protein yields.
 * **PCR Protocol Optimization**: Computes polymerase-specific annealing temperatures ($T_a$), elongation times (Taq vs. Q5/Phusion vs. Kapa), generates touchdown PCR schedules, and suggests GC enhancers (DMSO, Betaine) for difficult templates.
 * **IVT Stoichiometry**: Tracks per-NTP usage, residual concentrations, incorporation efficiency, inorganic pyrophosphate ($PP_i$) precipitation risks, and transcript turnover ratios.
 * **Exact Molecular Weights**: Sequence-level average and monoisotopic weights for ssDNA, dsDNA, circular plasmids, RNA (5'-ppp, 5'-P, 5'-OH), and polypeptides.
@@ -172,11 +172,11 @@ res = prepare_standard_solution(
 )
 ```
 **Output Highlights:**
-- `required_mass_ug`: Total mass needed ($23.02\,\mu	ext{g}$).
-- `required_moles_nmol`: Total moles ($2.000	ext{ nmol}$).
-- `expected_nanodrop_ng_ul`: Target concentration reading ($46.03\,	ext{ng}/\mu	ext{L}$).
-- `expected_nanodrop_a260_1cm`: Normalized $A_{260}$ reading ($1.151	ext{ AU}$).
-- `expected_nanodrop_a260_1mm`: Physical pedestal reading ($0.1151	ext{ AU}$).
+- `required_mass_ug`: Total mass needed: 23.02 µg.
+- `required_moles_nmol`: Total moles: 2.000 nmol.
+- `expected_nanodrop_ng_ul`: Target concentration reading: 46.03 ng/µL.
+- `expected_nanodrop_a260_1cm`: Normalized $A_{260}$ reading: 1.151 AU.
+- `expected_nanodrop_a260_1mm`: Physical pedestal reading: 0.1151 AU.
 - `preparation_instructions`: Exact pipetting instructions for bench technicians.
 
 ### 2. Fluorophore Modifications & Degree of Labeling (DOL)
@@ -345,6 +345,172 @@ The generated workbook (`biolabcalc excel-template`) contains 7 specialized, sty
 5. **`Solution_Prep_NanoDrop`**: Input target molarity and volume; auto-calculates required mass/moles, stock dilution pipetting volumes, and predicted NanoDrop readings ($A_{260}$, $A_{260}/A_{280}$, $	ext{ng}/\mu	ext{L}$).
 6. **`Fluorophore_Modifications`**: Spectral property lookup and live Degree of Labeling (DOL) calculator.
 7. **`Ecoli_Growth_Optimization`**: Inoculation-to-induction timeline calculator, doubling time tables, and plasmid/recombinant protein yield projections.
+
+
+
+---
+
+<a name="scientific-formulations"></a>
+## 📐 Scientific Formulations
+
+BioLabCalc implements standardized, peer-reviewed mathematical models and biophysical equations:
+
+### 1. Beer-Lambert Law & NanoDrop Spectrophotometry
+Light absorbance across an optical pathlength is governed by the Beer-Lambert law:
+
+$$
+A = \epsilon \cdot c \cdot l
+$$
+
+Where:
+* $A$: Absorbance (dimensionless Absorbance Units, AU)
+* $\epsilon$: Molar extinction coefficient ($\text{L}\cdot\text{mol}^{-1}\cdot\text{cm}^{-1}$)
+* $c$: Molar concentration ($\text{mol}\cdot\text{L}^{-1}$)
+* $l$: Optical pathlength ($1.0\text{ cm}$ standard cuvette; $0.1\text{ cm} = 1.0\text{ mm}$ NanoDrop pedestal)
+
+The mass concentration $c_{\text{mass}}$ ($\text{ng}/\mu\text{L} \equiv \mu\text{g}/\text{mL}$) is calculated from absorbance normalized to a $1.0\text{ cm}$ pathlength:
+
+$$
+c_{\text{mass}} = \frac{A_{260} \cdot 10^6}{\epsilon_{260}} \cdot MW
+$$
+
+Standard empirical conversion constants for nucleic acids ($1.0\text{ AU}$ at $260\text{ nm}$ across a $1.0\text{ cm}$ pathlength):
+* **Double-stranded DNA (dsDNA)**: $50.0\text{ ng}/\mu\text{L}$ per $A_{260}$ unit
+* **Single-stranded RNA (ssRNA)**: $40.0\text{ ng}/\mu\text{L}$ per $A_{260}$ unit
+* **Single-stranded DNA (ssDNA)**: $33.0\text{ ng}/\mu\text{L}$ per $A_{260}$ unit
+
+### 2. Nucleic Acid Molecular Weights
+Molecular weights are computed from sequence-level atomic composition:
+
+* **Single-Stranded DNA (ssDNA, 5'-monophosphate)**:
+$$
+MW_{\text{ssDNA}} = (N_A \times 313.21) + (N_T \times 304.20) + (N_C \times 289.18) + (N_G \times 329.21) - 61.96
+$$
+
+* **Double-Stranded DNA (dsDNA)**:
+$$
+MW_{\text{dsDNA}} = (N_{\text{bp}} \times 607.4) + 157.9
+$$
+
+* **Single-Stranded RNA (5'-triphosphate, primary in vitro transcription product)**:
+$$
+MW_{\text{RNA, 5'-ppp}} = (N_A \times 329.21) + (N_U \times 306.17) + (N_C \times 305.18) + (N_G \times 345.21) + 159.0
+$$
+
+* **Single-Stranded RNA (5'-monophosphate, processed transcript)**:
+$$
+MW_{\text{RNA, 5'-p}} = MW_{\text{RNA, 5'-ppp}} - 79.98
+$$
+
+### 3. SantaLucia (1998) Nearest-Neighbor Primer Thermodynamics
+Primer melting temperatures ($T_m$) are calculated using unified nearest-neighbor thermodynamic parameters:
+
+$$
+\Delta H^\circ = \sum \Delta H^\circ_{\text{NN}} + \Delta H^\circ_{\text{init}}
+$$
+
+$$
+\Delta S^\circ = \sum \Delta S^\circ_{\text{NN}} + \Delta S^\circ_{\text{init}}
+$$
+
+$$
+T_m = \frac{\Delta H^\circ}{\Delta S^\circ + R \ln(C_T / 4)} - 273.15 + 16.6 \log_{10}[\text{Na}^+]
+$$
+
+Where:
+* $\Delta H^\circ$: Enthalpy change ($\text{kcal}\cdot\text{mol}^{-1}$)
+* $\Delta S^\circ$: Entropy change ($\text{cal}\cdot\text{mol}^{-1}\cdot\text{K}^{-1}$)
+* $R = 1.9872\text{ cal}\cdot\text{mol}^{-1}\cdot\text{K}^{-1}$: Universal gas constant
+* $C_T$: Total primer concentration (typically $400\text{ nM} = 4.0 \times 10^{-7}\text{ M}$)
+* $[\text{Na}^+]$: Effective monovalent cation concentration (typically $50\text{ mM} = 0.05\text{ M}$)
+
+### 4. Gel Electrophoresis Migration Mobility ($R_f$)
+The relative migration distance ($R_f$) of linear nucleic acid or denatured protein fragments through sieving matrices is inversely proportional to the logarithm of molecular size:
+
+$$
+R_f = a - b \cdot \log_{10}(M)
+$$
+
+Where:
+* $R_f = \frac{d_{\text{band}}}{d_{\text{dye}}}$: Relative mobility normalized to the dye front
+* $M$: Molecular size (in base pairs, nucleotides, or kDa)
+* $a, b$: Calibration constants determined by linear regression against reference ladder bands
+
+### 5. Bacterial Exponential Growth Kinetics (*E. coli*)
+During exponential phase growth, cell density ($\text{OD}_{600}$) increases according to first-order kinetics:
+
+$$
+\text{OD}(t) = \text{OD}_0 \cdot 2^{t / g} = \text{OD}_0 \cdot e^{\mu t}
+$$
+
+Where:
+* $\text{OD}_0$: Initial optical density at $600\text{ nm}$
+* $g$: Generation (doubling) time in minutes ($g = \frac{\ln 2}{\mu}$)
+* $\mu$: Specific growth rate ($\text{min}^{-1}$)
+* The time $t$ to reach target induction optical density ($\text{OD}_{\text{target}}$, typically 0.6–0.8) is:
+$$
+t = g \cdot \frac{\log_{10}(\text{OD}_{\text{target}} / \text{OD}_0)}{\log_{10}(2)}
+$$
+
+### 6. In Vitro Transcription (IVT) Stoichiometry
+Enzymatic synthesis of RNA by T7 RNA polymerase consumes ribonucleotide triphosphates and generates inorganic pyrophosphate ($PP_i$) byproducts:
+
+$$
+\text{Molar Yield (mol)} = \frac{\text{Mass Yield (g)}}{MW_{\text{transcript}}\text{ (g/mol)}}
+$$
+
+For each nucleotide species $X \in \{A, U, C, G\}$:
+$$
+\text{Consumed } X\text{ (moles)} = \text{Molar Yield} \times N_X
+$$
+
+$$
+\text{Pyrophosphate Generated } (PP_i)\text{ (moles)} = \text{Molar Yield} \times (L_{\text{transcript}} - 1)
+$$
+
+### 7. Pace et al. (1995) Protein Extinction Coefficient ($\epsilon_{280}$)
+The theoretical molar extinction coefficient of an unfolded or denatured protein at $280\text{ nm}$ is calculated from aromatic amino acid and disulfide bond counts:
+
+$$
+\epsilon_{280} = (N_{\text{Trp}} \times 5500) + (N_{\text{Tyr}} \times 1490) + (N_{\text{Cystine}} \times 125)
+$$
+
+Where $N_{\text{Cystine}} = \lfloor N_{\text{Cys}} / 2 \rfloor$ under non-reducing conditions, or $0$ under reducing conditions (DTT / $\beta$-ME).
+
+### 8. Fluorophore Degree of Labeling (DOL)
+The molar ratio of fluorophore to biomolecule is quantified spectrophotometrically:
+
+$$
+\text{DOL} = \frac{A_{\text{max}} \cdot \epsilon_{\text{biomolecule}}}{(A_{280} - A_{\text{max}} \cdot CF_{280}) \cdot \epsilon_{\text{dye}}}
+$$
+
+Where:
+* $A_{\text{max}}$: Absorbance at the dye excitation maximum wavelength
+* $A_{280}$: Absorbance at $280\text{ nm}$ (or $A_{260}$ for oligonucleotides)
+* $CF_{280}$: Spectral correction factor ($\frac{A_{280,\text{dye}}}{A_{\text{max},\text{dye}}}$)
+* $\epsilon_{\text{biomolecule}}, \epsilon_{\text{dye}}$: Respective molar extinction coefficients
+
+### 9. qPCR Amplification Efficiency
+From the slope of a linear standard curve ($C_q$ vs. $\log_{10}[\text{template dilution}]$):
+
+$$
+\text{Efficiency } (E) = 10^{-1 / \text{slope}} - 1
+$$
+
+$$
+\text{Percentage Efficiency} = E \times 100\%
+$$
+
+*(An ideal slope of $-3.3219$ corresponds to $E = 1.00$, or $100\%$ amplification efficiency).*
+
+### 10. Tris Buffer Temperature-Dependent pH Shift
+Tris solutions exhibit temperature sensitivity due to a negative ionization enthalpy:
+
+$$
+\Delta \text{pH} = \frac{d\text{p}K_a}{dT} \times (T_{\text{target}} - T_{\text{measured}})
+$$
+
+Where $\frac{d\text{p}K_a}{dT} \approx -0.028\text{ pH units}/^\circ\text{C}$.
 
 ---
 
