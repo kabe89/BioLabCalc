@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biolabcalc"
+version = "0.2.0"
+description = "A multifaceted Python library and Excel extension for daily molecular biology research, PCR stoichiometry, IVT yields, protein quantification, and primer design."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+    { name = "BioLabCalc Contributors" }
+]
+keywords = [
+    "bioinformatics",
+    "molecular-biology",
+    "pcr",
+    "transcription",
+    "in-vitro-transcription",
+    "primer-design",
+    "protein-quantification",
+    "excel",
+    "openpyxl",
+    "stoichiometry"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "openpyxl>=3.0.0",
+    "matplotlib>=3.5.0",
+    "Pillow>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "flake8>=5.0.0",
+]
+
+[project.scripts]
+biolabcalc = "biolabcalc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
