@@ -1,7 +1,7 @@
 # Legal, Regulatory & Compliance Notice ⚖️🔬
 
 **Project**: BioLabCalc  
-**Version**: 0.2.0  
+**Version**: 0.3.0  
 **License**: MIT License  
 **Effective Date**: 2026  
 

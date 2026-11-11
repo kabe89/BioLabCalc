@@ -1,5 +1,8 @@
 include README.md
 include LICENSE
+include LEGAL.md
+include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
 include pyproject.toml
-recursive-include src/biolabcalc *.py *.html
+recursive-include src/biolabcalc *.py *.html *.js *.css *.sql
 recursive-include tests *.py

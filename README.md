@@ -455,7 +455,9 @@ All 195 automated tests pass with 100% test coverage across core mathematical, p
 
 ## 🤝 Contributing
 
-Contributions to BioLabCalc are warmly welcomed! We follow standard GitHub pull request workflows:
+Contributions to BioLabCalc are warmly welcomed! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before getting started.
+
+We follow standard GitHub pull request workflows:
 
 1. **Fork the Repository**: Click "Fork" at [github.com/kabe89/BioLabCalc](https://github.com/kabe89/BioLabCalc).
 2. **Create a Feature Branch**:

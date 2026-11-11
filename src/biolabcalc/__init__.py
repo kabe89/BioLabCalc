@@ -1,6 +1,6 @@
 """BioLabCalc: A multifaceted Python library and Excel extension for daily molecular biology research."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .seq_utils import (
     clean_sequence,
