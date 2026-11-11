@@ -238,7 +238,26 @@ class TestSOPService(unittest.TestCase):
 
         Agent: @agent: eln-api-agent
         """
-        master = self.sop_service.get_sop("SOP-T7RNAP-EXP-001")
+        master = self.sop_service.create_sop(
+            sop_id="SOP-TEST-001",
+            title="Test Experimental Protocol",
+            version="1.0",
+            category="Purification",
+            description="Test protocol for execution forking.",
+            parameters={
+                "buffer_ratio_ml_per_g": 5.0,
+                "induction_temp_c": 18.0,
+            },
+            steps=[
+                {"step_index": 1, "name": "Step 1", "instruction": "Initial step.", "planned_duration_minutes": 960.0},
+                {"step_index": 2, "name": "Step 2", "instruction": "Second step.", "planned_duration_minutes": 1140.0},
+                {"step_index": 3, "name": "Step 3", "instruction": "Third step.", "planned_duration_minutes": 30.0},
+                {"step_index": 4, "name": "Step 4", "instruction": "Fourth step.", "planned_duration_minutes": 60.0},
+                {"step_index": 5, "name": "Step 5", "instruction": "Fifth step.", "planned_duration_minutes": 180.0},
+            ],
+            created_by="pi_admin",
+        )
+        self.sop_service.approve_sop("SOP-TEST-001", approver_id="pi_admin")
         self.assertIsNotNone(master)
         self.assertEqual(master.version, "1.0")
 

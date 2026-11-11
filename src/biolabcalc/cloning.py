@@ -241,6 +241,11 @@ def calculate_gibson_assembly(
     reaction_volume_ul: float = 20.0,
 ) -> GibsonAssemblyResult:
     """Calculate DNA fragment quantities and setup for isothermal Gibson Assembly / NEBuilder HiFi."""
+    if vector_length_bp <= 0 or not insert_lengths_bp or any(ins <= 0 for ins in insert_lengths_bp) or vector_mass_ng <= 0:
+        raise ValueError("Vector and insert dimensions and mass must be strictly positive.")
+    if reaction_volume_ul <= 0:
+        raise ValueError("Reaction volume must be strictly positive.")
+
     vec_mw = vector_length_bp * 617.96 + 36.04
     vec_pmol = (vector_mass_ng * 1e-9 / vec_mw) * 1e12
 

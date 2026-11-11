@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
-from .seq_utils import clean_sequence, count_bases
+from typing import Dict, List, Optional, Tuple
+from .seq_utils import clean_sequence, count_bases, reverse_complement
 from .molecular_weight import (
     calculate_dna_mw,
     calculate_rna_mw,

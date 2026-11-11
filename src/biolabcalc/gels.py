@@ -83,6 +83,8 @@ class GelLaneSimulation:
 
 def calculate_rf(size: float, min_size: float, max_size: float) -> float:
     """Calculate relative mobility Rf using the logarithmic relationship Rf = a - b * log10(size)."""
+    if min_size <= 0 or max_size <= min_size:
+        raise ValueError("max_size must be strictly greater than min_size > 0.")
     log_max = math.log10(max_size)
     log_min = math.log10(min_size)
     log_val = math.log10(max(min_size * 0.8, min(max_size * 1.2, size)))

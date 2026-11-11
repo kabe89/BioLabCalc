@@ -78,15 +78,12 @@ def launch_eln_server(
     print(f"[*] Host Address:     http://{host}:{port}")
     print("=" * 80)
 
-    # Initialize database and seed benchmark data if available
+    # Initialize database schema
     try:
-        from .schema.database import init_db, get_engine, get_session
-        from .schema.seed_data import seed_campaign
+        from .schema.database import init_db, get_engine
         engine = get_engine(effective_db_url)
         init_db(engine)
-        session = get_session(engine)
-        seed_campaign(session)
-        print("[+] Database schema verified and 5-Day T7 RNAP Benchmark Seed loaded.")
+        print("[+] Database schema verified.")
     except Exception as e:
         logger.warning(f"Database initialization notice: {e}")
 

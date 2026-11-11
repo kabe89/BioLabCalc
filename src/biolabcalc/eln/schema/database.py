@@ -475,13 +475,17 @@ class Session:
         """
         Persist all pending instances to SQLite storage and commit transaction.
         """
-        for inst in self._new:
-            self._persist_instance(inst)
-        self._new.clear()
-        for inst in list(self._dirty):
-            self._persist_instance(inst)
-        self._dirty.clear()
-        self._conn.commit()
+        try:
+            for inst in self._new:
+                self._persist_instance(inst)
+            self._new.clear()
+            for inst in list(self._dirty):
+                self._persist_instance(inst)
+            self._dirty.clear()
+            self._conn.commit()
+        except Exception:
+            self.rollback()
+            raise
 
     def rollback(self) -> None:
         """Roll back current transaction and clear pending additions."""

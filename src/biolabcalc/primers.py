@@ -99,15 +99,14 @@ def calculate_tm_santaluicia(
     dntp_conc_mm: float = 0.8,
     is_excess_primer: bool = False,
 ) -> Tuple[float, float, float, float]:
-    """Calculate nearest-neighbor melting temperature based on SantaLucia (1998, PNAS 95:1460-1465)."""
-    if primer_conc_nm <= 0:
-        raise ValueError(f"Primer concentration must be strictly positive (got {primer_conc_nm} nM).")
-    """Calculate melting temperature (Tm) using SantaLucia 1998 unified nearest-neighbor parameters.
+    """Calculate melting temperature (Tm) using SantaLucia (1998, PNAS 95:1460-1465) unified nearest-neighbor parameters.
 
     Returns
     -------
     (tm_celsius, dH_kcal, dS_cal, dG_37_kcal)
     """
+    if primer_conc_nm <= 0:
+        raise ValueError(f"Primer concentration must be strictly positive (got {primer_conc_nm} nM).")
     clean = clean_sequence(seq).replace("U", "T")
     n = len(clean)
     if n < 2:

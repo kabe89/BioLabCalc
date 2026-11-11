@@ -31,7 +31,6 @@
   - [13. Laboratory Buffer & Stock Recipes (`buffers`)](#13-laboratory-buffer--stock-recipes)
   - [14. Nucleic Acid Precipitation & Desalting (`precipitation`)](#14-nucleic-acid-precipitation--desalting)
   - [15. Built-in Excel Extension (`excel_extension`)](#15-built-in-excel-extension)
-  - [16. Standard Laboratory Protocols Compendium (`protocols`)](#16-standard-laboratory-protocols-compendium-protocols)
 - [Command-Line Interface (CLI)](#-command-line-interface-cli)
 - [Interactive Excel Workbook Structure](#-interactive-excel-workbook-structure)
 - [Scientific Formulations](#-scientific-formulations)
@@ -98,7 +97,6 @@ BioLabCalc answers everyday wet-lab calculations via the command line, Python AP
 | **Check Overhang Compatibility** | `python -c "import biolabcalc as blc; print(blc.are_overhangs_compatible("BamHI", "BglII"))"` | Compatible cohesive ends (GATC) |
 | **Precipitate Low-Yield RNA** | `biolabcalc precipitate -v 100 -t rna -a ethanol -s naoac` | Add 10 µL 3M NaOAc, 1 µL GlycoBlue, 300 µL 100% EtOH |
 | **Interactive Guided Wizard** | `biolabcalc wizard` | Step-by-step prompted menu for bench calculations |
-| **View Standard Wet-Lab Protocol** | `biolabcalc protocol -n t7_ivt_transcription` | Complete bench protocol with safety, tables, and troubleshooting |
 
 ```python
 import biolabcalc.easy as easy
@@ -227,54 +225,6 @@ protocol = optimize_pcr_protocol(primer_fwd_tm=60.5, primer_rev_tm=60.0, amplico
 
 # Master mix pipetting table for N samples with 10% excess
 master_mix = build_master_mix(num_reactions=24, excess_percent=10.0)
-```
-
----
-
-### 16. Standard Laboratory Protocols Compendium (`protocols`)
-
-BioLabCalc includes a built-in catalog of 10 fully verified, easy-to-understand wet-lab molecular biology and biochemistry protocols. Each protocol provides comprehensive reagent formulation tables, materials lists, safety warnings, pro tips, time/temperature parameters, troubleshooting matrices, and literature citations. The complete consolidated manual is compiled in [`PROTOCOLS.md`](PROTOCOLS.md).
-
-#### Built-in Protocols:
-1. **`ntp_neutralization`**: 25 mM Neutralized NTP Mix Preparation (pH 7.5) with NaOH titration and logic checks.
-2. **`t7_ivt_transcription`**: High-Yield T7 In Vitro Transcription of RNA with DNase I degradation.
-3. **`ecoli_transformation`**: Heat-Shock Transformation of Chemically Competent *E. coli* (DH5α / BL21).
-4. **`alkaline_lysis_miniprep`**: Alkaline Lysis Plasmid DNA Miniprep with silica spin column binding.
-5. **`agarose_gel_electrophoresis`**: Submarine Agarose Gel Casting, Loading, and Imaging for DNA/RNA.
-6. **`denaturing_urea_page`**: 7–8 M Urea-PAGE for Single-Nucleotide Resolution of Small RNAs and Aptamers.
-7. **`ethanol_precipitation`**: Ethanol & Isopropanol Nucleic Acid Precipitation and Desalting.
-8. **`gibson_assembly`**: Gibson Isothermal Assembly for 2–3 Overlapping DNA Fragments.
-9. **`restriction_double_digest`**: Restriction Endonuclease Double Digest with rSAP Dephosphorylation.
-10. **`bradford_protein_assay`**: Bradford / BCA Colorimetric Protein Assay with BSA Standard Curve.
-
-#### Python API:
-```python
-from biolabcalc.protocols import list_protocols, get_protocol, export_all_protocols_markdown
-
-# List all protocols or filter by category
-protocols = list_protocols(category="RNA")
-
-# Inspect a specific protocol
-proto = get_protocol("t7_ivt_transcription")
-print(f"{proto.title}: {proto.estimated_time}")
-
-# Export consolidated markdown manual
-export_all_protocols_markdown("PROTOCOLS.md")
-```
-
-#### CLI:
-```bash
-# List all protocols in the catalog
-biolabcalc protocol --list
-
-# Filter by category (e.g. RNA, Cloning, Electrophoresis)
-biolabcalc protocol --category RNA
-
-# Display full step-by-step instructions at the terminal
-biolabcalc protocol -n ntp_neutralization
-
-# Export complete PROTOCOLS.md manual
-biolabcalc protocol --export PROTOCOLS.md
 ```
 
 ---

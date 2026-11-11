@@ -174,7 +174,7 @@ class SOPService:
 
     def __init__(self) -> None:
         """
-        Initialize SOPService repository and seed standard laboratory SOPs.
+        Initialize SOPService repository.
 
         Agent: @agent: eln-api-agent
         """
@@ -182,84 +182,6 @@ class SOPService:
         self._sops: Dict[str, MasterSOP] = {}
         self._forks: Dict[str, SOPFork] = {}
         self._audit_service = get_audit_service()
-        self._seed_standard_sops()
-
-    def _seed_standard_sops(self) -> None:
-        """
-        Seed standard molecular biology and protein purification protocols.
-
-        Agent: @agent: eln-api-agent
-        """
-        t7_steps = [
-            SOPStep(
-                step_index=1,
-                name="Primary Culture Inoculation",
-                instruction="Inoculate 50 mL LB + Kanamycin (50 ug/mL) with fresh colony. Shake at 37°C, 220 RPM overnight.",
-                planned_duration_minutes=960.0,
-                parameters={"media": "LB", "antibiotic": "Kanamycin 50 ug/mL", "temp_c": 37.0, "rpm": 220},
-                required_inputs=["Glycerol stock or plate colony"],
-                required_outputs=["Overnight starter culture"],
-            ),
-            SOPStep(
-                step_index=2,
-                name="Large Scale Expression & Induction",
-                instruction="Inoculate 1 L Terrific Broth with 10 mL starter. Grow to OD600=0.6-0.8. Induce with 0.5 mM IPTG, incubate at 18°C for 16h.",
-                planned_duration_minutes=1140.0,
-                parameters={"media": "TB", "induction_od600_target": 0.7, "iptg_conc_mm": 0.5, "temp_c": 18.0},
-                required_inputs=["Overnight starter culture", "IPTG 1M stock"],
-                required_outputs=["Induced culture"],
-            ),
-            SOPStep(
-                step_index=3,
-                name="Centrifugation & Cell Harvest",
-                instruction="Centrifuge culture at 4,000 x g for 20 minutes at 4°C. Decant supernatant and record wet pellet weight.",
-                planned_duration_minutes=30.0,
-                parameters={"centrifuge_speed_rcf": 4000, "temp_c": 4.0, "time_min": 20},
-                required_inputs=["Induced culture"],
-                required_outputs=["Wet cell pellet (g)"],
-            ),
-            SOPStep(
-                step_index=4,
-                name="Cell Lysis & Clarification",
-                instruction="Resuspend pellet in 5 mL Lysis Buffer per gram wet weight. Add lysozyme, DNase I, and protease inhibitor. Lyse by sonication on ice.",
-                planned_duration_minutes=60.0,
-                parameters={"buffer_ratio_ml_per_g": 5.0, "sonication_cycles": "10s on / 20s off for 10 min"},
-                required_inputs=["Wet cell pellet", "Lysis Buffer"],
-                required_outputs=["Cleared soluble lysate (mL)"],
-            ),
-            SOPStep(
-                step_index=5,
-                name="Ni-NTA IMAC Purification & FPLC Polishing",
-                instruction="Equilibrate Ni-NTA resin with binding buffer. Load cleared lysate, wash with 20-50 mM imidazole, elute with 250 mM imidazole. Polish on Superdex 200.",
-                planned_duration_minutes=180.0,
-                parameters={"column": "HisTrap HP 5mL / Superdex 200 16/600", "elution_imidazole_mm": 250},
-                required_inputs=["Cleared soluble lysate"],
-                required_outputs=["Purified protein fractions"],
-            ),
-        ]
-
-        t7_sop = MasterSOP(
-            sop_id="SOP-T7RNAP-EXP-001",
-            title="Recombinant T7 RNA Polymerase Expression & Purification Protocol",
-            version="1.0",
-            category="Purification",
-            description="High-yield expression and dual-column purification of active T7 RNA Polymerase from pET-28a construct.",
-            parameters={
-                "construct_id": "pET-28a-T7RNAP",
-                "host_strain": "E. coli BL21(DE3)",
-                "buffer_ratio_ml_per_g": 5.0,
-                "iptg_conc_mm": 0.5,
-                "induction_temp_c": 18.0,
-                "resin_type": "Ni-NTA Superflow",
-                "storage_buffer": "50 mM Tris-HCl pH 7.9, 100 mM NaCl, 0.1 mM EDTA, 1 mM DTT, 50% glycerol",
-            },
-            steps=t7_steps,
-            status="approved",
-            created_by="pi_admin",
-            created_at=datetime.now(timezone.utc).isoformat(),
-            updated_at=datetime.now(timezone.utc).isoformat(),
-        )
-        self._sops[t7_sop.sop_id] = t7_sop
 
     def create_sop(
         self,
@@ -532,7 +454,6 @@ class SOPService:
         with self._lock:
             self._sops.clear()
             self._forks.clear()
-            self._seed_standard_sops()
 
 
 _global_sop_service = SOPService()

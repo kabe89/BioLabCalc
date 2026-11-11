@@ -1,4 +1,4 @@
-"""Quickstart tutorial demonstrating BioLabCalc features across molecular biology, cloning, buffers, and protocols."""
+"""Quickstart tutorial demonstrating BioLabCalc features across molecular biology, cloning, and buffers."""
 
 import biolabcalc as blc
 import biolabcalc.easy as easy
@@ -113,37 +113,30 @@ def main():
     dilution_res = easy.dilute(c1="100 mM", c2="25 mM", v2="16 mL")
     print(f"Dilution solution: Take {dilution_res['v1']/1000.0:.2f} mL stock and add {dilution_res['diluent_needed']/1000.0:.2f} mL diluent.")
 
-    # 10. Protocols Compendium
-    print("\n10. STANDARD LABORATORY PROTOCOLS")
-    proto = blc.get_protocol("ntp_neutralization")
-    print(f"Protocol: {proto.title} ({proto.category})")
-    print(f"  Estimated Time: {proto.estimated_time} | Skill Level: {proto.skill_level}")
-    print(f"  Number of Steps: {len(proto.steps)} | Troubleshooting Entries: {len(proto.troubleshooting)}")
-
-    # 11. Golden Gate Assembly (Type IIS Cloning)
-    print("\n11. GOLDEN GATE ASSEMBLY SETUP (BsaI-HFv2)")
+    # 10. Golden Gate Assembly (Type IIS Cloning)
+    print("\n10. GOLDEN GATE ASSEMBLY SETUP (BsaI-HFv2)")
     gg_res = easy.golden_gate(vector_bp=4500, insert_bps=[1200, 600], target_fmol=20.0, enzyme="BsaI-HFv2")
     print(f"Destination Vector ({gg_res.vector_length_bp} bp): {gg_res.vector_mass_ng:.1f} ng ({gg_res.vector_fmol:.1f} fmol)")
     for idx, (ins_len, ins_m, ins_f) in enumerate(zip(gg_res.insert_lengths_bp, gg_res.insert_masses_ng, gg_res.insert_fmols), 1):
         print(f"  Insert #{idx} ({ins_len} bp): {ins_m:.1f} ng ({ins_f:.1f} fmol)")
     print(f"Thermocycling: {gg_res.thermocycling_protocol[0]}")
 
-    # 12. NanoDrop Nucleic Acid Purity Assessment
-    print("\n12. NANODROP PURITY & CONTAMINANT ASSESSMENT")
+    # 11. NanoDrop Nucleic Acid Purity Assessment
+    print("\n11. NANODROP PURITY & CONTAMINANT ASSESSMENT")
     purity_res = easy.nanodrop_purity(a260=1.25, a280=0.63, a230=0.58, sample_type="rna")
     print(f"Readings: A260={purity_res.a260}, A280={purity_res.a280}, A230={purity_res.a230}")
     print(f"Ratios: A260/A280 = {purity_res.a260_a280_ratio:.2f} | A260/A230 = {purity_res.a260_a230_ratio:.2f}")
     print(f"Status: {purity_res.purity_status.upper()} -> {purity_res.diagnostic_feedback[0]}")
 
-    # 13. Phenol:Chloroform Extraction Protocol
-    print("\n13. PHENOL:CHLOROFORM PHASE SEPARATION EXTRACTION")
+    # 12. Phenol:Chloroform Extraction Protocol
+    print("\n12. PHENOL:CHLOROFORM PHASE SEPARATION EXTRACTION")
     pci_res = easy.phenol_chloroform("150 uL", nucleic_acid="rna")
     print(f"Grade: {pci_res.phenol_type}")
     print(f"Aqueous Phase: {pci_res.aqueous_phase_layer}")
     print(f"Recipe: 150 µL Sample + {pci_res.pci_volume_ul:.1f} µL PCI + {pci_res.chloroform_volume_ul:.1f} µL Chloroform back-extraction")
 
-    # 14. IVT with Promoter Trimming & N1-Methylpseudouridine (m1Ψ)
-    print("\n14. IVT WITH PROMOTER AUTO-TRIMMING & MODIFIED NUCLEOTIDES (m1Ψ)")
+    # 13. IVT with Promoter Trimming & N1-Methylpseudouridine (m1Ψ)
+    print("\n13. IVT WITH PROMOTER AUTO-TRIMMING & MODIFIED NUCLEOTIDES (m1Ψ)")
     ivt_mod = blc.calculate_ivt_yield(
         rna_seq="TAATACGACTCACTATAGGGAGACCCAAGCUGGCC",
         reaction_volume_ul=20.0,
@@ -158,7 +151,7 @@ def main():
     print(f"Estimated Capping Efficiency: {ivt_mod.predicted_capping_efficiency_percent:.0f}%")
 
     print("\n" + "=" * 75)
-    print("  ALL 14 DEMONSTRATION WORKFLOWS COMPLETED SUCCESSFULLY! ✨")
+    print("  ALL 13 DEMONSTRATION WORKFLOWS COMPLETED SUCCESSFULLY! ✨")
     print("=" * 75)
 
 if __name__ == "__main__":

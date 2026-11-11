@@ -27,7 +27,6 @@ except ImportError:
     GelAnnotator = None
 from .cloning import plan_restriction_digest, calculate_ligation, calculate_gibson_assembly, calculate_golden_gate_assembly
 from .buffers import calculate_buffer_recipe, calculate_hepes_ivt_buffer, calculate_ntp_ph_adjustment, BUFFER_CATALOG, CustomBufferBuilder, list_custom_buffers
-from .protocols import list_protocols, get_protocol, format_protocol_markdown, export_all_protocols_markdown, PROTOCOL_CATALOG
 from .precipitation import calculate_precipitation, calculate_phenol_chloroform_extraction
 
 from .interactive_gel import save_interactive_app, launch_interactive_annotator
@@ -48,11 +47,10 @@ def run_wizard():
     print("  [5] Laboratory Buffer Formulation & Volume Scaling")
     print("  [6] Nucleic Acid Precipitation & Desalting")
     print("  [7] Molecular Weight & Molarity Calculation")
-    print("  [8] Standard Laboratory Protocols Compendium")
     print("  [q] Quit")
     print("-" * 75)
 
-    choice = input("Enter option [1-8]: ").strip().lower()
+    choice = input("Enter option [1-7]: ").strip().lower()
     if choice in ("q", "quit", "exit"):
         print("Exiting BioLabCalc Wizard.")
         return
@@ -147,17 +145,6 @@ def run_wizard():
         print(f"--> Monoisotopic MW: {mw_res.monoisotopic_mw:,.4f} Da")
         print(f"--> GC Content: {mw_res.gc_content:.1f}%")
 
-    elif choice == "8":
-        print("\n--- Standard Protocols Compendium ---")
-        protos = list_protocols()
-        for idx, p in enumerate(protos, 1):
-            print(f"  [{idx}] {p.protocol_id} - {p.title}")
-        sel = input("\nEnter protocol number or ID [1]: ").strip() or "1"
-        if sel.isdigit() and 1 <= int(sel) <= len(protos):
-            p = protos[int(sel) - 1]
-        else:
-            p = get_protocol(sel)
-        print("\n" + format_protocol_markdown(p))
     else:
         print("Feature available directly via CLI commands. Run 'biolabcalc --help'.")
 
@@ -335,12 +322,6 @@ def main():
     p_ntp.add_argument("-s", "--species", default="equimolar_mix", choices=["equimolar_mix", "ATP", "CTP", "GTP", "UTP"], help="NTP species")
     p_ntp.add_argument("-b", "--base-molarity", type=float, default=5.0, help="Molarity of NaOH stock in M (default: 5.0)")
 
-    # 21. protocol
-    p_proto = subparsers.add_parser("protocol", help="View and export standardized wet-lab protocols")
-    p_proto.add_argument("-n", "--name", default=None, help="Protocol ID or name (e.g. t7_ivt_transcription, ntp_neutralization, ecoli_transformation)")
-    p_proto.add_argument("-l", "--list", action="store_true", help="List all available protocols")
-    p_proto.add_argument("-c", "--category", default=None, help="Filter listed protocols by category (e.g. RNA, Cloning, Electrophoresis)")
-    p_proto.add_argument("-e", "--export", default=None, help="Export consolidated protocols markdown to specified file path")
     # 24. golden-gate
     p_gg = subparsers.add_parser("golden-gate", help="Calculate Golden Gate Assembly stoichiometry, pipetting, and cycling")
     p_gg.add_argument("--vec-bp", type=int, required=True, help="Destination vector length in bp")
@@ -664,6 +645,9 @@ def main():
         print("=" * 60)
 
     elif args.command == "annotate-gel":
+        if GelAnnotator is None:
+            print("Error: Gel annotation requires matplotlib. Install with: pip install 'biolabcalc[gel]' or pip install matplotlib")
+            sys.exit(1)
         lane_list = [l.strip() for l in args.lanes.split(",") if l.strip()]
         if args.image and os.path.exists(args.image):
             ann = GelAnnotator.from_image(args.image, title=args.title, gel_info=args.info, invert_colors=args.invert)
@@ -975,6 +959,9 @@ def main():
             launch_interactive_annotator(port=args.port, open_browser=not args.no_browser, blocking=True)
 
     elif args.command == "batch-excel":
+        if batch_process_excel is None:
+            print("Error: Excel processing requires openpyxl. Install with: pip install 'biolabcalc[excel]' or pip install openpyxl")
+            sys.exit(1)
         out_f = batch_process_excel(args.input, args.output)
         print(f"Batch sequence analysis complete! Results saved to: {out_f}")
 
@@ -1181,25 +1168,6 @@ def main():
             print(f"  {s}")
         print("=" * 65)
 
-    elif args.command == "protocol":
-        if args.export:
-            export_all_protocols_markdown(args.export)
-            print(f"Exported {len(PROTOCOL_CATALOG)} protocols to '{args.export}' successfully.")
-        elif args.list or not args.name:
-            protos = list_protocols(args.category)
-            print("=" * 85)
-            print("BIOLABCALC STANDARD LABORATORY PROTOCOLS CATALOG")
-            print("=" * 85)
-            print(f"{'Protocol ID':30s} {'Category':25s} {'Est. Time':16s} Title")
-            print("-" * 85)
-            for p in protos:
-                print(f"{p.protocol_id:30s} {p.category:25s} {p.estimated_time:16s} {p.title}")
-            print("=" * 85)
-            print("Run 'biolabcalc protocol -n <protocol_id>' to display complete bench protocol.")
-        else:
-            p = get_protocol(args.name)
-            print(format_protocol_markdown(p))
-
     elif args.command == "precipitate":
         res = calculate_precipitation(
             sample_volume_ul=args.volume_ul,
@@ -1225,6 +1193,9 @@ def main():
         print("=" * 65)
 
     elif args.command == "excel-template":
+        if generate_lab_notebook_template is None:
+            print("Error: Excel support is optional and requires openpyxl. Install with: pip install 'biolabcalc[excel]' or pip install openpyxl")
+            sys.exit(1)
         path = generate_lab_notebook_template(args.output)
         print(f"Interactive Excel notebook template generated at: {path}")
 

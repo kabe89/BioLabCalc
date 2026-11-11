@@ -97,7 +97,7 @@ All product names, logos, trademarks, and registered trademarks referenced in th
 
 ## 6. Academic Integrity & Scientific Literature Citations
 
-All algorithms implemented in BioLabCalc are directly attributed to peer-reviewed scientific literature. Users publishing research supported by or conducted using BioLabCalc are encouraged to cite both the primary literature sources documented in [`PROTOCOLS.md`](PROTOCOLS.md) and the BioLabCalc repository.
+All algorithms implemented in BioLabCalc are directly attributed to peer-reviewed scientific literature. Users publishing research supported by or conducted using BioLabCalc are encouraged to cite both the primary literature sources and the BioLabCalc repository.
 
 Selected foundational references include:
 * *Nucleic Acid Thermodynamics*: SantaLucia, J. (1998). *Proc. Natl. Acad. Sci. U.S.A.*, 95(4), 1460–1465.

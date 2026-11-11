@@ -104,6 +104,9 @@ def calculate_ecoli_growth(
 
     hrs = int(total_hours)
     mins = int(round((total_hours - hrs) * 60))
+    if mins == 60:
+        hrs += 1
+        mins = 0
 
     growth_rate = math.log(2) / (td / 60.0)
     cells_per_ml = target_od600 * 8.0e8

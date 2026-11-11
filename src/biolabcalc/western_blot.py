@@ -308,6 +308,8 @@ def calculate_lysate_loading(
         raise ValueError("Target protein loading must be positive.")
     if num_lanes <= 0:
         raise ValueError("Number of lanes must be positive.")
+    if sample_buffer_conc <= 1:
+        raise ValueError("Sample buffer stock must be greater than 1X (e.g. 2, 4, 6).")
 
     # Volume of lysate containing target_protein_ug: V = mass / conc
     v_lysate_per_lane = target_protein_ug_per_lane / lysate_conc_mg_ml

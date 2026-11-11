@@ -6,7 +6,6 @@ from biolabcalc.western_blot import (
     plan_western_blot,
     troubleshoot_western_blot,
 )
-from biolabcalc.protocols import get_protocol
 from biolabcalc.easy import western, wb_transfer, wb_loading, wb_troubleshoot
 
 class TestWesternBlot(unittest.TestCase):
@@ -68,13 +67,6 @@ class TestWesternBlot(unittest.TestCase):
 
         t_sig = troubleshoot_western_blot("no_signal")
         self.assertIn("No bands", t_sig.symptom)
-
-    def test_western_protocol_lookup(self):
-        proto = get_protocol("western_blotting")
-        self.assertIn("Western Blotting", proto.title)
-        self.assertEqual(proto.category, "Protein Analysis")
-        self.assertEqual(len(proto.steps), 9)
-        self.assertEqual(len(proto.troubleshooting), 5)
 
     def test_easy_western_helpers(self):
         plan = western("mTOR", 289.0, transfer="wet_tank")

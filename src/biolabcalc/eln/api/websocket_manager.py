@@ -112,6 +112,8 @@ class WebSocketManager:
                 for topic in conn.subscribed_topics:
                     if topic in self._topic_subscribers:
                         self._topic_subscribers[topic].discard(client_id)
+                        if len(self._topic_subscribers[topic]) == 0:
+                            del self._topic_subscribers[topic]
             logger.info(f"Client '{client_id}' disconnected from WebSocket manager.")
 
     def subscribe(self, client_id: str, topic: str) -> bool:

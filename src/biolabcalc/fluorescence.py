@@ -153,7 +153,7 @@ def calculate_degree_of_labeling(
     dol = c_dye / c_biomol if c_biomol > 0 else 0.0
     eff_pct = min(100.0, dol * 100.0)
 
-    if dol < 0.6:
+    if dol < 0.8:
         interp = "Under-labeled: low fluorescence signal expected."
     elif 0.8 <= dol <= 1.2:
         interp = "Optimally labeled: stoichiometric ~1:1 dye-to-molecule ratio."
