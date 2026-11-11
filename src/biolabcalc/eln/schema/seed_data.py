@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.schema.seed_data
 Component: Benchmark Seed Data Generator for 5-Day T7 RNA Polymerase Campaign
-Agent: @agent: eln-db-agent
 Architectural Role: Generates production benchmark seed data for the complete
                     5-day T7 RNA Polymerase (pET-28a-T7RNAP, 99 kDa, 883 aa)
                     expression and purification protocol, populating all 21
@@ -57,7 +56,6 @@ def _generate_synthetic_embedding(seed_val: float, dim: int = 1536) -> List[floa
     Returns:
         List[float]: L2-normalized float vector.
 
-    Agent: @agent: eln-db-agent
     """
     raw = [math.sin(seed_val + (i * 0.05)) for i in range(dim)]
     norm = math.sqrt(sum(x * x for x in raw))
@@ -74,7 +72,6 @@ def seed_campaign(session: Session) -> Dict[str, str]:
     Returns:
         Dict[str, str]: Dictionary mapping entity keys to created UUID identifiers.
 
-    Agent: @agent: eln-db-agent
     """
     # -------------------------------------------------------------------------
     # 1. Users

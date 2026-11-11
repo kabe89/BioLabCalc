@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.router
 Component: Lightweight ASGI & REST Route Registry Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core routing utility providing method decorators (@router.get, @router.post, etc.),
 path parameter extraction (e.g. /api/campaigns/{id}), JSON payload parsing, and standard ASGI 3.0 dispatch.
 """
@@ -21,7 +20,6 @@ class Route:
     """
     Representation of an individual HTTP endpoint route with regex path matching.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Matches URI patterns and dispatches execution to handler.
     """
 
@@ -29,7 +27,6 @@ class Route:
         """
         Initialize route definition.
 
-        Agent: @agent: eln-api-agent
         Parameter method (str): HTTP verb (GET, POST, PUT, DELETE, OPTIONS).
         Parameter path_pattern (str): URI template (e.g. '/api/campaigns/{campaign_id}').
         Parameter handler (Callable): Function or coroutine executing business logic.
@@ -46,7 +43,6 @@ class Route:
         """
         Match request method and path, returning extracted path parameters if matched.
 
-        Agent: @agent: eln-api-agent
         Parameter method (str): Request HTTP method.
         Parameter path (str): Request URL path.
         Return Type: Optional[Dict[str, str]]
@@ -63,7 +59,6 @@ class Router:
     """
     Modular route collection coordinating endpoint registration and invocation.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Organizes route groups with optional prefixes and mounts them into ASGI applications.
     """
 
@@ -71,7 +66,6 @@ class Router:
         """
         Initialize router.
 
-        Agent: @agent: eln-api-agent
         Parameter prefix (str): URL path prefix (e.g. '/api/campaigns').
         """
         self.prefix = prefix.rstrip("/")
@@ -81,7 +75,6 @@ class Router:
         """
         Register a new route endpoint.
 
-        Agent: @agent: eln-api-agent
         Parameter method (str): HTTP method.
         Parameter path (str): Relative or absolute endpoint path.
         Parameter handler (Callable): Target handler function.
@@ -92,28 +85,28 @@ class Router:
         self.routes.append(Route(method=method, path_pattern=full_path, handler=handler))
 
     def get(self, path: str = "") -> Callable:
-        """Decorator for HTTP GET endpoint. Agent: @agent: eln-api-agent"""
+        """Decorator for HTTP GET endpoint."""
         def decorator(handler: Callable) -> Callable:
             self.add_route("GET", path, handler)
             return handler
         return decorator
 
     def post(self, path: str = "") -> Callable:
-        """Decorator for HTTP POST endpoint. Agent: @agent: eln-api-agent"""
+        """Decorator for HTTP POST endpoint."""
         def decorator(handler: Callable) -> Callable:
             self.add_route("POST", path, handler)
             return handler
         return decorator
 
     def put(self, path: str = "") -> Callable:
-        """Decorator for HTTP PUT endpoint. Agent: @agent: eln-api-agent"""
+        """Decorator for HTTP PUT endpoint."""
         def decorator(handler: Callable) -> Callable:
             self.add_route("PUT", path, handler)
             return handler
         return decorator
 
     def delete(self, path: str = "") -> Callable:
-        """Decorator for HTTP DELETE endpoint. Agent: @agent: eln-api-agent"""
+        """Decorator for HTTP DELETE endpoint."""
         def decorator(handler: Callable) -> Callable:
             self.add_route("DELETE", path, handler)
             return handler
@@ -123,7 +116,6 @@ class Router:
         """
         Mount routes from a sub-router.
 
-        Agent: @agent: eln-api-agent
         Parameter other_router (Router): Sub-router to incorporate.
         """
         for r in other_router.routes:

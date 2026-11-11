@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.files
 Component: Content-Addressable Storage (CAS) Upload & HITL OCR Token Correction Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes providing SHA-256 Content-Addressable Storage (CAS) file ingestion,
 deduplication, and Human-In-The-Loop (HITL) OCR token review and manual correction workflows.
 """
@@ -31,7 +30,6 @@ class OCRToken:
     """
     Individual OCR token recognized from an experimental document, gel scan, or spectrometer report.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Stores bounding box, recognized text, confidence score, and human corrections.
     """
 
@@ -45,7 +43,7 @@ class OCRToken:
     corrected_at: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize OCR token to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize OCR token to dictionary."""
         return asdict(self)
 
 
@@ -54,7 +52,6 @@ class StoredFile:
     """
     Content-Addressable Storage (CAS) file metadata and payload envelope.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Stores immutable SHA-256 hash, byte payload or storage path, and associated OCR tokens.
     """
 
@@ -70,7 +67,7 @@ class StoredFile:
     uploaded_at: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize stored file metadata to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize stored file metadata to dictionary."""
         return {
             "file_id": self.file_id,
             "sha256_hash": self.sha256_hash,
@@ -89,7 +86,6 @@ class CASFileStorage:
     """
     CAS storage registry backed by disk BlobStore with SHA-256 deduplication and HITL OCR ledger.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Governs immutable file deduplication, CAS persistence, and OCR token corrections.
     """
 
@@ -107,7 +103,7 @@ class CASFileStorage:
         uploaded_by: str = "unknown",
         ocr_tokens: Optional[List[Dict[str, Any]]] = None,
     ) -> StoredFile:
-        """Store file using SHA-256 addressable key into BlobStore. Agent: @agent: eln-api-agent"""
+        """Store file using SHA-256 addressable key into BlobStore."""
         with self._lock:
             # Persist to disk-backed CAS BlobStore
             custom_attributes: Dict[str, Any] = {"uploaded_by": uploaded_by}
@@ -159,7 +155,7 @@ class CASFileStorage:
             return stored
 
     def get_file(self, file_id_or_hash: str) -> Optional[StoredFile]:
-        """Lookup file by file_id or hash. Agent: @agent: eln-api-agent"""
+        """Lookup file by file_id or hash."""
         with self._lock:
             res = self._by_id.get(file_id_or_hash) or self._by_hash.get(file_id_or_hash)
             if res:
@@ -206,7 +202,7 @@ class CASFileStorage:
         corrected_text: str,
         user_id: str,
     ) -> OCRToken:
-        """Apply human-in-the-loop OCR token correction. Agent: @agent: eln-api-agent"""
+        """Apply human-in-the-loop OCR token correction."""
         with self._lock:
             file_obj = self._by_id.get(file_id)
             if not file_obj:
@@ -251,7 +247,6 @@ def upload_file(payload: Dict[str, Any], current_user: Optional[UserSession] = N
     """
     Upload file into Content-Addressable Storage (CAS) with SHA-256 deduplication and optional OCR tokens.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Upload payload containing 'filename', 'content_b64' or 'content_text', optional 'mime_type', 'ocr_tokens'.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -282,7 +277,6 @@ def get_file_metadata(file_id: str, current_user: Optional[UserSession] = None) 
     """
     Retrieve stored file metadata and OCR tokens.
 
-    Agent: @agent: eln-api-agent
     Parameter file_id (str): CAS file ID or SHA-256 hash.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -303,7 +297,6 @@ def correct_ocr_token(
     """
     Human-In-The-Loop (HITL) OCR token correction endpoint.
 
-    Agent: @agent: eln-api-agent
     Parameter file_id (str): Target file ID.
     Parameter payload (Dict[str, Any]): Correction payload ('token_id', 'corrected_text').
     Parameter current_user (Optional[UserSession]): Authenticated operator.

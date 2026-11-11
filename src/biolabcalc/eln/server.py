@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.server
 Component: State-of-the-Art Electronic Lab Notebook (ELN) & Multi-Modal LIMS Server
-Agent: @agent: eln-orchestrator
 Architectural Role: Server launcher and runtime coordinator. Provides dual-engine execution:
 uses Uvicorn / FastAPI ASGI when available, with an automatic pure-Python multi-threaded
 HTTP/REST server fallback for zero-dependency bench environments.

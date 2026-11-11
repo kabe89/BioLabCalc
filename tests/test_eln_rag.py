@@ -1,6 +1,5 @@
 """
 Unit Tests for State-of-the-Art ELN & LIMS Pipeline: Hybrid-RAG, Local LLM & Knowledge Retrieval Engine
-Agent: @agent: eln-rag-agent
 """
 
 import json
@@ -36,7 +35,6 @@ from biolabcalc.eln.rag.synthesizer import (
 class TestLocalLLM(unittest.TestCase):
     """
     Test suite for LocalLLMClient and offline deterministic fallbacks.
-    Agent: @agent: eln-rag-agent
     """
 
     def test_offline_embedding_deterministic_and_normalized(self):
@@ -165,7 +163,6 @@ class TestLocalLLM(unittest.TestCase):
 class TestLaboratoryEntityExtractor(unittest.TestCase):
     """
     Test suite for LaboratoryEntityExtractor and regex pattern matching.
-    Agent: @agent: eln-rag-agent
     """
 
     def test_extract_all_biological_entities(self):
@@ -197,7 +194,6 @@ class TestLaboratoryEntityExtractor(unittest.TestCase):
 class TestDocumentChunker(unittest.TestCase):
     """
     Test suite for Multi-Entity Semantic DocumentChunker across ELN/LIMS modalities.
-    Agent: @agent: eln-rag-agent
     """
 
     def setUp(self):
@@ -328,7 +324,6 @@ class TestDocumentChunker(unittest.TestCase):
 class TestHybridSearchEngine(unittest.TestCase):
     """
     Test suite for HybridSearchEngine, BM25 scoring, RRF ranking, and provenance filters.
-    Agent: @agent: eln-rag-agent
     """
 
     def setUp(self):
@@ -470,7 +465,6 @@ class TestHybridSearchEngine(unittest.TestCase):
 class TestCitationSynthesizer(unittest.TestCase):
     """
     Test suite for CitationSynthesizer, answering queries with exact citations.
-    Agent: @agent: eln-rag-agent
     """
 
     def setUp(self):

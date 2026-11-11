@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.fplc_service
 Component: FPLC Chromatogram UV280 Peak Integration & Fraction Pooling Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core service performing trapezoidal numerical integration on FPLC UV280
 chromatograms (Ve, peak height, peak area), baseline subtraction, and automated fraction pooling
 stoichiometry (pooled volume, weighted mean UV280, estimated protein concentration, and cross-entity linkage).
@@ -24,7 +23,6 @@ class PeakIntegrationResult:
     """
     Quantitative metrics derived from numerical integration of a chromatogram UV280 peak.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Encapsulates retention volume Ve, net peak height, trapezoidal area,
     and fraction of total chromatogram absorbance.
     """
@@ -43,7 +41,6 @@ class PeakIntegrationResult:
         """
         Serialize peak integration result to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -54,7 +51,6 @@ class FPLCFraction:
     """
     Representation of an individual collected FPLC fraction tube.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Maps fraction collector rack coordinates (e.g. B4) to volume and UV280.
     """
 
@@ -68,7 +64,6 @@ class FPLCFraction:
         """
         Serialize fraction to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -79,7 +74,6 @@ class FractionPoolResult:
     """
     Stoichiometric and analytical summary of pooled FPLC fractions.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Links pooled elution volume, calculated mean UV280, estimated protein
     concentration (via Beer-Lambert Law), and downstream analytical entities (NanoDrop, Gel, Tubes).
     """
@@ -107,7 +101,6 @@ class FractionPoolResult:
         """
         Serialize fraction pool result to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -117,7 +110,6 @@ class FPLCService:
     """
     Service providing FPLC chromatogram numerical peak integration and fraction pooling calculations.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Executes Beer-Lambert spectrophotometric quantification, trapezoidal peak
     integration, and coordinates cross-pipeline entity linkage between chromatography, spectroscopy,
     gel electrophoresis, and freezer inventory.
@@ -127,7 +119,6 @@ class FPLCService:
         """
         Initialize FPLCService in-memory repository and audit link.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._pools: Dict[str, FractionPoolResult] = {}
@@ -144,7 +135,6 @@ class FPLCService:
         """
         Perform trapezoidal numerical integration on UV280 chromatogram within specified retention volume bounds.
 
-        Agent: @agent: eln-api-agent
         Mathematical Principles:
             - Extracts points where start_volume_ml <= V <= end_volume_ml.
             - Baseline subtraction:
@@ -244,7 +234,6 @@ class FPLCService:
         """
         Calculate pooled fraction volume, mean UV280, and estimated protein concentration via Beer-Lambert.
 
-        Agent: @agent: eln-api-agent
         Mathematical Principles:
             - Total Pooled Volume: V_total = Sum(V_i) (e.g. 5 fractions of 2.0 mL = 10.0 mL)
             - Weighted Mean UV280: Mean_UV = Sum(UV_i * V_i) / V_total (in mAU)
@@ -358,7 +347,6 @@ class FPLCService:
         """
         Link a pooled FPLC fraction to downstream NanoDrop measurements, gel lanes, and freezer tubes.
 
-        Agent: @agent: eln-api-agent
         Parameter pool_id (str): Target fraction pool ID.
         Parameter user_id (str): Operator ID.
         Parameter nanodrop_id (Optional[str]): NanoDrop record ID.
@@ -396,7 +384,6 @@ class FPLCService:
         """
         Retrieve fraction pool result by ID.
 
-        Agent: @agent: eln-api-agent
         Parameter pool_id (str): Pool ID.
         Return Type: Optional[FractionPoolResult]
         """
@@ -407,7 +394,6 @@ class FPLCService:
         """
         Reset internal FPLC pool state. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._pools.clear()
@@ -420,7 +406,6 @@ def get_fplc_service() -> FPLCService:
     """
     Get the process-level singleton instance of FPLCService.
 
-    Agent: @agent: eln-api-agent
     Return Type: FPLCService
     """
     return _global_fplc_service

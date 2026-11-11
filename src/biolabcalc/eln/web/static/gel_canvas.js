@@ -1,6 +1,5 @@
 /**
  * @file gel_canvas.js
- * @agent eln-frontend-agent
  * @description Interactive Bio-Rad SDS-PAGE / Agarose Gel Canvas & Molecular Weight Estimator.
  * @architecture Dual-layer HTML5 Canvas + SVG overlay supporting draggable lane boundary guides,
  *               semi-logarithmic ladder calibration curves (log10 MW vs Rf), band detection,
@@ -34,13 +33,11 @@
 
 /**
  * GelCanvasViewer Class: Renders interactive gel canvas and performs Rf/MW calculations.
- * @agent eln-frontend-agent
  * @role Scientific electrophoresis canvas controller
  */
 export class GelCanvasViewer {
   /**
    * Initializes the GelCanvasViewer instance.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    * @param {string|HTMLCanvasElement} canvasElement - Canvas element or ID
    * @param {Object} options - Configuration options
@@ -96,7 +93,6 @@ export class GelCanvasViewer {
 
   /**
    * Initializes standard 10-lane experimental layout for T7 RNAP campaign.
-   * @agent eln-frontend-agent
    * @role Data Initialization
    * @private
    * @returns {void}
@@ -196,7 +192,6 @@ export class GelCanvasViewer {
 
   /**
    * Fits semi-log standard curve log10(MW) = a * Rf + b from ladder bands.
-   * @agent eln-frontend-agent
    * @role Linear Regression Fitting
    * @private
    * @returns {void}
@@ -243,7 +238,6 @@ export class GelCanvasViewer {
 
   /**
    * Estimates molecular weight from relative mobility (Rf).
-   * @agent eln-frontend-agent
    * @role MW Prediction Engine
    * @param {number} rf - Relative mobility factor (0.0 to 1.0)
    * @returns {number} Estimated molecular weight in kDa
@@ -255,7 +249,6 @@ export class GelCanvasViewer {
 
   /**
    * Binds interaction listeners for dragging lane guides and selecting entities.
-   * @agent eln-frontend-agent
    * @role Event Handling
    * @private
    * @returns {void}
@@ -268,7 +261,6 @@ export class GelCanvasViewer {
 
   /**
    * Resizes canvas buffer for crisp high-DPI displays.
-   * @agent eln-frontend-agent
    * @role Display Scaling
    * @returns {void}
    */
@@ -286,7 +278,6 @@ export class GelCanvasViewer {
 
   /**
    * Master render method: draws background, Coomassie gel matrix, bands, and overlays.
-   * @agent eln-frontend-agent
    * @role Master Render Method
    * @returns {void}
    */
@@ -347,7 +338,6 @@ export class GelCanvasViewer {
 
   /**
    * Renders bands within a single lane with gaussian blur and intensity gradients.
-   * @agent eln-frontend-agent
    * @role Band Visualizer
    * @private
    * @param {GelLane} lane - Target lane
@@ -381,7 +371,6 @@ export class GelCanvasViewer {
 
   /**
    * Renders vertical draggable boundary guides and lane headers.
-   * @agent eln-frontend-agent
    * @role Lane Guide Visualizer
    * @private
    * @returns {void}
@@ -426,7 +415,6 @@ export class GelCanvasViewer {
 
   /**
    * Renders ladder molecular weight callouts alongside the ladder lane.
-   * @agent eln-frontend-agent
    * @role Ladder Legend Visualizer
    * @private
    * @returns {void}
@@ -455,7 +443,6 @@ export class GelCanvasViewer {
 
   /**
    * Renders entity linking pills below each lane.
-   * @agent eln-frontend-agent
    * @role Entity Tagging Visualizer
    * @private
    * @returns {void}
@@ -480,7 +467,6 @@ export class GelCanvasViewer {
 
   /**
    * Handles lane clicking and drag initiation.
-   * @agent eln-frontend-agent
    * @role Mouse Event Handler
    * @private
    * @param {MouseEvent} e - Mouse event
@@ -508,7 +494,6 @@ export class GelCanvasViewer {
 
   /**
    * Handles dragging to adjust lane horizontal position.
-   * @agent eln-frontend-agent
    * @role Drag Reposition Handler
    * @private
    * @param {MouseEvent} e - Mouse event
@@ -527,7 +512,6 @@ export class GelCanvasViewer {
 
   /**
    * Finalizes lane dragging and recalculates calibrations.
-   * @agent eln-frontend-agent
    * @role Drag End Handler
    * @private
    * @returns {void}
@@ -542,7 +526,6 @@ export class GelCanvasViewer {
 
   /**
    * Sets contrast and brightness visual parameters.
-   * @agent eln-frontend-agent
    * @role Visual Filter Controller
    * @param {number} contrast - Contrast factor (e.g., 0.5 to 2.0)
    * @param {number} brightness - Brightness factor (e.g., 0.5 to 2.0)
@@ -556,7 +539,6 @@ export class GelCanvasViewer {
 
   /**
    * Toggles color inversion (white background for publication).
-   * @agent eln-frontend-agent
    * @role Display Inversion Toggle
    * @returns {boolean} New inversion state
    */
@@ -568,7 +550,6 @@ export class GelCanvasViewer {
 
   /**
    * Links a database entity to a specific lane.
-   * @agent eln-frontend-agent
    * @role Database Entity Linker
    * @param {number} laneIndex - Target 1-based lane number
    * @param {string} entityType - Entity type ('constructId'|'fractionPoolId'|'nanoDropId')
@@ -585,7 +566,6 @@ export class GelCanvasViewer {
 
   /**
    * Exports high-resolution annotated publication figure.
-   * @agent eln-frontend-agent
    * @role Publication Exporter
    * @returns {string} High-resolution Base64 PNG URL
    */

@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.storage.blob_store
 Component: Content-Addressable Storage (CAS) Engine
-Agent: @agent: eln-parser-agent
 Architectural Role: Provides SHA-256 deduplicated, tamper-evident immutable blob
 storage with local filesystem sharding and S3/MinIO cloud backend abstraction.
 """
@@ -39,7 +38,6 @@ class BlobMetadata:
 
     Architectural Role:
         Data transfer object for immutable CAS references across ELN and LIMS layers.
-        @agent: eln-parser-agent
     """
 
     sha256: str
@@ -92,7 +90,6 @@ class StorageBackend(abc.ABC):
     Architectural Role:
         Decouples storage mechanics (Local Disk, S3, MinIO) from higher-level
         ingestion and parser orchestration.
-        @agent: eln-parser-agent
     """
 
     @abc.abstractmethod
@@ -210,7 +207,6 @@ class LocalStorageBackend(StorageBackend):
 
     Architectural Role:
         High-throughput local and workstation storage driver.
-        @agent: eln-parser-agent
     """
 
     def __init__(self, base_dir: Union[str, Path] = ".biolabcalc_data/blobs"):
@@ -455,7 +451,6 @@ class S3StorageBackend(StorageBackend):
 
     Architectural Role:
         Cloud-native scaling layer for distributed lab deployments.
-        @agent: eln-parser-agent
     """
 
     def __init__(
@@ -738,7 +733,6 @@ class BlobStore:
     Architectural Role:
         Primary interface used by ELN entries, LIMS sample attachments,
         parsers, and preview generators.
-        @agent: eln-parser-agent
     """
 
     def __init__(self, backend: Optional[StorageBackend] = None, base_dir: Union[str, Path] = ".biolabcalc_data/blobs"):

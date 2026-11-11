@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api
 Component: API & Real-Time Concurrency Package for Electronic Lab Notebook & LIMS Pipeline
-Agent: @agent: eln-api-agent
 Architectural Role: Central export module providing the ASGI application factory `create_app`,
 the in-process `TestClient`, role-based access control authentication, and real-time WebSocket connection manager.
 """

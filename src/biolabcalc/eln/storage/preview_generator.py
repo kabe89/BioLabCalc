@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.storage.preview_generator
 Component: Lossless Web Preview Generator
-Agent: @agent: eln-parser-agent
 Architectural Role: Generates high-fidelity, web-optimized previews for scientific
 images, 16-bit gel scans, electrophysiology sweeps, and chromatography traces.
 """
@@ -34,7 +33,6 @@ class PreviewResult:
 
     Architectural Role:
         Payload object for web UI rendering and cached preview storage.
-        @agent: eln-parser-agent
     """
 
     preview_bytes: bytes
@@ -57,7 +55,6 @@ class PreviewGenerator:
 
     Architectural Role:
         Transformation layer between raw instrument data blobs and browser/client presentation.
-        @agent: eln-parser-agent
     """
 
     @classmethod

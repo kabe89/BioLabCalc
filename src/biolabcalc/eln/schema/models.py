@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.schema.models
 Component: Declarative Data Models for ELN & LIMS Pipeline
-Agent: @agent: eln-db-agent
 Architectural Role: Complete schema models representing 21 core entities,
                     custom domain ENUMs, yield metrics, completion timestamps,
                     and bidirectional relationships with SQLite and PostgreSQL compatibility.
@@ -30,7 +29,6 @@ class UserRole(str, Enum):
     """
     User authorization and role classifications in laboratory workspace.
 
-    Agent: @agent: eln-db-agent
     """
     PRINCIPAL_INVESTIGATOR = "principal_investigator"
     ACTIVE_RESEARCHER = "active_researcher"
@@ -44,7 +42,6 @@ class ExptStatus(str, Enum):
     """
     Lifecycle status tracking for experimental campaigns, assays, and entries.
 
-    Agent: @agent: eln-db-agent
     """
     PLANNED = "planned"
     IN_PROGRESS = "in_progress"
@@ -58,7 +55,6 @@ class FileFormatCategory(str, Enum):
     """
     Instrument file format categories for raw and processed multi-modal data.
 
-    Agent: @agent: eln-db-agent
     """
     FPLC_RES = "fplc_res"
     NANODROP_CSV = "nanodrop_csv"
@@ -77,7 +73,6 @@ class BiomoleculeType(str, Enum):
     """
     Biochemical taxonomy of target biomolecules and inventory samples.
 
-    Agent: @agent: eln-db-agent
     """
     PLASMID_DNA = "plasmid_dna"
     GENOMIC_DNA = "genomic_dna"
@@ -93,7 +88,6 @@ class StorageNodeType(str, Enum):
     """
     Physical hierarchy classifications for laboratory storage locations.
 
-    Agent: @agent: eln-db-agent
     """
     FACILITY = "facility"
     ROOM = "room"
@@ -113,7 +107,7 @@ class StorageNodeType(str, Enum):
 # ============================================================================
 
 def UUIDColumn(primary_key: bool = False, default_gen: bool = True) -> Field:
-    """Generate a UUID column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a UUID column descriptor."""
     def _gen() -> str:
         return str(uuid.uuid4())
     return Field(
@@ -131,7 +125,7 @@ def StringColumn(
     unique: bool = False,
     foreign_key: Optional[str] = None
 ) -> Field:
-    """Generate a string/text column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a string/text column descriptor."""
     return Field(
         data_type="TEXT",
         nullable=nullable,
@@ -147,7 +141,7 @@ def IntegerColumn(
     unique: bool = False,
     foreign_key: Optional[str] = None
 ) -> Field:
-    """Generate an integer column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate an integer column descriptor."""
     return Field(
         data_type="INTEGER",
         nullable=nullable,
@@ -161,7 +155,7 @@ def FloatColumn(
     nullable: bool = True,
     default: Any = None
 ) -> Field:
-    """Generate a floating-point real column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a floating-point real column descriptor."""
     return Field(
         data_type="REAL",
         nullable=nullable,
@@ -173,7 +167,7 @@ def BooleanColumn(
     nullable: bool = False,
     default: bool = False
 ) -> Field:
-    """Generate a boolean column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a boolean column descriptor."""
     return Field(
         data_type="BOOLEAN",
         nullable=nullable,
@@ -185,7 +179,7 @@ def DateTimeColumn(
     nullable: bool = True,
     auto_now: bool = False
 ) -> Field:
-    """Generate a timestamp column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a timestamp column descriptor."""
     def _now() -> str:
         return datetime.now(timezone.utc).isoformat()
     return Field(
@@ -199,7 +193,7 @@ def JSONColumn(
     nullable: bool = True,
     default: Any = None
 ) -> Field:
-    """Generate a JSON data column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a JSON data column descriptor."""
     return Field(
         data_type="TEXT",
         nullable=nullable,
@@ -212,7 +206,7 @@ def VectorColumn(
     dimensions: int = 1536,
     nullable: bool = True
 ) -> Field:
-    """Generate a vector embedding column descriptor. Agent: @agent: eln-db-agent"""
+    """Generate a vector embedding column descriptor."""
     return Field(
         data_type="TEXT",
         nullable=nullable,
@@ -230,7 +224,6 @@ class User(BaseModel):
     """
     Lab user profile tracking researchers, principal investigators, and alumni.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "users"
 
@@ -248,7 +241,6 @@ class AuditLog(BaseModel):
     """
     Audit log recording data modifications, logins, and compliance actions.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "audit_logs"
 
@@ -266,7 +258,6 @@ class StorageBlob(BaseModel):
     """
     Storage metadata for raw chromatograms, gel images, and instrument outputs.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "storage_blobs"
 
@@ -285,7 +276,6 @@ class SopTemplate(BaseModel):
     """
     Standard Operating Procedure (SOP) versioned markdown documentation template.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "sop_templates"
 
@@ -305,7 +295,6 @@ class ExperimentalCampaign(BaseModel):
     Top-level experimental campaign tracking objectives, overall yield metrics,
     and completion status across multi-day protocols.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "experimental_campaigns"
 
@@ -329,7 +318,7 @@ class ExperimentalCampaign(BaseModel):
 
     @property
     def daily_entries(self) -> List[NotebookDailyEntry]:
-        """Fetch daily entries associated with campaign. Agent: @agent: eln-db-agent"""
+        """Fetch daily entries associated with campaign."""
         if getattr(self, "_cached_daily_entries", None) is not None:
             return self._cached_daily_entries
         if self._session and self.id:
@@ -343,7 +332,7 @@ class ExperimentalCampaign(BaseModel):
 
     @property
     def lead_user(self) -> Optional[User]:
-        """Fetch lead researcher profile. Agent: @agent: eln-db-agent"""
+        """Fetch lead researcher profile."""
         if getattr(self, "_cached_lead_user", None) is not None:
             return self._cached_lead_user
         if self._session and self.lead_user_id:
@@ -358,7 +347,7 @@ class ExperimentalCampaign(BaseModel):
 
     @property
     def sop(self) -> Optional[SopTemplate]:
-        """Fetch associated SOP. Agent: @agent: eln-db-agent"""
+        """Fetch associated SOP."""
         if getattr(self, "_cached_sop", None) is not None:
             return self._cached_sop
         if self._session and self.sop_id:
@@ -376,7 +365,6 @@ class NotebookDailyEntry(BaseModel):
     """
     Daily bench notebook log tracking day-by-day operations, deviations, and yields.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "notebook_daily_entries"
 
@@ -400,7 +388,7 @@ class NotebookDailyEntry(BaseModel):
 
     @property
     def campaign(self) -> Optional[ExperimentalCampaign]:
-        """Fetch parent experimental campaign. Agent: @agent: eln-db-agent"""
+        """Fetch parent experimental campaign."""
         if getattr(self, "_cached_campaign", None) is not None:
             return self._cached_campaign
         if self._session and self.campaign_id:
@@ -415,7 +403,7 @@ class NotebookDailyEntry(BaseModel):
 
     @property
     def timepoints(self) -> List[NotebookTimepointLog]:
-        """Fetch timepoints logged during this entry. Agent: @agent: eln-db-agent"""
+        """Fetch timepoints logged during this entry."""
         if getattr(self, "_cached_timepoints", None) is not None:
             return self._cached_timepoints
         if self._session and self.id:
@@ -428,7 +416,7 @@ class NotebookDailyEntry(BaseModel):
 
     @property
     def operator(self) -> Optional[User]:
-        """Fetch operator user profile. Agent: @agent: eln-db-agent"""
+        """Fetch operator user profile."""
         if getattr(self, "_cached_operator", None) is not None:
             return self._cached_operator
         if self._session and self.operator_id:
@@ -446,7 +434,6 @@ class NotebookTimepointLog(BaseModel):
     """
     Kinetic timepoint monitoring (OD600, temperature, RPM) during bacterial growth.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "notebook_timepoint_logs"
 
@@ -463,7 +450,7 @@ class NotebookTimepointLog(BaseModel):
 
     @property
     def entry(self) -> Optional[NotebookDailyEntry]:
-        """Fetch parent daily entry. Agent: @agent: eln-db-agent"""
+        """Fetch parent daily entry."""
         if getattr(self, "_cached_entry", None) is not None:
             return self._cached_entry
         if self._session and self.entry_id:
@@ -481,7 +468,6 @@ class BioSequence(BaseModel):
     """
     Biomolecular sequence data, biophysical properties, and plasmid annotations.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "bio_sequences"
 
@@ -502,7 +488,6 @@ class PcrAssay(BaseModel):
     """
     Polymerase chain reaction assay execution record and primer configuration.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "pcr_assays"
 
@@ -532,7 +517,6 @@ class NanodropMeasurement(BaseModel):
     """
     Spectrophotometric quantification record (A260, A280, concentration, purity ratios).
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "nanodrop_measurements"
 
@@ -562,7 +546,6 @@ class FplcColumn(BaseModel):
     """
     Chromatography column asset tracking bed volume, pressure limits, and operational status.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "fplc_columns"
 
@@ -578,7 +561,7 @@ class FplcColumn(BaseModel):
 
     @property
     def runs(self) -> List[FplcRun]:
-        """Fetch all FPLC runs executed on column. Agent: @agent: eln-db-agent"""
+        """Fetch all FPLC runs executed on column."""
         if getattr(self, "_cached_runs", None) is not None:
             return self._cached_runs
         if self._session and self.id:
@@ -594,7 +577,6 @@ class FplcRun(BaseModel):
     """
     FPLC chromatography run record tracking buffer profiles, flow rates, and yield metrics.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "fplc_runs"
 
@@ -621,7 +603,7 @@ class FplcRun(BaseModel):
 
     @property
     def column(self) -> Optional[FplcColumn]:
-        """Fetch column used in this run. Agent: @agent: eln-db-agent"""
+        """Fetch column used in this run."""
         if getattr(self, "_cached_column", None) is not None:
             return self._cached_column
         if self._session and self.column_id:
@@ -636,7 +618,7 @@ class FplcRun(BaseModel):
 
     @property
     def fractions(self) -> List[FplcFraction]:
-        """Fetch collected fractions. Agent: @agent: eln-db-agent"""
+        """Fetch collected fractions."""
         if getattr(self, "_cached_fractions", None) is not None:
             return self._cached_fractions
         if self._session and self.id:
@@ -652,7 +634,6 @@ class FplcFraction(BaseModel):
     """
     Chromatography fraction collected during an FPLC purification run.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "fplc_fractions"
 
@@ -668,7 +649,7 @@ class FplcFraction(BaseModel):
 
     @property
     def run(self) -> Optional[FplcRun]:
-        """Fetch parent FPLC run. Agent: @agent: eln-db-agent"""
+        """Fetch parent FPLC run."""
         if getattr(self, "_cached_run", None) is not None:
             return self._cached_run
         if self._session and self.run_id:
@@ -686,7 +667,6 @@ class GelRecord(BaseModel):
     """
     Electrophoresis gel record (SDS-PAGE or agarose) with voltage, run time, and purity.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "gel_records"
 
@@ -706,7 +686,7 @@ class GelRecord(BaseModel):
 
     @property
     def lanes(self) -> List[GelLane]:
-        """Fetch lanes belonging to gel. Agent: @agent: eln-db-agent"""
+        """Fetch lanes belonging to gel."""
         if getattr(self, "_cached_lanes", None) is not None:
             return self._cached_lanes
         if self._session and self.id:
@@ -722,7 +702,6 @@ class GelLane(BaseModel):
     """
     Single lane within an electrophoresis gel containing sample identity and band analysis.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "gel_lanes"
 
@@ -740,7 +719,7 @@ class GelLane(BaseModel):
 
     @property
     def gel(self) -> Optional[GelRecord]:
-        """Fetch parent gel record. Agent: @agent: eln-db-agent"""
+        """Fetch parent gel record."""
         if getattr(self, "_cached_gel", None) is not None:
             return self._cached_gel
         if self._session and self.gel_id:
@@ -758,7 +737,6 @@ class EphysRecording(BaseModel):
     """
     Electrophysiology patch-clamp recording assay record and summary metrics.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "ephys_recordings"
 
@@ -781,7 +759,6 @@ class CodeAnalysisRun(BaseModel):
     """
     Computational pipeline and script execution tracking for bioinformatic analysis.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "code_analysis_runs"
 
@@ -801,7 +778,6 @@ class StorageHierarchyNode(BaseModel):
     """
     Recursive physical storage hierarchy node (Facility -> Room -> Freezer -> Rack).
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "storage_hierarchy_nodes"
 
@@ -815,7 +791,7 @@ class StorageHierarchyNode(BaseModel):
 
     @property
     def parent(self) -> Optional[StorageHierarchyNode]:
-        """Fetch parent storage node. Agent: @agent: eln-db-agent"""
+        """Fetch parent storage node."""
         if getattr(self, "_cached_parent", None) is not None:
             return self._cached_parent
         if self._session and self.parent_id:
@@ -830,7 +806,7 @@ class StorageHierarchyNode(BaseModel):
 
     @property
     def children(self) -> List[StorageHierarchyNode]:
-        """Fetch child storage hierarchy nodes. Agent: @agent: eln-db-agent"""
+        """Fetch child storage hierarchy nodes."""
         if getattr(self, "_cached_children", None) is not None:
             return self._cached_children
         if self._session and self.id:
@@ -843,7 +819,7 @@ class StorageHierarchyNode(BaseModel):
 
     @property
     def freezer_boxes(self) -> List[FreezerBox]:
-        """Fetch freezer boxes stored inside this node. Agent: @agent: eln-db-agent"""
+        """Fetch freezer boxes stored inside this node."""
         if getattr(self, "_cached_freezer_boxes", None) is not None:
             return self._cached_freezer_boxes
         if self._session and self.id:
@@ -859,7 +835,6 @@ class FreezerBox(BaseModel):
     """
     Freezer box container tracking 2D coordinate grid and temperature specifications.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "freezer_boxes"
 
@@ -875,7 +850,7 @@ class FreezerBox(BaseModel):
 
     @property
     def hierarchy_node(self) -> Optional[StorageHierarchyNode]:
-        """Fetch parent rack/freezer node. Agent: @agent: eln-db-agent"""
+        """Fetch parent rack/freezer node."""
         if getattr(self, "_cached_hierarchy_node", None) is not None:
             return self._cached_hierarchy_node
         if self._session and self.hierarchy_node_id:
@@ -890,7 +865,7 @@ class FreezerBox(BaseModel):
 
     @property
     def tubes(self) -> List[InventoryTube]:
-        """Fetch inventory sample tubes stored inside box. Agent: @agent: eln-db-agent"""
+        """Fetch inventory sample tubes stored inside box."""
         if getattr(self, "_cached_tubes", None) is not None:
             return self._cached_tubes
         if self._session and self.id:
@@ -906,7 +881,6 @@ class InventoryTube(BaseModel):
     """
     Physical sample tube placed in a freezer box with barcode, yield, and provenance.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "inventory_tubes"
 
@@ -932,7 +906,7 @@ class InventoryTube(BaseModel):
 
     @property
     def box(self) -> Optional[FreezerBox]:
-        """Fetch parent freezer box. Agent: @agent: eln-db-agent"""
+        """Fetch parent freezer box."""
         if getattr(self, "_cached_box", None) is not None:
             return self._cached_box
         if self._session and self.box_id:
@@ -950,7 +924,6 @@ class RagDocumentChunk(BaseModel):
     """
     Document chunk supporting dense vector embedding (1536-dim) and lexical search.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__ = "rag_document_chunks"
 

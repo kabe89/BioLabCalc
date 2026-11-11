@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.rag.chunker
 Component: Multi-Entity Semantic Chunker with Biological Provenance Extraction
-Agent: @agent: eln-rag-agent
 Architectural Role: Ingests notebook daily entries, kinetic timepoints, FPLC
 chromatograms, NanoDrop spectra, Bio-Rad gels, and SOPs; extracts dense text,
 sparse lexical tokens, and structured biological entities (constructs, primers,
@@ -49,9 +48,6 @@ class ProvenanceMetadata:
     extra : Dict[str, Any]
         Additional arbitrary metadata tags.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     author_id: str
@@ -105,9 +101,6 @@ class DocumentChunk:
     embedding : Optional[List[float]]
         Optional precomputed dense embedding vector.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     chunk_id: str
@@ -162,9 +155,6 @@ class LaboratoryEntityExtractor:
     - Catalog numbers (e.g. Cat# 28-9909-44, #M0273S)
     - Buffers (e.g. 50 mM Tris-HCl pH 8.0, 100 mM NaCl, PBS)
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     PATTERNS = {
@@ -281,9 +271,6 @@ class DocumentChunker:
     daily entries, kinetic timepoints, FPLC peaks, NanoDrop spectral records,
     Bio-Rad gels, and SOPs.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(self, default_chunk_size: int = 500) -> None:

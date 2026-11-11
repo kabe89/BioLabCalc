@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers.doc_parser
 Component: Legacy Document Parser (.docx and .pdf)
-Agent: @agent: eln-parser-agent
 Architectural Role: Extracts structured content (paragraphs, formatted tables, and embedded images)
 from legacy Microsoft Word (.docx) and Adobe Portable Document Format (.pdf) files using pure-Python
 parsers without external system dependencies.
@@ -36,7 +35,6 @@ class DocumentImage:
 
     Architectural Role:
         Encapsulates extracted visual evidence for CAS ingestion.
-        @agent: eln-parser-agent
     """
 
     filename: str
@@ -59,7 +57,6 @@ class DocumentParagraph:
 
     Architectural Role:
         Represents sequential narrative flow in lab reports.
-        @agent: eln-parser-agent
     """
 
     text: str
@@ -82,7 +79,6 @@ class DocumentResult:
 
     Architectural Role:
         Standard structured output enabling transformation into ELN entries.
-        @agent: eln-parser-agent
     """
 
     file_format: str
@@ -161,7 +157,6 @@ class DocParser:
 
     Architectural Role:
         Ingests legacy protocol archives, SOPs, and lab reports into modern ELN structures.
-        @agent: eln-parser-agent
     """
 
     @classmethod

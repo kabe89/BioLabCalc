@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.app
 Component: FastAPI & Standalone ASGI Application Factory
-Agent: @agent: eln-api-agent
 Architectural Role: ASGI application factory mounting all REST routes (campaigns, timepoints, files,
 fplc, nanodrop, gels, inventory, sequences, sops, search), WebSocket real-time connections,
 CORS middleware, error handling, and in-process testing harness.
@@ -30,7 +29,6 @@ class ASGIApplication:
     """
     Standard ASGI 3.0 application supporting REST routing, JSON serializing, and WebSocket messaging.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Pure-Python ASGI 3.0 compliant dispatcher capable of executing standalone
     or running inside uvicorn, hypercorn, or in-memory TestClient.
     """
@@ -44,7 +42,6 @@ class ASGIApplication:
         """
         Initialize ASGI application.
 
-        Agent: @agent: eln-api-agent
         Parameter title (str): API title.
         Parameter version (str): Semantic version.
         Parameter static_dir (Optional[str]): Optional static directory to serve assets from.
@@ -74,7 +71,6 @@ class ASGIApplication:
         """
         ASGI 3.0 entry point.
 
-        Agent: @agent: eln-api-agent
         Parameter scope (Dict[str, Any]): ASGI connection scope.
         Parameter receive (Callable): Inbound event receiver.
         Parameter send (Callable): Outbound event transmitter.
@@ -99,7 +95,6 @@ class ASGIApplication:
         """
         Execute synchronous in-process request dispatch without requiring an active event loop.
 
-        Agent: @agent: eln-api-agent
         Parameter method (str): HTTP method verb.
         Parameter path (str): Target path including optional query string.
         Parameter payload (Optional[Dict[str, Any]]): JSON body dictionary.
@@ -187,7 +182,7 @@ class ASGIApplication:
             err = {"status": "error", "message": f"Internal server error: {ex}"}
             return {"status_code": 500, "json": err, "body": json.dumps(err).encode("utf-8")}
     async def _handle_http(self, scope: Dict[str, Any], receive: Callable, send: Callable) -> None:
-        """Dispatch HTTP request. Agent: @agent: eln-api-agent"""
+        """Dispatch HTTP request."""
         method = scope.get("method", "GET").upper()
         path = scope.get("path", "/")
         query_string = scope.get("query_string", b"").decode("utf-8")
@@ -229,7 +224,7 @@ class ASGIApplication:
         await self._send_json_response(send, res["status_code"], res["json"])
 
     async def _handle_websocket(self, scope: Dict[str, Any], receive: Callable, send: Callable) -> None:
-        """Dispatch WebSocket connection. Agent: @agent: eln-api-agent"""
+        """Dispatch WebSocket connection."""
         path = scope.get("path", "/ws")
         client_id = path.split("/")[-1] if path not in ("/ws", "/ws/") else f"client-{id(scope)}"
 
@@ -268,7 +263,7 @@ class ASGIApplication:
             self.ws_manager.disconnect(client_id)
 
     async def _handle_lifespan(self, scope: Dict[str, Any], receive: Callable, send: Callable) -> None:
-        """ASGI lifespan startup/shutdown. Agent: @agent: eln-api-agent"""
+        """ASGI lifespan startup/shutdown."""
         while True:
             message = await receive()
             if message["type"] == "lifespan.startup":
@@ -278,7 +273,7 @@ class ASGIApplication:
                 break
 
     async def _send_cors_preflight(self, send: Callable) -> None:
-        """Send 204 response with CORS headers. Agent: @agent: eln-api-agent"""
+        """Send 204 response with CORS headers."""
         headers = [
             (b"access-control-allow-origin", b"*"),
             (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS"),
@@ -289,7 +284,7 @@ class ASGIApplication:
         await send({"type": "http.response.body", "body": b""})
 
     async def _send_json_response(self, send: Callable, status_code: int, data: Any) -> None:
-        """Send JSON response with CORS headers. Agent: @agent: eln-api-agent"""
+        """Send JSON response with CORS headers."""
         body_bytes = json.dumps(data, default=str).encode("utf-8")
         headers = [
             (b"content-type", b"application/json"),
@@ -300,7 +295,7 @@ class ASGIApplication:
         await send({"type": "http.response.body", "body": body_bytes})
 
     async def _serve_static(self, send: Callable, filepath: str) -> None:
-        """Serve static file bytes. Agent: @agent: eln-api-agent"""
+        """Serve static file bytes."""
         with open(filepath, "rb") as f:
             content = f.read()
         headers = [
@@ -316,7 +311,6 @@ class TestClient:
     """
     Synchronous and asynchronous in-process test client for ASGI application.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Executes HTTP requests directly against ASGI application without opening network ports.
     """
 
@@ -324,7 +318,6 @@ class TestClient:
         """
         Initialize TestClient with ASGI application.
 
-        Agent: @agent: eln-api-agent
         Parameter app (ASGIApplication): Application instance.
         """
         self.app = app
@@ -339,7 +332,6 @@ class TestClient:
         """
         Execute an asynchronous request through the ASGI pipeline.
 
-        Agent: @agent: eln-api-agent
         Parameter method (str): HTTP method.
         Parameter path (str): Target path.
         Parameter payload (Optional[Dict[str, Any]]): JSON body.
@@ -402,7 +394,6 @@ class TestClient:
         """
         Synchronous request wrapper.
 
-        Agent: @agent: eln-api-agent
         Parameter method (str): HTTP method.
         Parameter path (str): Path.
         Parameter payload (Optional[Dict[str, Any]]): JSON body.
@@ -413,19 +404,19 @@ class TestClient:
         return self.app.dispatch_sync(method, path, payload, effective_headers)
 
     def get(self, path: str, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-        """GET shortcut. Agent: @agent: eln-api-agent"""
+        """GET shortcut."""
         return self.request("GET", path, headers=headers)
 
     def post(self, path: str, payload: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-        """POST shortcut. Agent: @agent: eln-api-agent"""
+        """POST shortcut."""
         return self.request("POST", path, payload=payload, headers=headers)
 
     def put(self, path: str, payload: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-        """PUT shortcut. Agent: @agent: eln-api-agent"""
+        """PUT shortcut."""
         return self.request("PUT", path, payload=payload, headers=headers)
 
     def delete(self, path: str, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-        """DELETE shortcut. Agent: @agent: eln-api-agent"""
+        """DELETE shortcut."""
         return self.request("DELETE", path, headers=headers)
 
 
@@ -437,7 +428,6 @@ def create_app(
     """
     Factory function creating and configuring the ELN & LIMS ASGI application.
 
-    Agent: @agent: eln-api-agent
     Parameter title (str): Application title.
     Parameter version (str): Application version.
     Parameter static_dir (Optional[str]): Path to static assets.

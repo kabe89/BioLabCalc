@@ -1,7 +1,6 @@
 """
 Test Suite: test_eln_storage
 Component: Content-Addressable Storage (CAS) and Web Preview Tests
-Agent: @agent: eln-parser-agent
 Architectural Role: Comprehensive verification of CAS deduplication, integrity,
 local directory sharding, S3 backend abstraction, and scientific preview generation.
 """

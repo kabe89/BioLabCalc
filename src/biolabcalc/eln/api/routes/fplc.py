@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.fplc
 Component: FPLC Peak Integration & Fraction Pooling REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing trapezoidal peak integration on UV280 chromatograms,
 automated fraction pooling stoichiometry, and multi-modal entity linkage.
 """
@@ -24,7 +23,6 @@ def integrate_chromatogram_peak(payload: Dict[str, Any], current_user: Optional[
     """
     Perform trapezoidal numerical integration on a UV280 chromatogram curve.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Integration parameters (chromatogram_data, start_volume_ml, end_volume_ml, baseline_type).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -51,7 +49,6 @@ def pool_fractions(payload: Dict[str, Any], current_user: Optional[UserSession] 
     """
     Pool selected FPLC fractions and calculate total volume, weighted mean UV280, and estimated concentration.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Pooling parameters (campaign_id, run_id, fractions, construct_id, pathlength_cm).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -76,7 +73,6 @@ def link_pool_entities(payload: Dict[str, Any], current_user: Optional[UserSessi
     """
     Link fraction pool to downstream NanoDrop records, gel lanes, and freezer tube barcodes.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Link parameters (pool_id, nanodrop_id, gel_lane_id, tube_ids).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -97,7 +93,6 @@ def get_fraction_pool(pool_id: str, current_user: Optional[UserSession] = None) 
     """
     Retrieve fraction pool by ID.
 
-    Agent: @agent: eln-api-agent
     Parameter pool_id (str): Pool ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]

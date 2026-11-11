@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.rag.local_llm
 Component: Local LLM & Embedding Model Client for Laboratory RAG
-Agent: @agent: eln-rag-agent
 Architectural Role: Native local inference client connecting to Ollama servers,
 cluster head-nodes, or SLURM compute nodes (vLLM, TGI, LocalAI) without cloud
 API keys, providing a deterministic zero-dependency offline fallback.
@@ -27,9 +26,6 @@ class OfflineEmbeddingGenerator:
     Ensures 100% test reliability and air-gapped lab node support without needing
     active GPU/network servers.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(self, dimensions: int = 128) -> None:
@@ -132,9 +128,6 @@ class OfflineHeuristicGenerator:
     extracts biological entities and metrics, and synthesizes structured answers
     when no live local LLM server is accessible.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(self) -> None:
@@ -258,9 +251,6 @@ class LocalLLMClient:
     deterministic_fallback : bool
         If True, falls back to built-in offline generator on connection failure.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(

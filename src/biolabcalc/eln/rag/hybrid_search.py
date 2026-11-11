@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.rag.hybrid_search
 Component: Hybrid Dense-Sparse Search Engine with Reciprocal Rank Fusion (RRF)
-Agent: @agent: eln-rag-agent
 Architectural Role: Executes multi-modal laboratory search combining cosine vector
 similarity and BM25 lexical ranking with laboratory entity boosts and multi-user
 temporal provenance filtering.
@@ -37,9 +36,6 @@ class SearchResult:
     sparse_rank : int
         1-based rank in sparse lexical candidate list.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     chunk: DocumentChunk
@@ -75,9 +71,6 @@ class BM25Engine:
     b : float
         Document length normalization parameter (default: 0.75).
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(self, k1: float = 1.5, b: float = 0.75) -> None:
@@ -192,9 +185,6 @@ class HybridSearchEngine:
     rrf_k : int
         RRF smoothing constant (default: 60).
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(

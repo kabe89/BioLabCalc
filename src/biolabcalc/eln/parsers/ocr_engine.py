@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers.ocr_engine
 Component: Human-in-the-Loop (HITL) Vision-OCR Engine
-Agent: @agent: eln-parser-agent
 Architectural Role: Digitizes scanned handwritten laboratory notebooks, whiteboard protocols,
 and FPLC fraction logs with token-level confidence scoring, biochemical ambiguity detection,
 and structured serialization of uncertain tokens for interactive human verification.
@@ -35,7 +34,6 @@ class OCRToken:
 
     Architectural Role:
         Atomic unit of OCR transcription subject to human review.
-        @agent: eln-parser-agent
     """
 
     id: str
@@ -76,7 +74,6 @@ class OCRResult:
 
     Architectural Role:
         Container for transcribed text passed to ELN editor and review UI.
-        @agent: eln-parser-agent
     """
 
     markdown: str
@@ -124,7 +121,6 @@ class OCREngine:
 
     Architectural Role:
         Transcription engine bridging physical lab notebooks with digital knowledge graphs.
-        @agent: eln-parser-agent
     """
 
     CONFIDENCE_THRESHOLD = 0.85

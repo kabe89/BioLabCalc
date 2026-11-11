@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.websocket_manager
 Component: Real-Time Concurrency & WebSocket Connection Manager
-Agent: @agent: eln-api-agent
 Architectural Role: Core concurrency module managing real-time WebSocket client connections,
 topic-based subscription routing, and asynchronous broadcasting of live kinetic countdown timers,
 collaborative lab notebook edits, and freezer grid slot occupancy changes.
@@ -25,7 +24,6 @@ class WebSocketConnection:
     Client connection representation supporting bidirectional asynchronous transmission
     and event queue buffering.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Wraps physical ASGI WebSocket socket or memory event buffer.
     """
 
@@ -33,7 +31,6 @@ class WebSocketConnection:
         """
         Initialize connection instance.
 
-        Agent: @agent: eln-api-agent
         Parameter client_id (str): Unique client session identifier.
         Parameter websocket (Optional[Any]): Underlying ASGI WebSocket instance.
         """
@@ -47,7 +44,6 @@ class WebSocketConnection:
         """
         Transmit JSON payload to connected client, falling back to buffer if disconnected.
 
-        Agent: @agent: eln-api-agent
         Parameter data (Dict[str, Any]): Outbound payload.
         """
         if self.websocket is not None:
@@ -68,7 +64,6 @@ class WebSocketManager:
     """
     Topic-based real-time connection broker for lab notebook collaboration and kinetic timers.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Governs pub/sub channels (e.g. 'timers', 'notebook:{id}', 'inventory:{id}'),
     client connection lifecycle, and asynchronous multi-cast broadcasting.
     """
@@ -77,7 +72,6 @@ class WebSocketManager:
         """
         Initialize WebSocketManager with topic registries and thread lock.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.Lock()
         self._connections: Dict[str, WebSocketConnection] = {}
@@ -88,7 +82,6 @@ class WebSocketManager:
         """
         Register a new client connection.
 
-        Agent: @agent: eln-api-agent
         Parameter client_id (str): Unique connection ID.
         Parameter websocket (Optional[Any]): ASGI WebSocket instance.
         Return Type: WebSocketConnection
@@ -103,7 +96,6 @@ class WebSocketManager:
         """
         Unregister client connection and purge from all subscribed topics.
 
-        Agent: @agent: eln-api-agent
         Parameter client_id (str): Client ID to disconnect.
         """
         with self._lock:
@@ -120,7 +112,6 @@ class WebSocketManager:
         """
         Subscribe an active client to a specific topic channel.
 
-        Agent: @agent: eln-api-agent
         Parameter client_id (str): Client connection ID.
         Parameter topic (str): Topic channel (e.g. 'timers', 'notebook:ENTRY-1', 'inventory:BOX-1').
         Return Type: bool (True if subscribed, False if client not found).
@@ -140,7 +131,6 @@ class WebSocketManager:
         """
         Unsubscribe client from a specific topic channel.
 
-        Agent: @agent: eln-api-agent
         Parameter client_id (str): Client connection ID.
         Parameter topic (str): Topic channel.
         """
@@ -155,7 +145,6 @@ class WebSocketManager:
         """
         Broadcast JSON message asynchronously to all clients subscribed to topic.
 
-        Agent: @agent: eln-api-agent
         Parameter topic (str): Target topic channel.
         Parameter message (Dict[str, Any]): Outbound message payload.
         Parameter exclude_client (Optional[str]): Optional client ID to omit from broadcast (e.g. sender).
@@ -196,7 +185,6 @@ class WebSocketManager:
         """
         Broadcast live second-resolution kinetic countdown update to all subscribers on 'timers' channel.
 
-        Agent: @agent: eln-api-agent
         Parameter timer_id (str): Unique timer identifier.
         Parameter timer_data (Dict[str, Any]): Computed timer metrics (elapsed, remaining, status, deviation).
         Return Type: int
@@ -215,7 +203,6 @@ class WebSocketManager:
         """
         Broadcast real-time collaborative notebook field update or checkoff to co-workers.
 
-        Agent: @agent: eln-api-agent
         Parameter entry_id (str): Daily notebook entry ID.
         Parameter edit_data (Dict[str, Any]): Field delta or observation update.
         Parameter sender_id (Optional[str]): Client originating mutation to prevent echo.
@@ -231,7 +218,6 @@ class WebSocketManager:
         """
         Broadcast freezer 2D box grid slot occupancy change or tube movement to connected lab workstations.
 
-        Agent: @agent: eln-api-agent
         Parameter box_id (str): Target storage box ID.
         Parameter change_data (Dict[str, Any]): Relocation, placement, or removal payload.
         Return Type: int
@@ -245,7 +231,6 @@ class WebSocketManager:
         """
         Retrieve recent broadcast events for clients operating in polling / non-WebSocket mode.
 
-        Agent: @agent: eln-api-agent
         Parameter topic (str): Channel to poll.
         Parameter limit (int): Maximum items to return.
         Return Type: List[Dict[str, Any]]
@@ -255,12 +240,12 @@ class WebSocketManager:
             return list(events[-limit:])
 
     def get_connected_clients_count(self) -> int:
-        """Return total active connections. Agent: @agent: eln-api-agent"""
+        """Return total active connections."""
         with self._lock:
             return len(self._connections)
 
     def clear_for_testing(self) -> None:
-        """Reset internal connection state. Agent: @agent: eln-api-agent"""
+        """Reset internal connection state."""
         with self._lock:
             self._connections.clear()
             self._topic_subscribers.clear()
@@ -274,7 +259,6 @@ def get_websocket_manager() -> WebSocketManager:
     """
     Get the process-level singleton instance of WebSocketManager.
 
-    Agent: @agent: eln-api-agent
     Return Type: WebSocketManager
     """
     return _global_ws_manager

@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers.abf_parser
 Component: Pure-Python Axon Binary Format (.abf) and Axon Text Format (.atf) Parser
-Agent: @agent: eln-parser-agent
 Architectural Role: Ingests electrophysiology recordings from Axon Instruments / Molecular Devices
 pCLAMP suites (ABF v1, ABF v2, ATF) without requiring C-extensions, extracting sampling rates,
 sweep counts, channel properties, holding potentials, annotations, and generating downsampled
@@ -30,7 +29,6 @@ class ABFTag:
 
     Architectural Role:
         Event descriptor for electrophysiology annotations.
-        @agent: eln-parser-agent
     """
 
     time_seconds: float
@@ -61,7 +59,6 @@ class ABFData:
 
     Architectural Role:
         Primary electrophysiology domain object used across ELN notebooks and viewers.
-        @agent: eln-parser-agent
     """
 
     file_format: str
@@ -116,7 +113,6 @@ class ABFParser:
 
     Architectural Role:
         Parses high-throughput patch-clamp and field recordings into structured ELN representations.
-        @agent: eln-parser-agent
     """
 
     @classmethod

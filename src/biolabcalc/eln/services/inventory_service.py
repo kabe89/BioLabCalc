@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.inventory_service
 Component: Spatial Freezer Hierarchy, 2D Grid Occupancy & End-to-End Sample Lineage Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core service governing laboratory cold-chain spatial hierarchy
 (Room -> Storage Unit -> Rack -> Box -> Tube Slot), 2D box grid slot occupancy management,
 tube relocation with immutable audit logging, and graph-based upstream sample lineage resolution.
@@ -27,7 +26,6 @@ class Room:
     """
     Physical room or facility location.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Top-level spatial boundary for storage units.
     """
 
@@ -37,7 +35,7 @@ class Room:
     floor: str
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize room to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize room to dictionary."""
         return asdict(self)
 
 
@@ -46,7 +44,6 @@ class StorageUnit:
     """
     Cold-chain temperature unit (-80C, -20C, 4C, LN2, ambient).
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Governs storage units housed within physical laboratory rooms.
     """
 
@@ -57,7 +54,7 @@ class StorageUnit:
     model_number: str
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize unit to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize unit to dictionary."""
         return asdict(self)
 
 
@@ -66,7 +63,6 @@ class Rack:
     """
     Sub-compartment rack or shelf within a storage unit.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Intermediate physical grouping holding multiple freezer storage boxes.
     """
 
@@ -76,7 +72,7 @@ class Rack:
     shelf_level: int
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize rack to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize rack to dictionary."""
         return asdict(self)
 
 
@@ -85,7 +81,6 @@ class Box:
     """
     2D coordinate cryogenic or storage box (9x9 or 10x10 grid).
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Defines 2D grid slot coordinate boundaries (e.g. A1 to I9).
     """
 
@@ -98,7 +93,7 @@ class Box:
     temperature_target: str
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize box to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize box to dictionary."""
         return asdict(self)
 
 
@@ -107,7 +102,6 @@ class Tube:
     """
     Individual sample tube placed at a specific box grid slot.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Sample entity recording lineage pointers, volume, concentration, and location.
     """
 
@@ -129,7 +123,7 @@ class Tube:
     updated_at: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize tube to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize tube to dictionary."""
         return asdict(self)
 
 
@@ -137,7 +131,6 @@ class InventoryService:
     """
     Service managing multi-tier freezer spatial hierarchy, 2D box grid occupancy, and sample lineage.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Orchestrates Room -> StorageUnit -> Rack -> Box -> Tube navigation,
     slot occupancy collision checks, audited tube movements, and graph-based lineage resolution.
     """
@@ -146,7 +139,6 @@ class InventoryService:
         """
         Initialize inventory service repositories and seed baseline spatial infrastructure.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._rooms: Dict[str, Room] = {}
@@ -164,7 +156,6 @@ class InventoryService:
         """
         Pre-seed baseline freezer spatial hierarchy: Room 402 -> -80C Freezer 1 -> Rack A -> Box-T7RNAP (9x9).
 
-        Agent: @agent: eln-api-agent
         """
         room = Room(room_id="ROOM-402", name="Bioprocessing Suite 402", building="BioSciences South", floor="4")
         self._rooms[room.room_id] = room
@@ -218,7 +209,7 @@ class InventoryService:
     # -------------------------------------------------------------------------
 
     def create_room(self, name: str, building: str, floor: str) -> Room:
-        """Create a room. Agent: @agent: eln-api-agent"""
+        """Create a room."""
         with self._lock:
             room_id = f"ROOM-{uuid.uuid4().hex[:6].upper()}"
             room = Room(room_id=room_id, name=name, building=building, floor=floor)
@@ -226,7 +217,7 @@ class InventoryService:
             return room
 
     def create_storage_unit(self, room_id: str, name: str, unit_type: str, model_number: str = "") -> StorageUnit:
-        """Create a storage unit (-80C, -20C, 4C, LN2). Agent: @agent: eln-api-agent"""
+        """Create a storage unit (-80C, -20C, 4C, LN2)."""
         with self._lock:
             if room_id not in self._rooms:
                 raise KeyError(f"Room '{room_id}' not found.")
@@ -236,7 +227,7 @@ class InventoryService:
             return unit
 
     def create_rack(self, unit_id: str, name: str, shelf_level: int = 1) -> Rack:
-        """Create a rack/shelf. Agent: @agent: eln-api-agent"""
+        """Create a rack/shelf."""
         with self._lock:
             if unit_id not in self._units:
                 raise KeyError(f"Storage unit '{unit_id}' not found.")
@@ -255,7 +246,6 @@ class InventoryService:
         """
         Create a 2D grid storage box (9x9 or 10x10).
 
-        Agent: @agent: eln-api-agent
         Parameter rack_id (str): Rack containing box.
         Parameter name (str): Box title.
         Parameter box_type (str): '9x9' (81 slots) or '10x10' (100 slots).
@@ -285,7 +275,6 @@ class InventoryService:
         """
         Return the complete nested spatial hierarchy tree (Room -> Unit -> Rack -> Box).
 
-        Agent: @agent: eln-api-agent
         Return Type: List[Dict[str, Any]]
         """
         with self._lock:
@@ -313,7 +302,6 @@ class InventoryService:
         """
         Validate and normalize coordinate string (e.g. 'a1' -> 'A1').
 
-        Agent: @agent: eln-api-agent
         """
         slot_clean = slot.strip().upper()
         match = re.match(r"^([A-Z])(\d+)$", slot_clean)
@@ -335,7 +323,6 @@ class InventoryService:
         """
         Generate 2D matrix of box slots showing occupancy, tube details, and percentage full.
 
-        Agent: @agent: eln-api-agent
         Parameter box_id (str): Target box ID.
         Return Type: Dict[str, Any]
         """
@@ -415,7 +402,6 @@ class InventoryService:
         """
         Place a new sample tube into a designated box slot, verifying slot availability.
 
-        Agent: @agent: eln-api-agent
         Parameter box_id (str): Target box ID.
         Parameter slot (str): Coordinate slot (e.g. 'A1', 'I9').
         Parameter sample_name (str): Label for sample.
@@ -491,7 +477,6 @@ class InventoryService:
         """
         Relocate a tube to a new box coordinate with an immutable audit log entry.
 
-        Agent: @agent: eln-api-agent
         Parameter tube_id (str): Target tube ID.
         Parameter target_box_id (str): Destination box ID.
         Parameter target_slot (str): Destination coordinate (e.g. 'C4').
@@ -563,7 +548,6 @@ class InventoryService:
         """
         Resolve the complete upstream sample lineage tree for a given tube.
 
-        Agent: @agent: eln-api-agent
         Traverses relationships:
             Tube -> Spatial Location (Room, Storage Unit, Rack, Box, Slot)
             Tube -> Origin Daily Notebook Entry (Day #, SOP fork, Observations)
@@ -640,12 +624,12 @@ class InventoryService:
             }
 
     def get_tube(self, tube_id: str) -> Optional[Tube]:
-        """Retrieve tube by ID. Agent: @agent: eln-api-agent"""
+        """Retrieve tube by ID."""
         with self._lock:
             return self._tubes.get(tube_id)
 
     def clear_for_testing(self) -> None:
-        """Reset internal inventory state. Agent: @agent: eln-api-agent"""
+        """Reset internal inventory state."""
         with self._lock:
             self._rooms.clear()
             self._units.clear()
@@ -662,7 +646,6 @@ def get_inventory_service() -> InventoryService:
     """
     Get the process-level singleton instance of InventoryService.
 
-    Agent: @agent: eln-api-agent
     Return Type: InventoryService
     """
     return _global_inventory_service

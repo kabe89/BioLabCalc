@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.campaigns
 Component: Experimental Campaign & Daily Entry REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing campaign lifecycle state transitions, daily notebook entries,
 cross-day carry-forward state math (harvest pellet weight to lysis buffer), daily rollups, and final yields.
 """
@@ -31,7 +30,6 @@ def list_campaigns(status: Optional[str] = None, current_user: Optional[UserSess
     """
     List all experimental campaigns, optionally filtered by lifecycle status.
 
-    Agent: @agent: eln-api-agent
     Parameter status (Optional[str]): Status filter ('planned', 'in_progress', 'completed').
     Parameter current_user (Optional[UserSession]): Authenticated session.
     Return Type: Dict[str, Any]
@@ -46,7 +44,6 @@ def create_campaign(payload: Dict[str, Any], current_user: Optional[UserSession]
     """
     Create a new experimental campaign.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Campaign definition (title, description, construct_id, target_organism).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -68,7 +65,6 @@ def get_campaign(campaign_id: str, current_user: Optional[UserSession] = None) -
     """
     Retrieve single campaign by ID.
 
-    Agent: @agent: eln-api-agent
     Parameter campaign_id (str): Unique campaign ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -85,7 +81,6 @@ def add_daily_entry(campaign_id: str, payload: Dict[str, Any], current_user: Opt
     """
     Add a daily notebook entry to a campaign.
 
-    Agent: @agent: eln-api-agent
     Parameter campaign_id (str): Target campaign ID.
     Parameter payload (Dict[str, Any]): Daily entry fields (day_number, title, date, notes, state_inputs).
     Parameter current_user (Optional[UserSession]): Authenticated user.
@@ -116,7 +111,6 @@ def update_daily_entry(
     """
     Update state outputs, notes, or status for an existing daily notebook entry.
 
-    Agent: @agent: eln-api-agent
     Parameter campaign_id (str): Target campaign ID.
     Parameter entry_id (str): Daily entry ID.
     Parameter payload (Dict[str, Any]): Updates (state_outputs, notes, status).
@@ -141,7 +135,6 @@ def carry_forward_state(campaign_id: str, payload: Dict[str, Any], current_user:
     """
     Execute carry-forward state math across days (e.g. Day 2 harvest pellet weight -> Day 3 lysis buffer calculations).
 
-    Agent: @agent: eln-api-agent
     Parameter campaign_id (str): Target campaign ID.
     Parameter payload (Dict[str, Any]): Parameters (harvest_day, lysis_day, buffer_ratio_ml_per_g).
     Parameter current_user (Optional[UserSession]): Authenticated user.
@@ -167,7 +160,6 @@ def get_daily_rollup(campaign_id: str, day_number: str, current_user: Optional[U
     """
     Generate automatic daily rollup summary for an experimental day.
 
-    Agent: @agent: eln-api-agent
     Parameter campaign_id (str): Target campaign ID.
     Parameter day_number (str): Ordinal day number.
     Parameter current_user (Optional[UserSession]): Authenticated user.
@@ -183,7 +175,6 @@ def complete_campaign(campaign_id: str, payload: Dict[str, Any], current_user: O
     """
     Record final yield metrics and mark campaign completed.
 
-    Agent: @agent: eln-api-agent
     Parameter campaign_id (str): Target campaign ID.
     Parameter payload (Dict[str, Any]): Culmination metrics (yield_mg_total, culture_volume_l, theoretical_yield_mg, yield_ug_plasmid).
     Parameter current_user (Optional[UserSession]): Authenticated user.

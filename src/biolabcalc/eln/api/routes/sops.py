@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.sops
 Component: Standard Operating Procedure (SOP) Versioning & Execution Forking REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing master SOP protocol authoring, semantic versioning, PI approval,
 and "Instantiate SOP into Daily Notebook Entry" execution forking with locked parameter state.
 """
@@ -34,7 +33,6 @@ def list_sops(
     """
     List master Standard Operating Procedures, optionally filtered by category or status.
 
-    Agent: @agent: eln-api-agent
     Parameter category (Optional[str]): Category filter.
     Parameter status (Optional[str]): Status filter ('draft', 'approved', 'deprecated').
     Parameter current_user (Optional[UserSession]): Authenticated user.
@@ -50,7 +48,6 @@ def create_sop(payload: Dict[str, Any], current_user: Optional[UserSession] = No
     """
     Create a new master SOP draft.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): SOP definition (sop_id, title, version, category, description, parameters, steps).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -74,7 +71,6 @@ def get_sop(sop_id: str, current_user: Optional[UserSession] = None) -> Dict[str
     """
     Retrieve master SOP by ID.
 
-    Agent: @agent: eln-api-agent
     Parameter sop_id (str): SOP ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -91,7 +87,6 @@ def approve_sop(sop_id: str, current_user: Optional[UserSession] = None) -> Dict
     """
     Approve an SOP, locking it for regulated experimental execution.
 
-    Agent: @agent: eln-api-agent
     Parameter sop_id (str): Target SOP ID.
     Parameter current_user (Optional[UserSession]): Authorizing PI.
     Return Type: Dict[str, Any]
@@ -107,7 +102,6 @@ def fork_sop_for_entry(sop_id: str, payload: Dict[str, Any], current_user: Optio
     """
     Instantiate SOP into Daily Notebook Entry, locking parameter state and creating execution checklist.
 
-    Agent: @agent: eln-api-agent
     Parameter sop_id (str): Master SOP ID.
     Parameter payload (Dict[str, Any]): Fork parameters ('entry_id': str, optional 'parameter_overrides': dict).
     Parameter current_user (Optional[UserSession]): Operator executing fork.
@@ -128,7 +122,6 @@ def get_sop_fork(fork_id: str, current_user: Optional[UserSession] = None) -> Di
     """
     Retrieve instantiated SOP fork and its interactive execution checklist.
 
-    Agent: @agent: eln-api-agent
     Parameter fork_id (str): Fork ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -144,7 +137,6 @@ def checkoff_step(fork_id: str, payload: Dict[str, Any], current_user: Optional[
     """
     Checkoff an instantiated SOP step with actual duration and deviation notes.
 
-    Agent: @agent: eln-api-agent
     Parameter fork_id (str): Target SOP fork ID.
     Parameter payload (Dict[str, Any]): Checkoff parameters ('step_index': int, optional 'actual_duration_minutes', 'deviation_notes').
     Parameter current_user (Optional[UserSession]): Authenticated operator.

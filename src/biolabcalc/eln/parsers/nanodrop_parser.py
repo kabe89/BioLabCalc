@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers.nanodrop_parser
 Component: NanoDrop One / 2000 / Eight Multi-Format Export Parser
-Agent: @agent: eln-parser-agent
 Architectural Role: Ingests spectrophotometer exports (.ndv, .tsv, .csv, .xlsx),
 extracting sample identities, concentrations, optical densities (A260, A280, A230),
 purity ratios (260/280, 260/230), pathlengths, and high-resolution 220-350 nm UV spectra.
@@ -43,7 +42,6 @@ class NanoDropSample:
 
     Architectural Role:
         Primary data transfer object representing quantified nucleic acids and proteins.
-        @agent: eln-parser-agent
     """
 
     sample_name: str
@@ -98,7 +96,6 @@ class NanoDropExperiment:
 
     Architectural Role:
         Aggregator of spectrophotometry runs for multi-well or serial samples.
-        @agent: eln-parser-agent
     """
 
     file_format: str
@@ -135,7 +132,6 @@ class NanoDropParser:
 
     Architectural Role:
         LIMS ingestion engine for sample quantification.
-        @agent: eln-parser-agent
     """
 
     @classmethod

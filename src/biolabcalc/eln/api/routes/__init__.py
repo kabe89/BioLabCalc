@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes
 Component: Route Registry Aggregator
-Agent: @agent: eln-api-agent
 Architectural Role: Central export aggregator mounting all sub-routers for campaigns, timepoints,
 files (CAS/OCR), FPLC, NanoDrop, gels, inventory, sequences, SOPs, and unified search.
 """

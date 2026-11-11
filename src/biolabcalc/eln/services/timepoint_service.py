@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.timepoint_service
 Component: Kinetic Timepoint Recording, Delta t0 Resolution & Live Countdown Timers
-Agent: @agent: eln-api-agent
 Architectural Role: Core service providing second-resolution kinetic timepoint recording,
 elapsed duration delta calculation from t0, deviation tracking against planned SOP durations,
 and real-time countdown timer orchestration.
@@ -23,7 +22,6 @@ def _parse_iso_datetime(dt_str_or_obj: Any) -> datetime:
     """
     Parse an ISO 8601 string or datetime object into a timezone-aware UTC datetime.
 
-    Agent: @agent: eln-api-agent
     Parameter dt_str_or_obj (Any): Input string or datetime.
     Return Type: datetime
     """
@@ -56,7 +54,6 @@ def format_duration(seconds: float) -> str:
     """
     Format duration in seconds to a signed string +HH:MM:SS or -HH:MM:SS.
 
-    Agent: @agent: eln-api-agent
     Parameter seconds (float): Duration in seconds.
     Return Type: str
     """
@@ -73,7 +70,6 @@ class Timepoint:
     """
     Data model representing a discrete kinetic timepoint with second resolution.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Quantifies kinetic elapsed time from t0, captures operational parameters,
     and records deviation from planned protocol duration.
     """
@@ -97,7 +93,6 @@ class Timepoint:
         """
         Serialize timepoint to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -107,7 +102,6 @@ class LiveTimer:
     """
     Active countdown/countup timer for live laboratory protocol execution.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Maintains real-time clock state for active incubations, kinetic assays,
     or harvest centrifugation, calculating remaining duration and elapsed deviation.
     """
@@ -123,7 +117,6 @@ class LiveTimer:
         """
         Initialize live timer instance.
 
-        Agent: @agent: eln-api-agent
         Parameter timer_id (str): Unique timer identifier.
         Parameter name (str): Human-readable name (e.g. 'IPTG Induction 4h').
         Parameter target_duration_seconds (float): Planned target duration in seconds.
@@ -145,7 +138,6 @@ class LiveTimer:
         """
         Compute instantaneous state of the timer.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         if self.status == "running":
@@ -182,7 +174,6 @@ class LiveTimer:
         """
         Pause the running timer.
 
-        Agent: @agent: eln-api-agent
         """
         if self.status == "running":
             self.paused_elapsed += time.time() - self.start_epoch
@@ -192,7 +183,6 @@ class LiveTimer:
         """
         Resume a paused timer.
 
-        Agent: @agent: eln-api-agent
         """
         if self.status == "paused":
             self.start_epoch = time.time()
@@ -202,7 +192,6 @@ class LiveTimer:
         """
         Stop timer and finalize state.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         self.status = "stopped"
@@ -213,7 +202,6 @@ class TimepointService:
     """
     Service managing second-resolution kinetic timepoint recording and live timers.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Encapsulates kinetic calculations, deviation thresholding against SOP
     benchmarks, and coordinates live active timers.
     """
@@ -222,7 +210,6 @@ class TimepointService:
         """
         Initialize TimepointService.
 
-        Agent: @agent: eln-api-agent
         Parameter deviation_tolerance_seconds (float): Grace window before marking a duration
         as deviated (default: 60.0s).
         """
@@ -246,7 +233,6 @@ class TimepointService:
         """
         Record a second-resolution kinetic timepoint with elapsed delta t0 and deviation tracking.
 
-        Agent: @agent: eln-api-agent
         Calculates:
             elapsed_seconds = (timestamp - t0).total_seconds()
             deviation_seconds = elapsed_seconds - planned_duration_seconds (if planned provided)
@@ -327,7 +313,6 @@ class TimepointService:
         """
         Start an active countdown timer for real-time protocol monitoring.
 
-        Agent: @agent: eln-api-agent
         Parameter name (str): Timer label.
         Parameter target_duration_seconds (float): Duration in seconds.
         Parameter entry_id (Optional[str]): Daily entry ID.
@@ -350,7 +335,6 @@ class TimepointService:
         """
         Get live timer by ID.
 
-        Agent: @agent: eln-api-agent
         Parameter timer_id (str): Timer identifier.
         Return Type: Optional[LiveTimer]
         """
@@ -361,7 +345,6 @@ class TimepointService:
         """
         List all active timers with real-time computed states.
 
-        Agent: @agent: eln-api-agent
         Return Type: List[Dict[str, Any]]
         """
         with self._lock:
@@ -371,7 +354,6 @@ class TimepointService:
         """
         Stop and remove live timer.
 
-        Agent: @agent: eln-api-agent
         Parameter timer_id (str): Target timer ID.
         Return Type: Optional[Dict[str, Any]]
         """
@@ -385,7 +367,6 @@ class TimepointService:
         """
         Get all timepoints recorded for a given daily notebook entry.
 
-        Agent: @agent: eln-api-agent
         Parameter entry_id (str): Daily entry ID.
         Return Type: List[Timepoint]
         """
@@ -396,7 +377,6 @@ class TimepointService:
         """
         Reset internal timepoint state. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._timepoints.clear()
@@ -410,7 +390,6 @@ def get_timepoint_service() -> TimepointService:
     """
     Get the process-level singleton instance of TimepointService.
 
-    Agent: @agent: eln-api-agent
     Return Type: TimepointService
     """
     return _global_timepoint_service

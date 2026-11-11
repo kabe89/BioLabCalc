@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/biolabcalc/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Tests](https://img.shields.io/badge/tests-196%20passed-brightgreen.svg)](#-running-tests)
+[![Tests](https://img.shields.io/badge/tests-195%20passed-brightgreen.svg)](#-running-tests)
 
 > **BioLabCalc** is a comprehensive computational biology suite, command-line benchtop assistant, interactive Excel generator, and browser-based Electronic Lab Notebook (ELN) / LIMS for daily wet-lab molecular biology, biochemistry, cloning, electrophoresis, and cell culture workflows.
 
@@ -445,11 +445,11 @@ python -m unittest discover -s tests
 ```
 
 ```text
-Ran 196 tests in 0.771s
+Ran 195 tests in 0.762s
 OK (skipped=6)
 ```
 
-All 196 automated tests pass with 100% test coverage across core mathematical, physical, and biochemical calculations.
+All 195 automated tests pass with 100% test coverage across core mathematical, physical, and biochemical calculations.
 
 ---
 

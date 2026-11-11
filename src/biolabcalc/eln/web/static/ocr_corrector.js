@@ -1,6 +1,5 @@
 /**
  * @file ocr_corrector.js
- * @agent eln-frontend-agent
  * @description Interactive Human-in-the-Loop (HITL) OCR Review, Tag Parser & Error Corrector.
  * @architecture Parses synthetic or real OCR digitized notebook entries containing embedded uncertainty tags:
  *               `[[UNCERTAIN:id="..." text="..." conf=0.xx bbox="[x,y,w,h]" candidates="[...]"]]`
@@ -22,13 +21,11 @@
 
 /**
  * OCRCorrector Class: Drives the HITL text rendering, interactive popover, and correction loop.
- * @agent eln-frontend-agent
  * @role HITL OCR interactive reviewer component
  */
 export class OCRCorrector {
   /**
    * Initializes the OCRCorrector instance.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    * @param {string|HTMLElement} textContainer - Container element for transcription text
    * @param {Object} options - Configuration options
@@ -59,7 +56,6 @@ export class OCRCorrector {
 
   /**
    * Parses raw string with embedded tags and renders interactive markup.
-   * @agent eln-frontend-agent
    * @role Tag Parser & Markup Engine
    * @param {string} rawText - Text containing [[UNCERTAIN:...]] tags
    * @returns {void}
@@ -129,7 +125,6 @@ export class OCRCorrector {
 
   /**
    * Binds click events to uncertain word pills.
-   * @agent eln-frontend-agent
    * @role Interactive DOM Binding
    * @private
    * @returns {void}
@@ -157,7 +152,6 @@ export class OCRCorrector {
 
   /**
    * Opens the interactive HITL review popover anchored to the target pill.
-   * @agent eln-frontend-agent
    * @role Popover Coordinator
    * @private
    * @param {HTMLElement} pillEl - Anchored pill DOM element
@@ -254,7 +248,6 @@ export class OCRCorrector {
 
   /**
    * Closes the active popover if currently open.
-   * @agent eln-frontend-agent
    * @role Popover Cleanup
    * @private
    * @returns {void}
@@ -268,7 +261,6 @@ export class OCRCorrector {
 
   /**
    * Resolves an uncertain token with the user's accepted or edited value.
-   * @agent eln-frontend-agent
    * @role Token Resolution Engine
    * @param {string} tokenId - Tag identifier
    * @param {string} resolvedValue - User verified text
@@ -318,7 +310,6 @@ export class OCRCorrector {
 
   /**
    * Produces clean plain-text output with all uncertain tags replaced by verified text.
-   * @agent eln-frontend-agent
    * @role Clean Output Serializer
    * @returns {string} Sanitized verified text
    */
@@ -330,7 +321,6 @@ export class OCRCorrector {
 
   /**
    * Escapes HTML entities for security against XSS.
-   * @agent eln-frontend-agent
    * @role HTML Sanitizer
    * @private
    * @param {string} str - Raw input

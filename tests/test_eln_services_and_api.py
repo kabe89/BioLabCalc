@@ -1,7 +1,6 @@
 """
 Module: tests.test_eln_services_and_api
 Component: Comprehensive Verification Suite for ELN & LIMS Pipeline Services, Concurrency & API Layer
-Agent: @agent: eln-api-agent
 Architectural Role: Full integration and unit test suite verifying mathematical correctness,
 cryptographic audit immutability, carry-forward state calculations, kinetic deviations,
 FPLC peak integrations and fraction pooling, gel ladder calibrations, spatial inventory,
@@ -42,16 +41,15 @@ class TestAuditService(unittest.TestCase):
     """
     Test suite verifying cryptographic hash chaining and immutability verification.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Initialize and reset audit service. Agent: @agent: eln-api-agent"""
+        """Initialize and reset audit service."""
         self.audit = get_audit_service()
         self.audit.clear_for_testing()
 
     def test_cryptographic_hash_chain_and_verification(self) -> None:
-        """Verify unbroken SHA-256 hash chaining and tampering detection. Agent: @agent: eln-api-agent"""
+        """Verify unbroken SHA-256 hash chaining and tampering detection."""
         evt1 = self.audit.record_event("campaign", "CMP-001", "CREATE", "pi_admin", metadata={"notes": "Init"})
         evt2 = self.audit.record_event("daily_entry", "ENTRY-001", "CREATE", "active_researcher")
         evt3 = self.audit.record_event("tube", "TUBE-001", "TUBE_MOVE", "active_researcher")
@@ -72,16 +70,15 @@ class TestCampaignService(unittest.TestCase):
     """
     Test suite verifying campaign lifecycle, daily entries, carry-forward math, and yields.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset campaign and audit service. Agent: @agent: eln-api-agent"""
+        """Reset campaign and audit service."""
         self.campaign_service = get_campaign_service()
         self.campaign_service.clear_for_testing()
 
     def test_campaign_lifecycle_and_daily_entries(self) -> None:
-        """Verify creation, transitions, and daily entries. Agent: @agent: eln-api-agent"""
+        """Verify creation, transitions, and daily entries."""
         cmp = self.campaign_service.create_campaign(
             title="T7RNAP 10L Fermentation",
             description="High-density IPTG expression in TB medium",
@@ -104,7 +101,6 @@ class TestCampaignService(unittest.TestCase):
         Verify exact carry-forward math: Day 2 harvest pellet weight 22.4 g -> Day 3 lysis buffer:
         5 mL buffer per gram pellet = 112 mL buffer, 3 protease inhibitor tablets.
 
-        Agent: @agent: eln-api-agent
         """
         cmp = self.campaign_service.create_campaign("Test Carry Forward", "Desc", "pET-28a-T7RNAP", "pi_admin")
         d2 = self.campaign_service.add_daily_entry(cmp.campaign_id, 2, "Harvest Day", "pi_admin")
@@ -142,7 +138,7 @@ class TestCampaignService(unittest.TestCase):
         self.assertEqual(rollup["state_inputs"]["lysis_buffer_volume_ml"], 112.0)
 
     def test_campaign_completion_and_yield_metrics(self) -> None:
-        """Verify final yield computations on campaign completion. Agent: @agent: eln-api-agent"""
+        """Verify final yield computations on campaign completion."""
         cmp = self.campaign_service.create_campaign("Yield Campaign", "Desc", "pET-28a-T7RNAP", "pi_admin")
         completed = self.campaign_service.complete_campaign(
             campaign_id=cmp.campaign_id,
@@ -164,11 +160,10 @@ class TestTimepointService(unittest.TestCase):
     """
     Test suite verifying kinetic timepoint delta t0, deviation calculations, and live timers.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset timepoint service. Agent: @agent: eln-api-agent"""
+        """Reset timepoint service."""
         self.timepoint_service = get_timepoint_service()
         self.timepoint_service.clear_for_testing()
 
@@ -177,7 +172,6 @@ class TestTimepointService(unittest.TestCase):
         Verify t0 to t1 elapsed seconds and target duration deviation:
         Target 60 min (3600s), actual 75 min (4500s) -> deviation +15 min (+900s, +25%).
 
-        Agent: @agent: eln-api-agent
         """
         t0_str = "2026-11-02T10:00:00Z"
         t1_str = "2026-11-02T11:15:00Z"
@@ -199,7 +193,7 @@ class TestTimepointService(unittest.TestCase):
         self.assertTrue(tp.is_deviated)
 
     def test_live_timer_orchestration(self) -> None:
-        """Verify live timer start, tick, pause, resume, and stop. Agent: @agent: eln-api-agent"""
+        """Verify live timer start, tick, pause, resume, and stop."""
         timer = self.timepoint_service.start_live_timer(
             name="IPTG Induction 4h",
             target_duration_seconds=14400.0,
@@ -224,11 +218,10 @@ class TestSOPService(unittest.TestCase):
     """
     Test suite verifying SOP versioning and execution forking with locked parameter state.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset SOP service. Agent: @agent: eln-api-agent"""
+        """Reset SOP service."""
         self.sop_service = get_sop_service()
         self.sop_service.clear_for_testing()
 
@@ -236,7 +229,6 @@ class TestSOPService(unittest.TestCase):
         """
         Verify SOP creation, approval, and execution forking locking parameters and checklist.
 
-        Agent: @agent: eln-api-agent
         """
         master = self.sop_service.create_sop(
             sop_id="SOP-TEST-001",
@@ -290,11 +282,10 @@ class TestSequenceService(unittest.TestCase):
     """
     Test suite verifying sequence construct registry, Tm, MW, pI, e280, A0.1% calculations.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset sequence service. Agent: @agent: eln-api-agent"""
+        """Reset sequence service."""
         self.seq_service = get_sequence_service()
         self.seq_service.clear_for_testing()
 
@@ -303,7 +294,6 @@ class TestSequenceService(unittest.TestCase):
         Verify pre-seeded pET-28a-T7RNAP construct has correct molecular weight (~98.8 kDa),
         pI (~6.5), and extinction coefficient e280 (>135,000 M^-1 cm^-1).
 
-        Agent: @agent: eln-api-agent
         """
         t7 = self.seq_service.get_sequence("pET-28a-T7RNAP")
         self.assertIsNotNone(t7)
@@ -314,7 +304,7 @@ class TestSequenceService(unittest.TestCase):
         self.assertTrue(t7.absorbance_01_pct > 1.0)
 
     def test_primer_thermodynamics(self) -> None:
-        """Verify melting temperature Tm and GC% for oligonucleotides. Agent: @agent: eln-api-agent"""
+        """Verify melting temperature Tm and GC% for oligonucleotides."""
         primer = self.seq_service.get_sequence("PRIMER-T7-FWD")
         self.assertIsNotNone(primer)
         self.assertEqual(primer.length, 20)
@@ -326,16 +316,15 @@ class TestFPLCService(unittest.TestCase):
     """
     Test suite verifying FPLC trapezoidal peak integration and fraction pooling.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset FPLC service. Agent: @agent: eln-api-agent"""
+        """Reset FPLC service."""
         self.fplc_service = get_fplc_service()
         self.fplc_service.clear_for_testing()
 
     def test_trapezoidal_peak_integration(self) -> None:
-        """Verify numerical trapezoidal peak area and retention volume Ve. Agent: @agent: eln-api-agent"""
+        """Verify numerical trapezoidal peak area and retention volume Ve."""
         # Triangular chromatogram peak centered at Ve = 12.0 mL
         curve = [
             (10.0, 10.0),
@@ -355,7 +344,6 @@ class TestFPLCService(unittest.TestCase):
         Verify pooling fractions B4 to B8: 5 fractions * 2.0 mL = 10.0 mL,
         calculates weighted mean UV280 and estimated protein concentration via Beer-Lambert.
 
-        Agent: @agent: eln-api-agent
         """
         fractions = [
             {"fraction_id": "B4", "volume_ml": 2.0, "uv280_mau": 100.0},
@@ -381,11 +369,10 @@ class TestGelService(unittest.TestCase):
     """
     Test suite verifying gel ladder standard curve calibration and MW estimation.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset gel service. Agent: @agent: eln-api-agent"""
+        """Reset gel service."""
         self.gel_service = get_gel_service()
         self.gel_service.clear_for_testing()
 
@@ -393,7 +380,6 @@ class TestGelService(unittest.TestCase):
         """
         Verify linear regression of log10(MW) vs Rf yields high R^2 (>0.98) and accurate unknown sizing.
 
-        Agent: @agent: eln-api-agent
         """
         # Synthetic standard ladder points
         ladder_points = [
@@ -431,11 +417,10 @@ class TestInventoryService(unittest.TestCase):
     """
     Test suite verifying spatial hierarchy, 2D box grid, tube moves with audit log, and lineage.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset inventory service. Agent: @agent: eln-api-agent"""
+        """Reset inventory service."""
         self.inventory_service = get_inventory_service()
         self.inventory_service.clear_for_testing()
 
@@ -443,7 +428,6 @@ class TestInventoryService(unittest.TestCase):
         """
         Verify 2D box grid slot occupancy (81 slots), collision detection, tube movement with audit log.
 
-        Agent: @agent: eln-api-agent
         """
         grid = self.inventory_service.get_box_grid("BOX-T7RNAP-01")
         self.assertEqual(grid["total_slots"], 81)
@@ -494,15 +478,14 @@ class TestAuthAndRBAC(unittest.TestCase):
     """
     Test suite verifying Role-Based Access Control (RBAC) permission matrix.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Reset auth service. Agent: @agent: eln-api-agent"""
+        """Reset auth service."""
         self.auth = get_auth_service()
 
     def test_rbac_roles_and_permissions(self) -> None:
-        """Verify role permissions for pi_admin, active_researcher, rotation_student, alumni_readonly. Agent: @agent: eln-api-agent"""
+        """Verify role permissions for pi_admin, active_researcher, rotation_student, alumni_readonly."""
         pi = self.auth.authenticate_token("token-pi-admin")
         researcher = self.auth.authenticate_token("token-active-researcher")
         student = self.auth.authenticate_token("token-rotation-student")
@@ -532,16 +515,15 @@ class TestRESTAPIEndpoints(unittest.TestCase):
     """
     Test suite verifying end-to-end execution of all REST API endpoints via in-process TestClient.
 
-    Agent: @agent: eln-api-agent
     """
 
     def setUp(self) -> None:
-        """Initialize ASGI test application and client. Agent: @agent: eln-api-agent"""
+        """Initialize ASGI test application and client."""
         self.app = create_app()
         self.client = TestClient(self.app)
 
     def test_full_pipeline_api_flow(self) -> None:
-        """Verify end-to-end multi-modal flow across all REST routers. Agent: @agent: eln-api-agent"""
+        """Verify end-to-end multi-modal flow across all REST routers."""
         # Healthcheck
         h = self.client.get("/health")
         self.assertEqual(h["status_code"], 200)

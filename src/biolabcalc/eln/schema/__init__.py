@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.schema
 Component: ELN & LIMS Pipeline Database Schema Package
-Agent: @agent: eln-db-agent
 Architectural Role: Top-level schema package exporting database engines, session constructors,
                     all 21 declarative models, domain enumerations, and seed data generators.
 """

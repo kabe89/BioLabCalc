@@ -1,7 +1,6 @@
 """
 Test Suite: test_eln_integration
 Component: End-to-End System Integration Test for State-of-the-Art ELN & LIMS Pipeline
-Agent: @agent: eln-orchestrator
 Architectural Role: Comprehensive end-to-end wet-lab integration test verifying the complete
                     5-day T7 RNA Polymerase (pET-28a-T7RNAP, 99 kDa) expression and purification
                     campaign across Database Schema, Carry-Forward State Math, FPLC Fraction Pooling,
@@ -64,7 +63,6 @@ from biolabcalc.eln.server import launch_eln_server
 class TestELNFullSystemIntegration(unittest.TestCase):
     """
     End-to-End integration test suite for the complete ELN & LIMS Pipeline.
-    Agent: @agent: eln-orchestrator
     """
 
     @classmethod

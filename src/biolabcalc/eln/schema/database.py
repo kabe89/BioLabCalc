@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.schema.database
 Component: Database Connection, Engine, Session, and SQLite Fallback Adapter
-Agent: @agent: eln-db-agent
 Architectural Role: Core database abstraction providing PostgreSQL 16+ and
                     zero-dependency SQLite compatibility, custom vector cosine
                     similarity functions, session management, and schema initialization.
@@ -47,7 +46,6 @@ def cosine_similarity(
     Returns:
         float: Cosine similarity score in range [-1.0, 1.0]. Returns 0.0 if zero norm.
 
-    Agent: @agent: eln-db-agent
     """
     if len(vec_a) != len(vec_b) or not vec_a:
         return 0.0
@@ -75,7 +73,6 @@ def _sqlite_cosine_similarity(vec_a_json: str, vec_b_json: str) -> float:
     Returns:
         float: Cosine similarity.
 
-    Agent: @agent: eln-db-agent
     """
     try:
         a = json.loads(vec_a_json)
@@ -103,7 +100,6 @@ class Field:
         is_json (bool): Whether column values should serialize/deserialize as JSON.
         is_vector (bool): Whether column values represent float vector embedding.
 
-    Agent: @agent: eln-db-agent
     """
     def __init__(
         self,
@@ -139,7 +135,6 @@ class Relationship:
         foreign_key_col (Optional[str]): Name of foreign key column.
         is_collection (bool): True for one-to-many / many-to-many, False for one-to-one / many-to-one.
 
-    Agent: @agent: eln-db-agent
     """
     def __init__(
         self,
@@ -161,7 +156,6 @@ class ModelRegistry:
     """
     Global registry tracking all declarative model classes and schemas.
 
-    Agent: @agent: eln-db-agent
     """
     _registry: Dict[str, Type[Any]] = {}
 
@@ -193,7 +187,6 @@ class BaseModelMeta(type):
     """
     Metaclass that inspects class attributes to configure Field and Relationship descriptors.
 
-    Agent: @agent: eln-db-agent
     """
     def __new__(mcs, name: str, bases: Tuple[type, ...], namespace: Dict[str, Any]) -> Any:
         fields: Dict[str, Field] = {}
@@ -228,7 +221,6 @@ class BaseModel(metaclass=BaseModelMeta):
     Base class for all ELN & LIMS entities. Provides field initialization,
     serialization to dictionary, and representation.
 
-    Agent: @agent: eln-db-agent
     """
     __tablename__: str = ""
     _fields: Dict[str, Field] = {}
@@ -297,7 +289,6 @@ class Query:
     """
     Fluent query builder interface for querying declarative models in SQLite.
 
-    Agent: @agent: eln-db-agent
     """
     def __init__(self, session: Session, model_cls: Type[BaseModel]) -> None:
         self.session = session
@@ -409,7 +400,6 @@ class Session:
     Database session managing the identity map, transactional unit of work,
     object persistence, and queries for SQLite and PostgreSQL.
 
-    Agent: @agent: eln-db-agent
     """
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -611,7 +601,6 @@ class Engine:
         url (str): Connection URI string (e.g. 'sqlite:///:memory:' or 'postgresql://...').
         echo (bool): Whether to log executed SQL statements. Default False.
 
-    Agent: @agent: eln-db-agent
     """
     def __init__(self, url: str = "sqlite:///:memory:", echo: bool = False) -> None:
         self.url = url
@@ -671,7 +660,6 @@ def create_engine(url: str = "sqlite:///:memory:", echo: bool = False) -> Engine
     Returns:
         Engine: Initialized database engine.
 
-    Agent: @agent: eln-db-agent
     """
     return Engine(url=url, echo=echo)
 
@@ -689,7 +677,6 @@ def sessionmaker(bind: Engine) -> Callable[[], Session]:
     Returns:
         Callable[[], Session]: Session constructor.
 
-    Agent: @agent: eln-db-agent
     """
     def _create_session() -> Session:
         return Session(engine=bind)
@@ -703,7 +690,6 @@ def init_db(engine: Engine) -> None:
     Parameters:
         engine (Engine): Target database engine.
 
-    Agent: @agent: eln-db-agent
     """
     conn = engine.get_connection()
     cur = conn.cursor()
@@ -748,7 +734,6 @@ def get_session(engine: Optional[Engine] = None) -> Session:
     Returns:
         Session: Database session.
 
-    Agent: @agent: eln-db-agent
     """
     if engine is None:
         engine = create_engine("sqlite:///:memory:")

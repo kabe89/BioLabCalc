@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.sequence_service
 Component: Biological Sequence Registry & Biophysical Property Computation Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core service providing registration, storage, and automated biophysical property
 calculations (Tm, GC%, MW, pI, e280, A0.1%) for primers, plasmids, aptamers, and protein constructs.
 """
@@ -40,7 +39,6 @@ def calculate_isoelectric_point(amino_acid_sequence: str, precision: float = 0.0
     Calculate the theoretical isoelectric point (pI) of a protein using the Henderson-Hasselbalch
     bisection method.
 
-    Agent: @agent: eln-api-agent
     Formula:
         Net charge Q(pH) = Sum(Positively charged groups) - Sum(Negatively charged groups)
         Positively charged: N-term, Lys (K), Arg (R), His (H) => 1 / (1 + 10^(pH - pKa))
@@ -99,7 +97,6 @@ def calculate_primer_tm(dna_sequence: str) -> float:
     """
     Calculate oligonucleotide melting temperature Tm in Celsius using standard nearest-neighbor / Wallace formulas.
 
-    Agent: @agent: eln-api-agent
     Parameter dna_sequence (str): Clean nucleotide sequence.
     Return Type: float (rounded to 1 decimal place).
     """
@@ -130,7 +127,6 @@ class SequenceEntity:
     """
     Data model representing a registered biological sequence entity.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Canonical registry record storing nucleotide or amino acid sequences,
     classification, and biophysical properties.
     """
@@ -156,7 +152,6 @@ class SequenceEntity:
         """
         Serialize sequence entity to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -166,7 +161,6 @@ class SequenceService:
     """
     Service managing construct registry and biophysical sequence calculations.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Manages persistent registry of biological materials, automates thermodynamic
     and spectrophotometric calculations, and provides lookup endpoints.
     """
@@ -175,7 +169,6 @@ class SequenceService:
         """
         Initialize SequenceService and pre-seed core laboratory constructs (e.g. pET-28a-T7RNAP).
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._registry: Dict[str, SequenceEntity] = {}
@@ -186,7 +179,6 @@ class SequenceService:
         """
         Pre-seed standard constructs including His-tagged T7 RNA Polymerase and sequencing primers.
 
-        Agent: @agent: eln-api-agent
         """
         # Full amino acid sequence for pET-28a-T7RNAP (His6-Thrombin-T7RNAP, 883 aa)
         t7rnap_aa = (
@@ -243,7 +235,6 @@ class SequenceService:
         """
         Compute biophysical, thermodynamic, and spectrophotometric properties for a given sequence.
 
-        Agent: @agent: eln-api-agent
         Parameter sequence (str): Raw sequence string.
         Parameter entity_type (str): Classification ('primer', 'plasmid', 'aptamer', 'protein_construct').
         Return Type: Dict[str, Any]
@@ -322,7 +313,6 @@ class SequenceService:
         """
         Register a new sequence construct and compute its physicochemical profile.
 
-        Agent: @agent: eln-api-agent
         Parameter entity_id (str): Unique construct identifier (e.g. pET-28a-T7RNAP).
         Parameter name (str): Descriptive label.
         Parameter entity_type (str): 'primer', 'plasmid', 'aptamer', or 'protein_construct'.
@@ -373,7 +363,6 @@ class SequenceService:
         """
         Retrieve sequence entity by ID.
 
-        Agent: @agent: eln-api-agent
         Parameter entity_id (str): Sequence entity ID.
         Return Type: Optional[SequenceEntity]
         """
@@ -384,7 +373,6 @@ class SequenceService:
         """
         List all registered sequences, optionally filtered by type.
 
-        Agent: @agent: eln-api-agent
         Parameter entity_type (Optional[str]): Filter by 'primer', 'plasmid', 'aptamer', 'protein_construct'.
         Return Type: List[SequenceEntity]
         """
@@ -398,7 +386,6 @@ class SequenceService:
         """
         Reset internal sequence registry. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._registry.clear()
@@ -412,7 +399,6 @@ def get_sequence_service() -> SequenceService:
     """
     Get the process-level singleton instance of SequenceService.
 
-    Agent: @agent: eln-api-agent
     Return Type: SequenceService
     """
     return _global_sequence_service

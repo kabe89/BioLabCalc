@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.storage
 Component: Content-Addressable Storage (CAS) and Asset Preview Package
-Agent: @agent: eln-parser-agent
 Architectural Role: Exports Content-Addressable Storage engine, metadata schemas,
 storage backends, and multi-modal preview generators for the ELN & LIMS pipeline.
 """

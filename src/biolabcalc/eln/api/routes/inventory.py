@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.inventory
 Component: Freezer Spatial Hierarchy, 2D Grid Occupancy & Lineage REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing cold-chain spatial hierarchy (Room -> Unit -> Rack -> Box),
 2D box grid slot occupancy matrices, audited tube moves, and sample lineage graph resolution.
 """
@@ -24,7 +23,6 @@ def get_spatial_hierarchy(current_user: Optional[UserSession] = None) -> Dict[st
     """
     Retrieve full multi-tier freezer spatial hierarchy (Room -> Storage Unit -> Rack -> Box).
 
-    Agent: @agent: eln-api-agent
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
     """
@@ -37,7 +35,6 @@ def get_box_grid(box_id: str, current_user: Optional[UserSession] = None) -> Dic
     """
     Retrieve 2D grid matrix showing slot occupancy and tube summaries for a storage box.
 
-    Agent: @agent: eln-api-agent
     Parameter box_id (str): Storage box ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -52,7 +49,6 @@ def place_tube(payload: Dict[str, Any], current_user: Optional[UserSession] = No
     """
     Place a new tube aliquot in an available box slot with validation.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Tube definition (box_id, slot, sample_name, volume_ul, concentration_mg_ml, barcode, construct_id, pool_id, etc.).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -82,7 +78,6 @@ def move_tube(tube_id: str, payload: Dict[str, Any], current_user: Optional[User
     """
     Relocate a tube to a new box coordinate with an immutable audit log entry.
 
-    Agent: @agent: eln-api-agent
     Parameter tube_id (str): Tube identifier.
     Parameter payload (Dict[str, Any]): Relocation parameters (target_box_id, target_slot, reason).
     Parameter current_user (Optional[UserSession]): Authenticated user.
@@ -104,7 +99,6 @@ def resolve_tube_lineage(tube_id: str, current_user: Optional[UserSession] = Non
     """
     Resolve complete upstream sample lineage tree for a given tube.
 
-    Agent: @agent: eln-api-agent
     Parameter tube_id (str): Tube identifier.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]

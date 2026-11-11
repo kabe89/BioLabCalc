@@ -1,6 +1,5 @@
 /**
  * @file app.js
- * @agent eln-frontend-agent
  * @description Main Single-Page Application (SPA) Controller, State Coordinator & WebSocket Sync Engine.
  * @architecture Central orchestration controller for BioLabCalc ELN & Multi-Modal LIMS.
  *               Coordinates Tab Routing, Hybrid-RAG Global Search, WebSocket synchronization,
@@ -17,13 +16,11 @@ import { OCRCorrector } from './ocr_corrector.js';
 
 /**
  * AppController Class: Central SPA state container and interaction mediator.
- * @agent eln-frontend-agent
  * @role Central SPA Controller
  */
 export class AppController {
   /**
    * Initializes the application controller and state.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    */
   constructor() {
@@ -54,7 +51,6 @@ export class AppController {
 
   /**
    * Boots the SPA controller, binds global UI listeners, and initializes active tab canvas.
-   * @agent eln-frontend-agent
    * @role Bootstrap Method
    * @returns {void}
    */
@@ -66,12 +62,11 @@ export class AppController {
     this._initModals();
     this._loadCampaignDay(this.state.currentDayIndex);
 
-    console.info('[BioLabCalc ELN] SPA Initialized successfully by @agent: eln-frontend-agent');
+    console.info('[BioLabCalc ELN] SPA Initialized successfully.');
   }
 
   /**
    * Applies light or dark theme to document root.
-   * @agent eln-frontend-agent
    * @role Theme Controller
    * @private
    * @param {string} theme - 'light' or 'dark'
@@ -90,7 +85,6 @@ export class AppController {
 
   /**
    * Toggles between light and dark theme modes.
-   * @agent eln-frontend-agent
    * @role Theme Toggle Dispatcher
    * @returns {void}
    */
@@ -101,7 +95,6 @@ export class AppController {
 
   /**
    * Binds global keyboard shortcuts, campaign selector, role switcher, and theme button.
-   * @agent eln-frontend-agent
    * @role Global Event Listener Setup
    * @private
    * @returns {void}
@@ -149,7 +142,6 @@ export class AppController {
 
   /**
    * Establishes real-time WebSocket connection with automatic backoff reconnection.
-   * @agent eln-frontend-agent
    * @role WebSocket Client Manager
    * @private
    * @returns {void}
@@ -201,7 +193,6 @@ export class AppController {
 
   /**
    * Handles incoming WebSocket events (timers, remote edits, pooling events).
-   * @agent eln-frontend-agent
    * @role Real-time Message Handler
    * @private
    * @param {string} rawData - Incoming JSON string
@@ -222,7 +213,6 @@ export class AppController {
 
   /**
    * Initializes tab switching and lazy-loads sub-canvases when tabs become visible.
-   * @agent eln-frontend-agent
    * @role Tab Routing Coordinator
    * @private
    * @returns {void}
@@ -265,7 +255,6 @@ export class AppController {
 
   /**
    * Lazy initializes canvases and triggers resize reflows upon tab switch.
-   * @agent eln-frontend-agent
    * @role Lazy Module Loader
    * @private
    * @param {string} tabName - Active tab identifier
@@ -352,7 +341,6 @@ export class AppController {
 
   /**
    * Loads specific daily campaign entry, updating carry-forward state and SOP checklists.
-   * @agent eln-frontend-agent
    * @role Campaign Timeline Loader
    * @private
    * @param {number} dayIdx - Day index (0 to 4)
@@ -408,7 +396,6 @@ export class AppController {
 
   /**
    * Binds FPLC UI buttons (Fraction Pooling modal, PNG export, CSV download).
-   * @agent eln-frontend-agent
    * @role FPLC Interaction Coordinator
    * @private
    * @returns {void}
@@ -465,7 +452,6 @@ export class AppController {
 
   /**
    * Updates FPLC fraction selection summary statistics in the UI.
-   * @agent eln-frontend-agent
    * @role FPLC Metric View Updater
    * @private
    * @param {Object} stats - Calculated pooled statistics
@@ -483,7 +469,6 @@ export class AppController {
 
   /**
    * Reactive callback invoked when fractions are pooled. Links pool to Gel and Freezer.
-   * @agent eln-frontend-agent
    * @role Cross-Module Reactive Linker
    * @private
    * @param {Object} pool - Pooled fraction metadata
@@ -526,7 +511,6 @@ export class AppController {
 
   /**
    * Binds Gel interaction buttons (contrast, brightness, invert, publication export).
-   * @agent eln-frontend-agent
    * @role Gel UI Controller
    * @private
    * @returns {void}
@@ -567,7 +551,6 @@ export class AppController {
 
   /**
    * Updates Gel lane details sidebar when user clicks a lane.
-   * @agent eln-frontend-agent
    * @role Gel Lane Details Visualizer
    * @private
    * @param {Object} lane - Gel lane record
@@ -594,7 +577,6 @@ export class AppController {
 
   /**
    * Binds NanoDrop spectral viewer buttons and sample selector.
-   * @agent eln-frontend-agent
    * @role NanoDrop UI Controller
    * @private
    * @returns {void}
@@ -619,7 +601,6 @@ export class AppController {
 
   /**
    * Updates NanoDrop purity cards (A260/A280, A260/A230, Conc mg/mL).
-   * @agent eln-frontend-agent
    * @role NanoDrop Purity UI Updater
    * @private
    * @param {Object} metrics - Purity evaluation metrics
@@ -649,7 +630,6 @@ export class AppController {
 
   /**
    * Binds Freezer LIMS buttons (9x9 / 10x10 switcher and drawer close button).
-   * @agent eln-frontend-agent
    * @role Freezer LIMS Controller
    * @private
    * @returns {void}
@@ -682,7 +662,6 @@ export class AppController {
 
   /**
    * Handles newly stamped kinetic timepoints and updates history table.
-   * @agent eln-frontend-agent
    * @role Kinetic Stamping Dispatcher
    * @private
    * @param {Object} tp - Kinetic timepoint
@@ -710,7 +689,6 @@ export class AppController {
 
   /**
    * Loads sample text with embedded OCR uncertainty tags into OCR tab.
-   * @agent eln-frontend-agent
    * @role OCR Loader
    * @private
    * @returns {void}
@@ -732,7 +710,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Binds real-time physicochemical calculations for primer and construct sequences.
-   * @agent eln-frontend-agent
    * @role Sequence Calculator
    * @private
    * @returns {void}
@@ -773,7 +750,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Initializes Hybrid-RAG Global Search modal with keyboard shortcuts and fuzzy matching.
-   * @agent eln-frontend-agent
    * @role RAG Modal Setup
    * @private
    * @returns {void}
@@ -806,7 +782,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Opens the Hybrid-RAG search modal.
-   * @agent eln-frontend-agent
    * @role RAG Modal Opener
    * @returns {void}
    */
@@ -822,7 +797,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Executes lexical BM25 and dense semantic retrieval over in-memory lab knowledge base.
-   * @agent eln-frontend-agent
    * @role Hybrid RAG Search Engine
    * @private
    * @param {string} query - User search query
@@ -895,7 +869,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Displays a temporary notification toast.
-   * @agent eln-frontend-agent
    * @role UI Feedback Toast
    * @param {string} message - Notification text
    * @returns {void}
@@ -926,7 +899,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Populates the 5-day T7 RNA Polymerase Campaign progression data.
-   * @agent eln-frontend-agent
    * @role Campaign Mock Database
    * @private
    * @returns {Object} Campaign data
@@ -1023,7 +995,6 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
   /**
    * Initializes in-memory Hybrid-RAG indexing for multi-modal laboratory search.
-   * @agent eln-frontend-agent
    * @role RAG Knowledge Base Generator
    * @private
    * @returns {Array<Object>} Indexed records

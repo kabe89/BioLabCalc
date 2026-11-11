@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.audit_service
 Component: Immutable Audit Logging Service for 21 CFR Part 11 Compliance
-Agent: @agent: eln-api-agent
 Architectural Role: Core service providing tamper-evident, append-only, SHA-256 cryptographically
 chained audit logging for every lifecycle event, state transition, SOP fork, and inventory movement.
 """
@@ -43,7 +42,6 @@ class AuditEvent:
     """
     Data model representing a single immutable audit event in the ELN/LIMS pipeline.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Immutable audit event entity containing full before/after state
     snapshots, actor attribution, timestamp, and cryptographic hash chain links.
     """
@@ -64,7 +62,6 @@ class AuditEvent:
         """
         Serialize audit event to dictionary representation.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -74,7 +71,6 @@ class AuditService:
     """
     Service responsible for maintaining an append-only, cryptographically linked audit ledger.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Manages thread-safe audit record persistence, SHA-256 hash chaining,
     querying by entity type/id, and mathematical verification of ledger immutability.
     """
@@ -85,7 +81,6 @@ class AuditService:
         """
         Initialize the audit service with an empty ledger and thread lock.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._events: List[AuditEvent] = []
@@ -135,7 +130,6 @@ class AuditService:
         """
         Calculate deterministic SHA-256 hash for audit event payload.
 
-        Agent: @agent: eln-api-agent
         Parameter event_id (str): Unique identifier for event.
         Parameter timestamp (str): ISO 8601 UTC timestamp.
         Parameter entity_type (str): Type of entity affected.
@@ -179,7 +173,6 @@ class AuditService:
         """
         Record a new immutable audit event in the ledger.
 
-        Agent: @agent: eln-api-agent
         Parameter entity_type (str): Category of entity (e.g. campaign, daily_entry, tube, sop).
         Parameter entity_id (str): Unique identifier of target entity.
         Parameter action (str): Action verb (CREATE, UPDATE, DELETE, TUBE_MOVE, SOP_FORK, POOL).
@@ -239,7 +232,6 @@ class AuditService:
         """
         Retrieve audit trail records filtered by entity criteria, reverse chronological.
 
-        Agent: @agent: eln-api-agent
         Parameter entity_type (Optional[str]): Optional filter by entity type.
         Parameter entity_id (Optional[str]): Optional filter by entity ID.
         Parameter limit (int): Maximum records to retrieve (default: 100).
@@ -257,7 +249,6 @@ class AuditService:
         """
         Verify the mathematical integrity and unbroken cryptographic chain of the ledger.
 
-        Agent: @agent: eln-api-agent
         Return Type: Tuple[bool, Optional[str]]
             - bool: True if ledger is intact, False if tampering or broken hash chain detected.
             - Optional[str]: Detailed diagnostic error message if corrupted, None if valid.
@@ -301,7 +292,6 @@ class AuditService:
         """
         Reset internal audit ledger state. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._events.clear()
@@ -319,7 +309,6 @@ def get_audit_service() -> AuditService:
     """
     Get the process-level singleton instance of AuditService.
 
-    Agent: @agent: eln-api-agent
     Return Type: AuditService
     """
     return _global_audit_service

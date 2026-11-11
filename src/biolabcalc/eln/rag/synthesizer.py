@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.rag.synthesizer
 Component: Contextual Citation Synthesizer for Laboratory ELN & LIMS Pipeline
-Agent: @agent: eln-rag-agent
 Architectural Role: Executes hybrid retrieval for laboratory queries, formats
 provenance context blocks, invokes the Local LLM client (with heuristic fallback),
 and appends structured Markdown citations referencing exact authors, dates,
@@ -48,9 +47,6 @@ class Citation:
     summary_excerpt : str
         Brief excerpt of the referenced content.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     ref_id: int
@@ -124,9 +120,6 @@ class SynthesisResult:
     search_results : List[SearchResult]
         Raw hybrid search ranking results.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     query: str
@@ -162,9 +155,6 @@ class CitationSynthesizer:
     search_engine : Optional[HybridSearchEngine]
         Search engine initialized with indexed notebook chunks.
 
-    Agent
-    -----
-    @agent: eln-rag-agent
     """
 
     def __init__(

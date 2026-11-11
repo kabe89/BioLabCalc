@@ -1,7 +1,6 @@
 """
 Package: biolabcalc.eln.web
 Component: Frontend Web Application & Scientific Canvases Package
-Agent: @agent: eln-frontend-agent
 Architectural Role: Web package root for templates, static assets, and UI components.
 """
 

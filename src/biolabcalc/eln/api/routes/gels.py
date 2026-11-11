@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.gels
 Component: Gel Electrophoresis Calibration, MW Estimation & Multi-Modal Entity Tagging Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing gel ladder standard curve calibration (linear regression of
 log10(MW) vs Rf), band molecular weight estimation with R^2 reporting, and relational lane tagging.
 """
@@ -24,7 +23,6 @@ def calibrate_ladder(payload: Dict[str, Any], current_user: Optional[UserSession
     """
     Calibrate molecular weight ladder standard curve via linear regression of log10(MW) vs Rf.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Calibration input ('ladder_data': list of [known_mw, rf], optional 'ladder_key').
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -42,7 +40,6 @@ def estimate_band_molecular_weight(payload: Dict[str, Any], current_user: Option
     """
     Estimate molecular weight of an unknown band given Rf and calibrated standard curve.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Estimation input ('rf': float, 'calibration': dict or ladder points).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -77,7 +74,6 @@ def register_gel(payload: Dict[str, Any], current_user: Optional[UserSession] = 
     """
     Register a new gel electrophoresis run with optional ladder calibration standard curve.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Gel parameters (title, gel_type, percentage, ladder_data, ladder_key, image_uri).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -106,7 +102,6 @@ def tag_gel_lane(gel_id: str, payload: Dict[str, Any], current_user: Optional[Us
     """
     Tag a gel lane with associated database entities (Primer, Construct, FPLC Fraction, NanoDrop, Timepoint).
 
-    Agent: @agent: eln-api-agent
     Parameter gel_id (str): Target gel ID.
     Parameter payload (Dict[str, Any]): Lane parameters (lane_number, sample_name, bands_data, primer_id, construct_id, fplc_fraction_id, etc.).
     Parameter current_user (Optional[UserSession]): Authenticated user.
@@ -136,7 +131,6 @@ def get_gel_record(gel_id: str, current_user: Optional[UserSession] = None) -> D
     """
     Retrieve single gel record by ID.
 
-    Agent: @agent: eln-api-agent
     Parameter gel_id (str): Gel ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]

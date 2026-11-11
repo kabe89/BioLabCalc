@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers.fplc_parser
 Component: Cytiva / GE ÄKTA UNICORN Multi-Format Trace Extractor
-Agent: @agent: eln-parser-agent
 Architectural Role: Parses Fast Protein Liquid Chromatography (FPLC) data across .res, .zip, .csv,
 and .asc formats, extracting multi-channel chromatograms, fraction boundaries, column hardware
 specifications, and buffer formulations.
@@ -33,7 +32,6 @@ class FractionEvent:
 
     Architectural Role:
         Maps chromatography retention volumes to physical plate/rack tube coordinates.
-        @agent: eln-parser-agent
     """
 
     fraction_id: str
@@ -57,7 +55,6 @@ class ColumnMetadata:
 
     Architectural Role:
         Provides physical normalization parameters for partition coefficient (Kav) calculations.
-        @agent: eln-parser-agent
     """
 
     column_name: str
@@ -83,7 +80,6 @@ class BufferRecipe:
 
     Architectural Role:
         Records reproducible chemical environment for sample purification.
-        @agent: eln-parser-agent
     """
 
     name: str
@@ -118,7 +114,6 @@ class FPLCResult:
 
     Architectural Role:
         Primary LIMS object representing protein purification runs.
-        @agent: eln-parser-agent
     """
 
     file_format: str
@@ -217,7 +212,6 @@ class FPLCParser:
 
     Architectural Role:
         Converts raw instrument chromatography logs into structured LIMS entity models.
-        @agent: eln-parser-agent
     """
 
     COLUMN_CATALOG: Dict[str, ColumnMetadata] = {

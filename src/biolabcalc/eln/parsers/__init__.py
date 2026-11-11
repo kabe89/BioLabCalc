@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers
 Component: Scientific Parsers and Multi-Modal Ingestion Package
-Agent: @agent: eln-parser-agent
 Architectural Role: Core package exports for all laboratory instrument parsers
 (Axon ABF/ATF, Cytiva ÄKTA UNICORN, Thermo NanoDrop, Bio-Rad Image Lab/TIFF,
 Word/PDF document extractors) and Human-in-the-Loop (HITL) Vision-OCR engine.

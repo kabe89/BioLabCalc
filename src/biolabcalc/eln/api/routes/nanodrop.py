@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.nanodrop
 Component: NanoDrop Spectrophotometry & Purity Ratio REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing NanoDrop UV-Vis microvolume absorbance recording (A260, A280, A230),
 260/280 and 260/230 purity ratio determination, and sample concentration estimation.
 """
@@ -28,7 +27,6 @@ class NanoDropRecord:
     """
     Spectrophotometric absorbance measurement entry.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Quantifies A260, A280, A230, purity ratios, and sample concentration.
     """
 
@@ -52,12 +50,12 @@ class NanoDropRecord:
     recorded_at: str
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize NanoDrop record to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize NanoDrop record to dictionary."""
         return asdict(self)
 
 
 class NanoDropRegistry:
-    """In-memory repository for NanoDrop spectrophotometer measurements. Agent: @agent: eln-api-agent"""
+    """In-memory repository for NanoDrop spectrophotometer measurements."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -78,7 +76,7 @@ class NanoDropRegistry:
         notes: str = "",
         user_id: str = "active_researcher",
     ) -> NanoDropRecord:
-        """Process and persist a spectrophotometer measurement. Agent: @agent: eln-api-agent"""
+        """Process and persist a spectrophotometer measurement."""
         with self._lock:
             record_id = f"ND-{uuid.uuid4().hex[:8].upper()}"
             now_iso = datetime.now(timezone.utc).isoformat()
@@ -158,12 +156,12 @@ class NanoDropRegistry:
             return record
 
     def get_record(self, record_id: str) -> Optional[NanoDropRecord]:
-        """Lookup record by ID. Agent: @agent: eln-api-agent"""
+        """Lookup record by ID."""
         with self._lock:
             return self._records.get(record_id)
 
     def list_records(self) -> List[NanoDropRecord]:
-        """List all measurements. Agent: @agent: eln-api-agent"""
+        """List all measurements."""
         with self._lock:
             return list(self._records.values())
 
@@ -176,7 +174,6 @@ def record_absorbance(payload: Dict[str, Any], current_user: Optional[UserSessio
     """
     Record NanoDrop microvolume absorbance readings and calculate concentration and purity ratios.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Readings (sample_name, a260, a280, optional a230, sample_type, volume_ul, etc.).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -204,7 +201,6 @@ def get_nanodrop_record(record_id: str, current_user: Optional[UserSession] = No
     """
     Retrieve single NanoDrop record by ID.
 
-    Agent: @agent: eln-api-agent
     Parameter record_id (str): Measurement ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -220,7 +216,6 @@ def list_nanodrop_records(current_user: Optional[UserSession] = None) -> Dict[st
     """
     List all recorded NanoDrop measurements.
 
-    Agent: @agent: eln-api-agent
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
     """

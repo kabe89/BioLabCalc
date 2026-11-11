@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services
 Component: Core Services Package for Electronic Lab Notebook & LIMS Pipeline
-Agent: @agent: eln-api-agent
 Architectural Role: Central export module aggregating campaign lifecycle, kinetic timepoint recording,
 SOP versioning and execution forking, sequence registry & biophysical computing, FPLC peak integration
 & fraction pooling, gel electrophoresis ladder calibration, and spatial cryogenic inventory services.

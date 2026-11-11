@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.parsers.biorad_parser
 Component: Bio-Rad Image Lab (.scn) and Scientific Gel TIFF Parser
-Agent: @agent: eln-parser-agent
 Architectural Role: Ingests Bio-Rad Image Lab (.scn) gel documentation files and 16-bit
 fluorescent/chemiluminescent TIFF scans, extracting optical exposure metadata, instrument
 parameters, dynamic range matrices, and generating publication-ready web previews.
@@ -40,7 +39,6 @@ class ExposureMetadata:
 
     Architectural Role:
         Preserves instrumentation provenance for analytical gel quantification.
-        @agent: eln-parser-agent
     """
 
     exposure_time_seconds: float = 0.0
@@ -74,7 +72,6 @@ class BioRadImage:
 
     Architectural Role:
         LIMS domain entity representing gel electrophoretograms and western blots.
-        @agent: eln-parser-agent
     """
 
     file_format: str
@@ -121,7 +118,6 @@ class BioRadParser:
 
     Architectural Role:
         Standardizes western blot and nucleic acid gel images into the ELN pipeline.
-        @agent: eln-parser-agent
     """
 
     @classmethod

@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.sop_service
 Component: Standard Operating Procedure (SOP) Versioning & Execution Forking Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core service providing regulatory SOP lifecycle management, semantic versioning,
 and "Instantiate SOP into Daily Notebook Entry" execution forking with locked parameter state
 and structured step checklists.
@@ -24,7 +23,6 @@ class SOPStep:
     """
     Structured step instruction within an SOP protocol checklist.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Atomic operational protocol step with expected duration, reagent requirements,
     and checkpoint criteria.
     """
@@ -41,7 +39,6 @@ class SOPStep:
         """
         Serialize step to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -52,7 +49,6 @@ class MasterSOP:
     """
     Master Standard Operating Procedure entity with version control and parameter specifications.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Master protocol blueprint defining standardized parameters and sequential steps.
     """
 
@@ -72,7 +68,6 @@ class MasterSOP:
         """
         Serialize Master SOP to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return {
@@ -95,7 +90,6 @@ class StepExecution:
     """
     Checklist execution instance for an instantiated SOP step.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Records operator checkoff, execution timestamp, actual duration, and deviations.
     """
 
@@ -113,7 +107,6 @@ class StepExecution:
         """
         Serialize step execution to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -124,7 +117,6 @@ class SOPFork:
     """
     Instantiated execution fork of an SOP locked to a specific daily notebook entry.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: GxP-compliant frozen execution instance locking the SOP version,
     parameter snapshot, and interactive checklist to protect historical reproducibility.
     """
@@ -145,7 +137,6 @@ class SOPFork:
         """
         Serialize SOP fork to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return {
@@ -167,7 +158,6 @@ class SOPService:
     """
     Service managing SOP versioning and immutable execution forking.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Governs master SOP catalog, approval workflows, and forking into daily
     notebook entries with parameter lock-in.
     """
@@ -176,7 +166,6 @@ class SOPService:
         """
         Initialize SOPService repository.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._sops: Dict[str, MasterSOP] = {}
@@ -197,7 +186,6 @@ class SOPService:
         """
         Register a new master SOP protocol.
 
-        Agent: @agent: eln-api-agent
         Parameter sop_id (str): Unique SOP code (e.g. SOP-PCR-002).
         Parameter title (str): Descriptive title.
         Parameter version (str): Version identifier (e.g. '1.0').
@@ -254,7 +242,6 @@ class SOPService:
         """
         Approve an SOP, locking it for clinical or experimental execution.
 
-        Agent: @agent: eln-api-agent
         Parameter sop_id (str): Target SOP ID.
         Parameter approver_id (str): Authorizing PI or lab administrator.
         Return Type: MasterSOP
@@ -283,7 +270,6 @@ class SOPService:
         """
         Retrieve master SOP by ID.
 
-        Agent: @agent: eln-api-agent
         Parameter sop_id (str): SOP ID.
         Return Type: Optional[MasterSOP]
         """
@@ -294,7 +280,6 @@ class SOPService:
         """
         List SOPs filtered by category and status.
 
-        Agent: @agent: eln-api-agent
         Parameter category (Optional[str]): Category filter.
         Parameter status (Optional[str]): Status filter.
         Return Type: List[MasterSOP]
@@ -317,7 +302,6 @@ class SOPService:
         """
         Instantiate an SOP into a Daily Notebook Entry, locking parameter state and creating execution checklist.
 
-        Agent: @agent: eln-api-agent
         GxP Requirement: Creates an immutable snapshot of the SOP version, parameters (with any approved
         overrides merged), and sequential step checklist. Subsequent edits to master SOP do not modify
         this frozen fork.
@@ -385,7 +369,6 @@ class SOPService:
         """
         Retrieve instantiated SOP fork by ID.
 
-        Agent: @agent: eln-api-agent
         Parameter fork_id (str): Fork identifier.
         Return Type: Optional[SOPFork]
         """
@@ -403,7 +386,6 @@ class SOPService:
         """
         Record checkoff completion of an instantiated step checklist item.
 
-        Agent: @agent: eln-api-agent
         Parameter fork_id (str): Target SOP fork ID.
         Parameter step_index (int): Ordinal step index (1-based).
         Parameter completed_by (str): Operator ID.
@@ -449,7 +431,6 @@ class SOPService:
         """
         Reset internal SOP and fork state. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._sops.clear()
@@ -463,7 +444,6 @@ def get_sop_service() -> SOPService:
     """
     Get the process-level singleton instance of SOPService.
 
-    Agent: @agent: eln-api-agent
     Return Type: SOPService
     """
     return _global_sop_service

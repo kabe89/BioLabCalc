@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.timepoints
 Component: Kinetic Timepoint & Real-Time Countdown Timer REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing second-resolution kinetic timepoint recording, elapsed delta t0
 calculations, SOP planned duration deviation monitoring, and active live countdown timers.
 """
@@ -24,7 +23,6 @@ def get_entry_timepoints(entry_id: str, current_user: Optional[UserSession] = No
     """
     Get all kinetic timepoints recorded for a given daily notebook entry.
 
-    Agent: @agent: eln-api-agent
     Parameter entry_id (str): Daily notebook entry ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -39,7 +37,6 @@ def record_timepoint(payload: Dict[str, Any], current_user: Optional[UserSession
     """
     Record a kinetic timepoint with second resolution and duration deviation logging.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Timepoint parameters (entry_id, step_name, t0, timestamp, planned_duration_seconds, parameters, notes).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -63,7 +60,6 @@ def start_live_timer(payload: Dict[str, Any], current_user: Optional[UserSession
     """
     Start an active live countdown timer.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Timer parameters (name, target_duration_seconds, entry_id, metadata).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -82,7 +78,6 @@ def list_active_timers(current_user: Optional[UserSession] = None) -> Dict[str, 
     """
     List all active live timers with real-time computed countdown states.
 
-    Agent: @agent: eln-api-agent
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
     """
@@ -95,7 +90,6 @@ def stop_live_timer(timer_id: str, current_user: Optional[UserSession] = None) -
     """
     Stop and finalize an active live timer.
 
-    Agent: @agent: eln-api-agent
     Parameter timer_id (str): Target timer ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]

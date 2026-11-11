@@ -1,7 +1,6 @@
 """
 Test Suite: test_eln_schema
 Component: Database Schema, Dual Engine Compatibility, and 5-Day T7 RNAP Seed Benchmark
-Agent: @agent: eln-db-agent
 Architectural Role: Comprehensive verification of PostgreSQL 16+ DDL,
                     SQLite fallback engine, all 21 models, relationship navigations,
                     yield metrics, completion dates, and benchmark seed data.
@@ -48,11 +47,10 @@ class TestElnSchema(unittest.TestCase):
     """
     Test suite for ELN & LIMS database schema, engine, models, and benchmark campaign.
 
-    Agent: @agent: eln-db-agent
     """
 
     def setUp(self) -> None:
-        """Initialize in-memory SQLite database and seed test data. Agent: @agent: eln-db-agent"""
+        """Initialize in-memory SQLite database and seed test data."""
         self.engine = create_engine("sqlite:///:memory:")
         init_db(self.engine)
         self.session = get_session(self.engine)
@@ -63,7 +61,6 @@ class TestElnSchema(unittest.TestCase):
         Verify PostgreSQL 16+ production DDL file exists and contains all required
         extensions, types, 21 tables, critical yield columns, and specialized indexes.
 
-        Agent: @agent: eln-db-agent
         """
         repo_root = Path(__file__).resolve().parent.parent
         ddl_path = repo_root / "src" / "biolabcalc" / "eln" / "schema" / "ddl.sql"
@@ -134,7 +131,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify SQLite schema initialization creates all tables and is queryable.
 
-        Agent: @agent: eln-db-agent
         """
         conn = self.engine.get_connection()
         cur = conn.cursor()
@@ -171,7 +167,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify users (PI, Active Researcher, Rotation Student, Alumni) are seeded properly.
 
-        Agent: @agent: eln-db-agent
         """
         users = self.session.query(User).all()
         self.assertGreaterEqual(len(users), 4)
@@ -194,7 +189,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify the benchmark 5-Day T7 RNA Polymerase Campaign yields and completion timestamps.
 
-        Agent: @agent: eln-db-agent
         """
         campaign = self.session.query(ExperimentalCampaign).filter_by(slug="t7-rnap-expression-2026").first()
         self.assertIsNotNone(campaign)
@@ -210,7 +204,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify all 5 daily entries (Day 0 through Day 4) are modeled accurately.
 
-        Agent: @agent: eln-db-agent
         """
         campaign = self.session.query(ExperimentalCampaign).filter_by(slug="t7-rnap-expression-2026").first()
         entries = self.session.query(NotebookDailyEntry).filter_by(campaign_id=campaign.id).order_by("day_number ASC").all()
@@ -285,7 +278,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify SDS-PAGE purity (>95% purity) and NanoDrop quantification metrics.
 
-        Agent: @agent: eln-db-agent
         """
         gel = self.session.query(GelRecord).first()
         self.assertIsNotNone(gel)
@@ -312,7 +304,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify physical storage hierarchy and sample tube placement in slot C4 of PROT-2026-T7RNAP.
 
-        Agent: @agent: eln-db-agent
         """
         room = self.session.query(StorageHierarchyNode).filter_by(barcode="LOC-LAB-402").first()
         self.assertIsNotNone(room)
@@ -352,7 +343,6 @@ class TestElnSchema(unittest.TestCase):
         Verify RAG document chunks are seeded with 1536-dimensional embeddings and
         cosine similarity function works correctly.
 
-        Agent: @agent: eln-db-agent
         """
         chunks = self.session.query(RagDocumentChunk).all()
         self.assertGreaterEqual(len(chunks), 5)
@@ -376,7 +366,6 @@ class TestElnSchema(unittest.TestCase):
         """
         Verify all 21 models have instances persisted and queried.
 
-        Agent: @agent: eln-db-agent
         """
         model_classes = [
             User,

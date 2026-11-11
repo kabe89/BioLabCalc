@@ -1,6 +1,5 @@
 /**
  * @file timer_widget.js
- * @agent eln-frontend-agent
  * @description Real-Time Kinetic Countdown/Stopwatch Timers & SOP Protocol Deviation Logger.
  * @architecture High-precision web timer engine supporting dual countdown/elapsed modes,
  *               Web Audio API synthetic alerts, target duration deviation calculations (+/- mm:ss),
@@ -25,13 +24,11 @@
 
 /**
  * TimerWidget Class: Coordinates countdown timers, stopwatch, audio beeps, and timepoint logging.
- * @agent eln-frontend-agent
  * @role Kinetic laboratory timing and deviation logger
  */
 export class TimerWidget {
   /**
    * Initializes the TimerWidget instance.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    * @param {string|HTMLElement} containerElement - Container element or ID
    * @param {Object} options - Configuration options
@@ -74,7 +71,6 @@ export class TimerWidget {
 
   /**
    * Builds the interactive timer card UI and attaches DOM listeners.
-   * @agent eln-frontend-agent
    * @role DOM Builder
    * @returns {void}
    */
@@ -132,7 +128,6 @@ export class TimerWidget {
 
   /**
    * Binds UI control button events.
-   * @agent eln-frontend-agent
    * @role DOM Event Binder
    * @private
    * @returns {void}
@@ -184,7 +179,6 @@ export class TimerWidget {
 
   /**
    * Starts or pauses the active timer.
-   * @agent eln-frontend-agent
    * @role Timer Execution Controller
    * @returns {void}
    */
@@ -198,7 +192,6 @@ export class TimerWidget {
 
   /**
    * Starts timer countdown or stopwatch ticks.
-   * @agent eln-frontend-agent
    * @role Timer Start Engine
    * @returns {void}
    */
@@ -225,7 +218,6 @@ export class TimerWidget {
 
   /**
    * Pauses the active timer.
-   * @agent eln-frontend-agent
    * @role Timer Pause Controller
    * @returns {void}
    */
@@ -241,7 +233,6 @@ export class TimerWidget {
 
   /**
    * Resets timer back to initial configured target state.
-   * @agent eln-frontend-agent
    * @role Timer Reset Controller
    * @returns {void}
    */
@@ -257,7 +248,6 @@ export class TimerWidget {
 
   /**
    * Sets a preset duration and label.
-   * @agent eln-frontend-agent
    * @role Preset Controller
    * @param {number} sec - Duration in seconds
    * @param {string} stepName - Description label
@@ -274,7 +264,6 @@ export class TimerWidget {
 
   /**
    * Updates the clock digital digits without redrawing the whole component.
-   * @agent eln-frontend-agent
    * @role High-Performance Display Update
    * @private
    * @returns {void}
@@ -288,7 +277,6 @@ export class TimerWidget {
 
   /**
    * Formats total seconds into HH:MM:SS or MM:SS string.
-   * @agent eln-frontend-agent
    * @role Time Formatter Helper
    * @private
    * @param {number} totalSec - Total seconds
@@ -308,7 +296,6 @@ export class TimerWidget {
 
   /**
    * Handles timer expiry alert and visual glow.
-   * @agent eln-frontend-agent
    * @role Alert Handler
    * @private
    * @returns {void}
@@ -330,7 +317,6 @@ export class TimerWidget {
 
   /**
    * Generates a synthetic acoustic alert chime using Web Audio API.
-   * @agent eln-frontend-agent
    * @role Audio Synthesizer
    * @private
    * @returns {void}
@@ -363,7 +349,6 @@ export class TimerWidget {
 
   /**
    * Records a formal kinetic timepoint entry and computes SOP target deviation.
-   * @agent eln-frontend-agent
    * @role SOP Compliance & Kinetic Timepoint Logger
    * @param {string} label - Step description
    * @param {string} paramName - Name of tracked variable (e.g., 'OD600')

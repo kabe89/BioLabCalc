@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.sequences
 Component: Sequence Registry & Biophysical Property REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing primer/plasmid/aptamer/protein construct registration,
 physicochemical property calculations (Tm, GC%, MW, pI, e280, A0.1%), and construct lookups.
 """
@@ -24,7 +23,6 @@ def list_sequences(entity_type: Optional[str] = None, current_user: Optional[Use
     """
     List all registered biological sequences, optionally filtered by type.
 
-    Agent: @agent: eln-api-agent
     Parameter entity_type (Optional[str]): Filter ('primer', 'plasmid', 'aptamer', 'protein_construct').
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -38,7 +36,6 @@ def register_sequence(payload: Dict[str, Any], current_user: Optional[UserSessio
     """
     Register a biological sequence entity and compute its thermodynamic and biophysical profile.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Sequence entity definition (entity_id, name, entity_type, sequence, description, tags, metadata).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -62,7 +59,6 @@ def get_sequence(entity_id: str, current_user: Optional[UserSession] = None) -> 
     """
     Retrieve single sequence entity and biophysical properties by ID.
 
-    Agent: @agent: eln-api-agent
     Parameter entity_id (str): Construct or primer ID.
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]
@@ -78,7 +74,6 @@ def calculate_properties(payload: Dict[str, Any], current_user: Optional[UserSes
     """
     Calculate biophysical properties (Tm, GC%, MW, pI, e280, A0.1%) on arbitrary sequence.
 
-    Agent: @agent: eln-api-agent
     Parameter payload (Dict[str, Any]): Calculation payload ('sequence': str, 'entity_type': str).
     Parameter current_user (Optional[UserSession]): Authenticated user.
     Return Type: Dict[str, Any]

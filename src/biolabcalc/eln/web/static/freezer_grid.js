@@ -1,6 +1,5 @@
 /**
  * @file freezer_grid.js
- * @agent eln-frontend-agent
  * @description Interactive 2D Freezer Box Grid (9x9 and 10x10) & Sample Lineage Tracking Visualizer.
  * @architecture Manages hierarchical cryogenic storage topologies (-80°C Vaults, Racks, Shelves, Boxes),
  *               renders dynamic CSS Grid / Canvas 2D tube visualizers, handles slot hover tooltips,
@@ -34,13 +33,11 @@
 
 /**
  * FreezerGrid Class: Coordinates 2D box grid rendering, slot interactions, and lineage cards.
- * @agent eln-frontend-agent
  * @role Cryogenic storage LIMS component
  */
 export class FreezerGrid {
   /**
    * Initializes the FreezerGrid instance.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    * @param {string|HTMLElement} containerElement - Container element or ID for grid rendering
    * @param {Object} options - Configuration options
@@ -79,7 +76,6 @@ export class FreezerGrid {
 
   /**
    * Populates default aliquots from the T7 RNA Polymerase 5-Day Campaign.
-   * @agent eln-frontend-agent
    * @role Synthetic Inventory Population
    * @private
    * @returns {void}
@@ -183,7 +179,6 @@ export class FreezerGrid {
 
   /**
    * Renders the 2D visual box grid into the DOM.
-   * @agent eln-frontend-agent
    * @role DOM Visual Grid Builder
    * @returns {void}
    */
@@ -225,7 +220,6 @@ export class FreezerGrid {
 
   /**
    * Handles user click on a tube well slot.
-   * @agent eln-frontend-agent
    * @role Slot Click Dispatcher
    * @private
    * @param {string} coord - Well coordinate (e.g., 'C4')
@@ -252,7 +246,6 @@ export class FreezerGrid {
 
   /**
    * Displays full provenance lineage in the slide-out drawer.
-   * @agent eln-frontend-agent
    * @role Lineage Drawer Visualizer
    * @param {LimsTube} tube - Target tube record
    * @returns {void}
@@ -350,7 +343,6 @@ export class FreezerGrid {
 
   /**
    * Generates HTML chain items for experimental lineage.
-   * @agent eln-frontend-agent
    * @role Lineage DOM Formatter
    * @private
    * @param {Object} lineage - Lineage provenance dictionary
@@ -380,7 +372,6 @@ export class FreezerGrid {
 
   /**
    * Sets active box dimensions (9x9 or 10x10).
-   * @agent eln-frontend-agent
    * @role Box Topology Switcher
    * @param {string} dimensions - '9x9' or '10x10'
    * @returns {void}
@@ -395,7 +386,6 @@ export class FreezerGrid {
 
   /**
    * Inserts or updates a tube in a specified well position.
-   * @agent eln-frontend-agent
    * @role Tube Storage Controller
    * @param {string} coord - Well coordinate (e.g. 'C5')
    * @param {LimsTube} tubeData - Tube metadata

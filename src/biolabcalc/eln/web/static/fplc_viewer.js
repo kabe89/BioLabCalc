@@ -1,6 +1,5 @@
 /**
  * @file fplc_viewer.js
- * @agent eln-frontend-agent
  * @description Interactive Multi-Channel FPLC Chromatogram Viewer and Fraction Pooling Engine.
  * @architecture High-performance Canvas/SVG dual-layer renderer supporting UV280 (mAU),
  *               Conductivity (mS/cm), and %B gradient elution channels against Volume (mL) or Time (min).
@@ -35,13 +34,11 @@
 
 /**
  * FPLCViewer Class: Manages interactive rendering, peak calculation, and fraction pooling.
- * @agent eln-frontend-agent
  * @role Scientific interactive chromatogram canvas component
  */
 export class FPLCViewer {
   /**
    * Initializes the FPLCViewer instance.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    * @param {string|HTMLCanvasElement} canvasElement - Canvas element or its ID selector
    * @param {Object} options - Configuration options
@@ -97,7 +94,6 @@ export class FPLCViewer {
 
   /**
    * Generates realistic ÄKTA Avant Ni-NTA purification data for T7 RNA Polymerase.
-   * @agent eln-frontend-agent
    * @role Internal Synthetic Data Generator
    * @private
    * @returns {void}
@@ -236,7 +232,6 @@ export class FPLCViewer {
 
   /**
    * Binds mouse and resize interaction events.
-   * @agent eln-frontend-agent
    * @role Event Listener Setup
    * @private
    * @returns {void}
@@ -255,7 +250,6 @@ export class FPLCViewer {
 
   /**
    * Adjusts canvas pixel buffer for crisp high-DPI retina rendering.
-   * @agent eln-frontend-agent
    * @role Display Resolution Management
    * @returns {void}
    */
@@ -273,7 +267,6 @@ export class FPLCViewer {
 
   /**
    * Computes min/max scales for multi-axis plotting.
-   * @agent eln-frontend-agent
    * @role Coordinate Transform Helper
    * @private
    * @returns {Object} Scale bounds
@@ -306,7 +299,6 @@ export class FPLCViewer {
 
   /**
    * Renders the complete multi-channel chromatogram.
-   * @agent eln-frontend-agent
    * @role Master Render Method
    * @returns {void}
    */
@@ -404,7 +396,6 @@ export class FPLCViewer {
 
   /**
    * Renders fraction markers and selected fraction fills.
-   * @agent eln-frontend-agent
    * @role Fraction Visualizer Sub-system
    * @private
    * @param {Object} s - Scale bounds
@@ -455,7 +446,6 @@ export class FPLCViewer {
 
   /**
    * Renders peak integration fill and apex labels.
-   * @agent eln-frontend-agent
    * @role Peak Integration Renderer
    * @private
    * @param {Object} s - Scale bounds
@@ -506,7 +496,6 @@ export class FPLCViewer {
 
   /**
    * Renders chart axes, tick marks, and axis titles.
-   * @agent eln-frontend-agent
    * @role Coordinate Axis Renderer
    * @private
    * @param {Object} s - Scale bounds
@@ -578,7 +567,6 @@ export class FPLCViewer {
 
   /**
    * Renders hover crosshair and value readout tooltip.
-   * @agent eln-frontend-agent
    * @role Interactive Hover Sub-system
    * @private
    * @param {Object} s - Scale bounds
@@ -644,7 +632,6 @@ export class FPLCViewer {
 
   /**
    * Handles mouse movement for hover readouts and drag-box selection.
-   * @agent eln-frontend-agent
    * @role Mouse Event Handler
    * @private
    * @param {MouseEvent} e - Mouse event
@@ -681,7 +668,6 @@ export class FPLCViewer {
 
   /**
    * Clears hover indicators when mouse exits canvas.
-   * @agent eln-frontend-agent
    * @role Mouse Exit Handler
    * @private
    * @returns {void}
@@ -694,7 +680,6 @@ export class FPLCViewer {
 
   /**
    * Handles fraction track clicking and drag selection start.
-   * @agent eln-frontend-agent
    * @role Mouse Down Handler
    * @private
    * @param {MouseEvent} e - Mouse event
@@ -731,7 +716,6 @@ export class FPLCViewer {
 
   /**
    * Finalizes fraction dragging.
-   * @agent eln-frontend-agent
    * @role Mouse Up Handler
    * @private
    * @returns {void}
@@ -747,7 +731,6 @@ export class FPLCViewer {
 
   /**
    * Selects all fractions within the range of two boundary fractions.
-   * @agent eln-frontend-agent
    * @role Range Selection Algorithm
    * @private
    * @param {FPLCFraction} f1 - Start boundary fraction
@@ -768,7 +751,6 @@ export class FPLCViewer {
 
   /**
    * Notifies external listeners of fraction selection changes.
-   * @agent eln-frontend-agent
    * @role Reactive Notification Dispatcher
    * @private
    * @returns {void}
@@ -782,7 +764,6 @@ export class FPLCViewer {
 
   /**
    * Calculates pooled volume, integrated UV, and estimated protein concentration.
-   * @agent eln-frontend-agent
    * @role Stoichiometric Pooling Calculation
    * @returns {Object} Calculated pool metrics
    */
@@ -822,7 +803,6 @@ export class FPLCViewer {
 
   /**
    * Dispatches the pool creation action to create a pooled entity in LIMS and Gel.
-   * @agent eln-frontend-agent
    * @role High-Level Action Trigger
    * @param {string} [poolName] - Custom pool label
    * @returns {Object} Created pool entity metadata
@@ -856,7 +836,6 @@ export class FPLCViewer {
 
   /**
    * Exports current chromatogram canvas as a high-resolution PNG data URL.
-   * @agent eln-frontend-agent
    * @role Publication Figure Export
    * @returns {string} PNG Base64 data URL
    */
@@ -866,7 +845,6 @@ export class FPLCViewer {
 
   /**
    * Exports chromatographic run data as a CSV text payload.
-   * @agent eln-frontend-agent
    * @role Tabular Data Exporter
    * @returns {string} CSV format data
    */

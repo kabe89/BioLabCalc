@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.auth
 Component: Role-Based Access Control (RBAC) & Authentication Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core security module defining user identities, session authorization tokens,
 fine-grained permission matrices for laboratory roles (pi_admin, active_researcher, rotation_student,
 alumni_readonly), and route protection decorators.
@@ -109,7 +108,6 @@ class AuthorizationError(Exception):
     """
     Raised when an authenticated user lacks sufficient role or permission.
 
-    Agent: @agent: eln-api-agent
     """
 
     def __init__(self, message: str, required_role: Optional[str] = None, required_permission: Optional[str] = None) -> None:
@@ -124,7 +122,6 @@ class UserSession:
     """
     Authenticated user session representation.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Carries operator identity, laboratory role, and effective permissions.
     """
 
@@ -139,7 +136,6 @@ class UserSession:
         """
         Check if user's role grants the requested permission.
 
-        Agent: @agent: eln-api-agent
         Parameter permission (str): Required permission key.
         Return Type: bool
         """
@@ -147,7 +143,7 @@ class UserSession:
         return permission in role_perms
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize user session to dictionary. Agent: @agent: eln-api-agent"""
+        """Serialize user session to dictionary."""
         return asdict(self)
 
 
@@ -155,7 +151,6 @@ class AuthService:
     """
     Authentication & RBAC session manager for the ELN & LIMS pipeline.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Manages token issuance, user session lookup, and permission validation.
     """
 
@@ -163,7 +158,6 @@ class AuthService:
         """
         Initialize AuthService and register default laboratory accounts.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.Lock()
         self._sessions: Dict[str, UserSession] = {}
@@ -173,7 +167,6 @@ class AuthService:
         """
         Pre-seed default accounts for development and automated pipeline testing.
 
-        Agent: @agent: eln-api-agent
         """
         defaults = [
             ("USR-PI-001", "pi_admin", "Prof. Principal Investigator", ROLE_PI_ADMIN, "token-pi-admin"),
@@ -196,7 +189,6 @@ class AuthService:
         """
         Authenticate bearer token or header and return active UserSession.
 
-        Agent: @agent: eln-api-agent
         Parameter token_or_header (Optional[str]): Bearer token string or 'Bearer <token>' header.
         Return Type: UserSession
         """
@@ -225,7 +217,6 @@ class AuthService:
         """
         Decorator enforcing that caller has one of the allowed roles.
 
-        Agent: @agent: eln-api-agent
         Parameter allowed_roles (List[str]): List of acceptable roles.
         Return Type: Callable
         """
@@ -259,7 +250,6 @@ class AuthService:
         """
         Decorator enforcing that caller has a specific granular permission.
 
-        Agent: @agent: eln-api-agent
         Parameter permission (str): Required permission key.
         Return Type: Callable
         """
@@ -296,7 +286,6 @@ def get_auth_service() -> AuthService:
     """
     Get the process-level singleton instance of AuthService.
 
-    Agent: @agent: eln-api-agent
     Return Type: AuthService
     """
     return _global_auth_service

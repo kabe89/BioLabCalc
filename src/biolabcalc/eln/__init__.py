@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln
 Component: State-of-the-Art Electronic Lab Notebook (ELN) & Multi-Modal LIMS Package
-Agent: @agent: eln-orchestrator
 Architectural Role: Core package initialization for ELN and LIMS suite.
 """
 

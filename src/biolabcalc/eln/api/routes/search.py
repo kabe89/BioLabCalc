@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.api.routes.search
 Component: Unified Multi-Modal Search REST Endpoints
-Agent: @agent: eln-api-agent
 Architectural Role: REST routes exposing cross-cutting search across campaigns, daily notebook entries,
 sequence constructs, cryogenic inventory tubes, FPLC fraction pools, gel records, and immutable audit logs.
 """
@@ -39,7 +38,6 @@ def search(
     """
     Execute unified keyword search across all ELN/LIMS entities.
 
-    Agent: @agent: eln-api-agent
     Parameter q (Optional[str]): Search query term (case-insensitive substring match).
     Parameter entity_type (Optional[str]): Optional filter ('campaign', 'sequence', 'tube', 'fplc', 'gel', 'audit').
     Parameter limit (int): Maximum items per category (default: 50).

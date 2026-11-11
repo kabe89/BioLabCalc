@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.gel_service
 Component: Gel Electrophoresis Standard Curve Calibration, MW Estimation & Multi-Modal Entity Tagging
-Agent: @agent: eln-api-agent
 Architectural Role: Core service providing molecular weight ladder standard curve calibration
 via linear regression of log10(MW) vs Rf, MW estimation for unknown sample bands with R^2 reporting,
 and relational tagging of gel lanes to database entities (Primers, Constructs, FPLC Fractions,
@@ -26,7 +25,6 @@ class LadderCalibrationResult:
     """
     Standard curve linear regression parameters calibrated from a molecular weight ladder.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Models log10(MW) = slope * Rf + intercept, providing R^2 calibration goodness of fit.
     """
 
@@ -41,7 +39,6 @@ class LadderCalibrationResult:
         """
         Serialize calibration to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -52,7 +49,6 @@ class GelBandMeasurement:
     """
     Measurement and molecular weight estimate for a detected gel lane band.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Stores band migration Rf, estimated molecular weight, intensity, and label.
     """
 
@@ -66,7 +62,6 @@ class GelBandMeasurement:
         """
         Serialize band measurement to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -77,7 +72,6 @@ class GelLane:
     """
     Gel electrophoresis lane tagged with associated biological database entities.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Entity linking physical gel lanes with Primers, Constructs, FPLC Fractions,
     NanoDrop measurements, and Campaign Timepoints.
     """
@@ -98,7 +92,6 @@ class GelLane:
         """
         Serialize gel lane to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return {
@@ -121,7 +114,6 @@ class GelRecord:
     """
     Complete gel electrophoresis record containing calibration standard curve and annotated lanes.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Container entity for gel image analysis, ladder calibration, and lane tagging.
     """
 
@@ -139,7 +131,6 @@ class GelRecord:
         """
         Serialize gel record to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return {
@@ -159,7 +150,6 @@ class GelService:
     """
     Service managing gel electrophoresis analysis, standard curve calibration, and entity tagging.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Provides mathematical linear regression for log10(MW) vs Rf, unknown band
     sizing, and relational database linkage across multi-modal analytical records.
     """
@@ -168,7 +158,6 @@ class GelService:
         """
         Initialize GelService in-memory repository and audit ledger.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._gels: Dict[str, GelRecord] = {}
@@ -182,7 +171,6 @@ class GelService:
         """
         Calibrate standard curve by linear regression of log10(known_mw) vs Rf.
 
-        Agent: @agent: eln-api-agent
         Mathematical Formulation:
             y = log10(known_mw)
             x = Rf (relative migration distance: 0.05 to 0.95)
@@ -244,7 +232,6 @@ class GelService:
         """
         Estimate molecular weight of a band given its Rf and calibrated ladder standard curve.
 
-        Agent: @agent: eln-api-agent
         Mathematical Principles:
             log10(MW) = slope * Rf + intercept
             MW = 10^(slope * Rf + intercept)
@@ -280,7 +267,6 @@ class GelService:
         """
         Register a new gel electrophoresis run, automatically computing ladder calibration if provided.
 
-        Agent: @agent: eln-api-agent
         Parameter title (str): Gel run title (e.g. 'T7RNAP Ni-NTA Elution SDS-PAGE').
         Parameter gel_type (str): Matrix type ('sds_page', 'agarose', 'urea_page').
         Parameter percentage (float): Gel percentage (e.g. 10.0% or 12.0%).
@@ -341,7 +327,6 @@ class GelService:
         """
         Tag a gel lane with associated database entities and calculate estimated MW for detected bands.
 
-        Agent: @agent: eln-api-agent
         Parameter gel_id (str): Target gel record ID.
         Parameter lane_number (int): Ordinal lane index on gel.
         Parameter sample_name (str): Sample label.
@@ -424,7 +409,6 @@ class GelService:
         """
         Retrieve gel record by ID.
 
-        Agent: @agent: eln-api-agent
         Parameter gel_id (str): Gel ID.
         Return Type: Optional[GelRecord]
         """
@@ -435,7 +419,6 @@ class GelService:
         """
         Reset internal gel state. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._gels.clear()
@@ -448,7 +431,6 @@ def get_gel_service() -> GelService:
     """
     Get the process-level singleton instance of GelService.
 
-    Agent: @agent: eln-api-agent
     Return Type: GelService
     """
     return _global_gel_service

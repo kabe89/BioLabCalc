@@ -1,6 +1,5 @@
 /**
  * @file spectrum_viewer.js
- * @agent eln-frontend-agent
  * @description Interactive NanoDrop UV-Vis Spectral Curve Viewer & Nucleic Acid / Protein Purity Analyzer.
  * @architecture High-precision Canvas/SVG dual-mode renderer plotting 220 nm to 350 nm absorption spectra.
  *               Performs automated 340 nm turbidity baseline subtraction, A260/A280 and A260/A230
@@ -29,13 +28,11 @@
 
 /**
  * SpectrumViewer Class: Manages UV-Vis spectrum rendering and purity diagnostics.
- * @agent eln-frontend-agent
  * @role Scientific UV-Vis spectrophotometry canvas component
  */
 export class SpectrumViewer {
   /**
    * Initializes the SpectrumViewer instance.
-   * @agent eln-frontend-agent
    * @role Component Constructor
    * @param {string|HTMLCanvasElement} canvasElement - Canvas element or ID
    * @param {Object} options - Configuration options
@@ -77,7 +74,6 @@ export class SpectrumViewer {
 
   /**
    * Generates realistic NanoDrop spectral curves for purified T7 RNAP and dialyzed stock.
-   * @agent eln-frontend-agent
    * @role Synthetic Data Generator
    * @private
    * @returns {void}
@@ -119,7 +115,6 @@ export class SpectrumViewer {
 
   /**
    * Simulates realistic protein UV absorbance spectrum with 280 nm Trp/Tyr peak.
-   * @agent eln-frontend-agent
    * @role Curve Simulation Helper
    * @private
    * @param {number} a280Target - Target absorbance at 280 nm
@@ -146,7 +141,6 @@ export class SpectrumViewer {
 
   /**
    * Simulates crude lysate UV spectrum with high nucleic acid contaminant absorption.
-   * @agent eln-frontend-agent
    * @role Crude Simulation Helper
    * @private
    * @returns {Array<SpectrumDataPoint>} Spectrum points
@@ -165,7 +159,6 @@ export class SpectrumViewer {
 
   /**
    * Binds mouse interaction events.
-   * @agent eln-frontend-agent
    * @role Event Setup
    * @private
    * @returns {void}
@@ -177,7 +170,6 @@ export class SpectrumViewer {
 
   /**
    * Resizes canvas buffer for crisp high-DPI displays.
-   * @agent eln-frontend-agent
    * @role Display Scaling
    * @returns {void}
    */
@@ -195,7 +187,6 @@ export class SpectrumViewer {
 
   /**
    * Calculates coordinate scale transformations.
-   * @agent eln-frontend-agent
    * @role Coordinate Converter
    * @private
    * @returns {Object} Scale helper functions
@@ -229,7 +220,6 @@ export class SpectrumViewer {
 
   /**
    * Renders the complete UV-Vis spectrum and annotations.
-   * @agent eln-frontend-agent
    * @role Master Render Method
    * @returns {void}
    */
@@ -297,7 +287,6 @@ export class SpectrumViewer {
 
   /**
    * Renders indicator vertical lines at 230, 260, 280, and 340 nm.
-   * @agent eln-frontend-agent
    * @role Reference Line Visualizer
    * @private
    * @param {Object} s - Scale bounds
@@ -327,7 +316,6 @@ export class SpectrumViewer {
 
   /**
    * Renders axes, labels, and ticks.
-   * @agent eln-frontend-agent
    * @role Coordinate Axis Renderer
    * @private
    * @param {Object} s - Scale bounds
@@ -368,7 +356,6 @@ export class SpectrumViewer {
 
   /**
    * Renders hover tooltip with interpolated absorbance values.
-   * @agent eln-frontend-agent
    * @role Interactive Hover Readout
    * @private
    * @param {Object} s - Scale bounds
@@ -417,7 +404,6 @@ export class SpectrumViewer {
 
   /**
    * Retrieves interpolated absorbance value at specified wavelength.
-   * @agent eln-frontend-agent
    * @role Spectral Lookup Helper
    * @private
    * @param {NanoDropSample} sample - Source sample record
@@ -431,7 +417,6 @@ export class SpectrumViewer {
 
   /**
    * Handles mouse movement over canvas.
-   * @agent eln-frontend-agent
    * @role Mouse Event Handler
    * @private
    * @param {MouseEvent} e - Mouse event
@@ -457,7 +442,6 @@ export class SpectrumViewer {
 
   /**
    * Clears hover indicators when mouse exits canvas.
-   * @agent eln-frontend-agent
    * @role Mouse Exit Handler
    * @private
    * @returns {void}
@@ -469,7 +453,6 @@ export class SpectrumViewer {
 
   /**
    * Evaluates purity metrics and concentration for the currently active sample.
-   * @agent eln-frontend-agent
    * @role Biochemical Diagnostic Calculation
    * @returns {Object} Quality metrics and concentration
    */
@@ -535,7 +518,6 @@ export class SpectrumViewer {
 
   /**
    * Sets the active sample to display.
-   * @agent eln-frontend-agent
    * @role Sample Switcher
    * @param {string} sampleId - Unique sample ID
    * @returns {void}

@@ -1,7 +1,6 @@
 -- ============================================================================
 -- Architecture: PostgreSQL 16+ Production DDL for ELN & LIMS Pipeline
 -- Component: Core Schema DDL
--- Agent: @agent: eln-db-agent
 -- Description: Production-grade PostgreSQL 16+ DDL script containing extensions,
 --              custom ENUM types, 21 relational tables, strict foreign keys,
 --              domain constraints, and state-of-the-art vector and lexical indexes

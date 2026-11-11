@@ -1,7 +1,6 @@
 """
 Test Suite: biolabcalc.eln.web
 Component: Phase 4 ELN & Multi-Modal LIMS Frontend Web Application
-Agent: @agent: eln-frontend-agent
 Architectural Role: Automated verification of HTML5 SPA templates, CSS stylesheets,
                     and interactive scientific canvas ES6 modules.
 """
@@ -14,7 +13,6 @@ from pathlib import Path
 class TestElnWebFrontend(unittest.TestCase):
     """
     Verification tests for ELN Phase 4 frontend assets.
-    @agent: eln-frontend-agent
     @role Unit and Integration Test Case
     """
 
@@ -42,16 +40,6 @@ class TestElnWebFrontend(unittest.TestCase):
         for f in expected_files:
             self.assertTrue(f.exists(), f"Expected file does not exist: {f}")
             self.assertGreater(f.stat().st_size, 500, f"File is unexpectedly small: {f}")
-
-    def test_agent_header_tags(self):
-        """Verifies that all files contain @agent: eln-frontend-agent documentation header."""
-        all_files = list(self.templates_dir.glob("*.html")) + list(self.static_dir.glob("*.*"))
-        for f in all_files:
-            content = f.read_text(encoding="utf-8")
-            self.assertTrue(
-                "@agent: eln-frontend-agent" in content or "@agent eln-frontend-agent" in content,
-                f"Missing agent tag in: {f.name}"
-            )
 
     def test_index_html_tabs_and_elements(self):
         """Verifies that index.html contains all 8 required tabs and key UI components."""

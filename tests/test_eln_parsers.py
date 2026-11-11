@@ -1,7 +1,6 @@
 """
 Test Suite: test_eln_parsers
 Component: Scientific Parsers & HITL Vision-OCR Engine Verification
-Agent: @agent: eln-parser-agent
 Architectural Role: Comprehensive verification of ABF (v1/v2/ATF), FPLC (CSV/ASC/ZIP/RES),
 NanoDrop (TSV/CSV/NDV/XLSX), Bio-Rad Image Lab (.scn/TIFF), Legacy DOCX/PDF, and HITL OCR
 with structured [[UNCERTAIN:...]] token correction.

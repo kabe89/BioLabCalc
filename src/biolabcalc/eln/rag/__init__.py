@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.rag
 Component: Hybrid-RAG, Local LLM & Knowledge Retrieval Engine
-Agent: @agent: eln-rag-agent
 Architectural Role: Core package initialization for State-of-the-Art Electronic Lab
 Notebook (ELN) and Multi-Modal LIMS Knowledge Retrieval Engine. Exports local inference
 clients, semantic chunkers, hybrid search engines, and citation synthesizers.

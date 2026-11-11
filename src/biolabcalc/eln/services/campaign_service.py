@@ -1,7 +1,6 @@
 """
 Module: biolabcalc.eln.services.campaign_service
 Component: Multi-Day Campaign Lifecycle, Daily Entries & Carry-Forward State Math Engine
-Agent: @agent: eln-api-agent
 Architectural Role: Core service governing experimental campaign lifecycle, daily lab notebook
 entries, cross-day carry-forward mathematical modeling (e.g. harvest pellet weight to lysis buffer),
 daily rollup aggregations, and standardized yield calculations.
@@ -24,7 +23,6 @@ class CampaignYields:
     """
     Standardized yield metrics recorded upon campaign culmination.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Quantifies total, volumetric, recovery percentage, and plasmid yields.
     """
 
@@ -37,7 +35,6 @@ class CampaignYields:
         """
         Serialize yields to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -48,7 +45,6 @@ class DailyEntry:
     """
     Structured lab notebook record for a single day within an experimental campaign.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Stores state inputs, experimental observations, timepoint references,
     SOP fork references, and state outputs carried forward into subsequent days.
     """
@@ -72,7 +68,6 @@ class DailyEntry:
         """
         Serialize daily notebook entry to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return asdict(self)
@@ -83,7 +78,6 @@ class Campaign:
     """
     Experimental campaign entity tracking multi-day protocols, construct targets, and yields.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Aggregate root coordinating daily notebook entries, lifecycle state transitions,
     and culmination analytics.
     """
@@ -105,7 +99,6 @@ class Campaign:
         """
         Serialize campaign to dictionary.
 
-        Agent: @agent: eln-api-agent
         Return Type: Dict[str, Any]
         """
         return {
@@ -128,7 +121,6 @@ class CampaignService:
     """
     Core service managing campaign life cycles, daily entries, and carry-forward state math.
 
-    Agent: @agent: eln-api-agent
     Architectural Role: Coordinates lifecycle state machines, validates cross-day dependencies,
     computes deterministic reagent formulations based on prior day outputs, and logs audit events.
     """
@@ -137,7 +129,6 @@ class CampaignService:
         """
         Initialize CampaignService in-memory repository with thread synchronization.
 
-        Agent: @agent: eln-api-agent
         """
         self._lock = threading.RLock()
         self._campaigns: Dict[str, Campaign] = {}
@@ -155,7 +146,6 @@ class CampaignService:
         """
         Create and persist a new experimental campaign.
 
-        Agent: @agent: eln-api-agent
         Parameter title (str): Short descriptive campaign name.
         Parameter description (str): Full objective and scientific rationale.
         Parameter construct_id (str): Identifier of targeted plasmid or construct (e.g. pET-28a-T7RNAP).
@@ -197,7 +187,6 @@ class CampaignService:
         """
         Retrieve campaign by unique identifier.
 
-        Agent: @agent: eln-api-agent
         Parameter campaign_id (str): Unique campaign identifier.
         Return Type: Optional[Campaign]
         """
@@ -208,7 +197,6 @@ class CampaignService:
         """
         List all registered campaigns, optionally filtered by lifecycle status.
 
-        Agent: @agent: eln-api-agent
         Parameter status (Optional[str]): Status filter ('planned', 'in_progress', 'completed', 'aborted').
         Return Type: List[Campaign]
         """
@@ -232,7 +220,6 @@ class CampaignService:
         """
         Append a new daily notebook entry to an active campaign.
 
-        Agent: @agent: eln-api-agent
         Parameter campaign_id (str): Target campaign ID.
         Parameter day_number (int): Ordinal day number (e.g. 1, 2, 3).
         Parameter title (str): Header title for day's workflow.
@@ -295,7 +282,6 @@ class CampaignService:
         """
         Update state outputs, observations, or status of an existing daily entry.
 
-        Agent: @agent: eln-api-agent
         Parameter campaign_id (str): Target campaign ID.
         Parameter entry_id (str): Daily entry ID.
         Parameter updated_by (str): User making modification.
@@ -356,7 +342,6 @@ class CampaignService:
         Calculate Day 3 lysis buffer, protease inhibitor, lysozyme, and DNase requirements
         directly from Day 2 harvest wet pellet weight.
 
-        Agent: @agent: eln-api-agent
         Formula:
             lysis_buffer_volume_ml = pellet_weight_g * buffer_ratio_ml_per_g
             protease_tablets = ceil(lysis_buffer_volume_ml / protease_tablet_per_ml)
@@ -408,7 +393,6 @@ class CampaignService:
         """
         Estimate wet cell pellet weight from culture volume and optical density OD600.
 
-        Agent: @agent: eln-api-agent
         Parameter culture_volume_l (float): Total culture volume in liters.
         Parameter final_od600 (float): Measured absorbance at 600 nm at harvest.
         Parameter wet_cell_weight_factor_g_per_od_l (float): Grams wet cell per OD600 per liter (default: 1.8).
@@ -432,7 +416,6 @@ class CampaignService:
         """
         Calculate required chromatography resin bed volume based on cleared lysate and estimated target protein.
 
-        Agent: @agent: eln-api-agent
         Parameter lysate_volume_ml (float): Total volume of cleared soluble lysate in mL.
         Parameter estimated_target_conc_mg_ml (float): Estimated target protein concentration in lysate (mg/mL).
         Parameter resin_capacity_mg_per_ml (float): Dynamic binding capacity of resin (default: 40 mg/mL Ni-NTA).
@@ -460,7 +443,6 @@ class CampaignService:
         """
         Execute carry-forward state math from harvest day (Day 2) output into lysis day (Day 3) input.
 
-        Agent: @agent: eln-api-agent
         Takes the recorded harvest wet pellet weight (e.g. 22.4 g) from Day 2 state_outputs,
         computes the exact required lysis buffer volume (112.0 mL), updates Day 3 state_inputs,
         and logs the transaction in the immutable audit ledger.
@@ -543,7 +525,6 @@ class CampaignService:
         """
         Aggregate and summarize all metrics, timepoints, outputs, and status for a campaign day.
 
-        Agent: @agent: eln-api-agent
         Parameter campaign_id (str): Target campaign ID.
         Parameter day_number (int): Day number to summarize.
         Return Type: Dict[str, Any]
@@ -590,7 +571,6 @@ class CampaignService:
         """
         Record final purification yields, calculate recovery benchmarks, and mark campaign completed.
 
-        Agent: @agent: eln-api-agent
         Calculates:
             yield_mg_total = measured total protein yield in mg.
             yield_mg_per_liter_culture = yield_mg_total / culture_volume_l.
@@ -651,7 +631,6 @@ class CampaignService:
         """
         Reset internal campaign state. For unit testing harness use only.
 
-        Agent: @agent: eln-api-agent
         """
         with self._lock:
             self._campaigns.clear()
@@ -664,7 +643,6 @@ def get_campaign_service() -> CampaignService:
     """
     Get the process-level singleton instance of CampaignService.
 
-    Agent: @agent: eln-api-agent
     Return Type: CampaignService
     """
     return _global_campaign_service
