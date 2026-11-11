@@ -1,9 +1,17 @@
 import unittest
 import os
+import tempfile
 from PIL import Image
-import openpyxl
-from biolabcalc.gel_annotator import GelAnnotator
 
+try:
+    import openpyxl
+    import matplotlib
+    from biolabcalc.gel_annotator import GelAnnotator
+    HAS_DEPS = True
+except ImportError:
+    HAS_DEPS = False
+
+@unittest.skipUnless(HAS_DEPS, "openpyxl and matplotlib required for GelAnnotator tests")
 class TestGelAnnotator(unittest.TestCase):
     def setUp(self):
         self.output_png = "/tmp/test_annotator_out.png"

@@ -1,10 +1,18 @@
 import unittest
 import os
-import openpyxl
-from biolabcalc.excel_extension import generate_lab_notebook_template, export_analysis_to_excel, batch_process_excel
+import tempfile
+
+try:
+    import openpyxl
+    from biolabcalc.excel_extension import generate_lab_notebook_template, export_analysis_to_excel, batch_process_excel
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
+
 from biolabcalc.transcription import calculate_ivt_yield
 from biolabcalc.pcr import calculate_pcr_kinetics
 
+@unittest.skipUnless(HAS_OPENPYXL, "openpyxl required for Excel extension tests")
 class TestExcelExtension(unittest.TestCase):
     def test_generate_template(self):
         out_path = "/tmp/test_gen_template.xlsx"

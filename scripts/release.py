@@ -5,6 +5,19 @@ import argparse
 import subprocess
 import sys
 import os
+import shutil
+import glob
+
+def clean_build_artifacts():
+    for p in ["dist", "build"]:
+        if os.path.exists(p):
+            shutil.rmtree(p, ignore_errors=True)
+    for pattern in ["*.egg-info", "src/*.egg-info"]:
+        for match in glob.glob(pattern):
+            if os.path.isdir(match):
+                shutil.rmtree(match, ignore_errors=True)
+            elif os.path.isfile(match):
+                os.remove(match)
 
 def run_cmd(cmd):
     print(f"--> Running: {cmd}")
@@ -27,7 +40,7 @@ def main():
         args.check = True
 
     if args.build:
-        run_cmd("rm -rf dist/ build/ *.egg-info src/*.egg-info")
+        clean_build_artifacts()
         run_cmd(f"{sys.executable} setup.py sdist bdist_wheel")
 
     if args.check:

@@ -182,15 +182,25 @@ from .interactive_gel import (
     launch_interactive_annotator,
 )
 
-from .gel_annotator import (
-    GelAnnotator,
-)
+try:
+    from .gel_annotator import (
+        GelAnnotator,
+    )
+except ImportError:
+    GelAnnotator = None
 
-from .excel_extension import (
-    batch_process_excel,
-    generate_lab_notebook_template,
-    export_analysis_to_excel,
-)
+try:
+    from .excel_extension import (
+        batch_process_excel,
+        generate_lab_notebook_template,
+        export_analysis_to_excel,
+    )
+except ImportError:
+    batch_process_excel = None
+    generate_lab_notebook_template = None
+    export_analysis_to_excel = None
+
+from . import eln
 
 __all__ = [
     "clean_sequence",
@@ -282,4 +292,5 @@ __all__ = [
     "calculate_ladder_standard_curve",
     "estimate_band_mw",
     "launch_interactive_annotator",
+    "eln",
 ]

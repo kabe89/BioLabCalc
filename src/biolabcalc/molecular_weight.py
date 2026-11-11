@@ -131,10 +131,10 @@ def calculate_dna_mw(
             "T": counts.get("T", 0) + rc_result.base_counts.get("T", 0),
         }
         gc = round(((all_counts["G"] + all_counts["C"]) / (length * 2)) * 100.0, 2)
-        return MolecularWeightResult(clean_seq, "dsDNA", length, round(total_avg, 2), round(total_mono, 4), all_counts, gc)
+        return MolecularWeightResult(clean_seq, "dsDNA", length, round(total_avg, 2), round(total_mono, 4), all_counts, gc, end_5=end_5)
 
     gc = round(((counts.get("G", 0) + counts.get("C", 0)) / length) * 100.0, 2)
-    return MolecularWeightResult(clean_seq, "ssDNA", length, round(strand_avg, 2), round(strand_mono, 4), counts, gc)
+    return MolecularWeightResult(clean_seq, "ssDNA", length, round(strand_avg, 2), round(strand_mono, 4), counts, gc, end_5=end_5)
 
 
 def calculate_rna_mw(

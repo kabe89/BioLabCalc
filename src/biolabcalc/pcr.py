@@ -81,6 +81,8 @@ def calculate_pcr_kinetics(
         raise ValueError("Efficiency must be between 0.0 and 1.0.")
     if reaction_volume_ul <= 0:
         raise ValueError("Reaction volume must be positive.")
+    if amplicon_gc_pct < 0.0 or amplicon_gc_pct > 100.0:
+        raise ValueError("Amplicon GC percentage must be between 0.0 and 100.0.")
 
     # Double stranded DNA MW approx: len * 617.96 + 36.04
     amplicon_mw = amplicon_len_bp * 617.96 + 36.04
@@ -108,9 +110,11 @@ def calculate_pcr_kinetics(
         "dTTP": amplicon_len_bp * at_frac,
     }
 
-    # Max amplicons limited by each dNTP
+    # Max amplicons limited by each dNTP (guard against 0 consumption when at_frac or gc_frac is 0)
     max_amplicons_nmol = {
         base: (initial_dntp_nmol[base] / dntp_per_amplicon[base])
+        if dntp_per_amplicon[base] > 0
+        else float("inf")
         for base in initial_dntp_nmol
     }
     limiting_dntp = min(max_amplicons_nmol, key=max_amplicons_nmol.get)

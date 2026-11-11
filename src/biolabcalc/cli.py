@@ -17,8 +17,14 @@ from .fluorescence import apply_fluorophore_modification, calculate_degree_of_la
 from .spectroscopy import prepare_standard_solution, assess_nanodrop_purity
 from .gels import simulate_gel
 from .ecoli_growth import calculate_ecoli_growth, estimate_plasmid_yield, optimize_protein_induction
-from .excel_extension import generate_lab_notebook_template, batch_process_excel
-from .gel_annotator import GelAnnotator
+try:
+    from .excel_extension import generate_lab_notebook_template, batch_process_excel
+except ImportError:
+    generate_lab_notebook_template, batch_process_excel = None, None
+try:
+    from .gel_annotator import GelAnnotator
+except ImportError:
+    GelAnnotator = None
 from .cloning import plan_restriction_digest, calculate_ligation, calculate_gibson_assembly, calculate_golden_gate_assembly
 from .buffers import calculate_buffer_recipe, calculate_hepes_ivt_buffer, calculate_ntp_ph_adjustment, BUFFER_CATALOG, CustomBufferBuilder, list_custom_buffers
 from .protocols import list_protocols, get_protocol, format_protocol_markdown, export_all_protocols_markdown, PROTOCOL_CATALOG
@@ -57,7 +63,8 @@ def run_wizard():
         c2 = input("Enter Target Conc C2 (e.g. '25 mM'): ").strip()
         v2 = input("Enter Target Volume V2 (e.g. '16 mL'): ").strip()
         res = dilute(c1=c1, c2=c2, v2=v2)
-        print(f"\n--> Take {res['v1'] / 1000.0:.3f} mL of stock and add {res['diluent_needed'] / 1000.0:.3f} mL diluent.")
+        conc_unit = "mg/mL" if ("/" in c1 or "/" in c2) else "mM"
+        print(f"\n--> Take {res['v1'] / 1000.0:.3f} mL of stock and add {res['diluent_needed'] / 1000.0:.3f} mL diluent to reach {res['c2']} {conc_unit} in {v2}.")
 
     elif choice == "2":
         print("\n--- 25 mM NTP Solution Preparation & pH Adjustment ---")
@@ -78,6 +85,31 @@ def run_wizard():
         for lc in res.logic_checks:
             print(f"  [*] {lc}")
 
+    elif choice == "3":
+        print("\n--- In Vitro Transcription (IVT) Stoichiometry & Yield ---")
+        seq = input("Enter RNA/DNA template sequence [GGGAGACCCAAGCUGGCC]: ").strip() or "GGGAGACCCAAGCUGGCC"
+        vol_str = input("Reaction volume in µL [20.0]: ").strip() or "20.0"
+        yld_str = input("Measured yield in µg [50.0]: ").strip() or "50.0"
+        vol = UnitParser.parse_volume(vol_str, "ul")
+        yld = UnitParser.parse_mass(yld_str, "ug")
+        res = calculate_ivt_yield(rna_seq=seq, reaction_volume_ul=vol, measured_yield_ug=yld)
+        print(f"\n--> RNA Length: {res.rna_length} nt (MW: {res.rna_mw:,.1f} Da)")
+        print(f"--> Yield: {res.rna_yield_ug:.1f} µg ({res.rna_yield_pmol:.2f} pmol)")
+        turnover_str = f"{res.transcript_turnover_ratio:,.0f}x" if res.transcript_turnover_ratio is not None else "N/A"
+        print(f"--> Transcript turnover: {turnover_str}")
+        print(f"--> Limiting Reagent: {res.limiting_ntp}")
+
+    elif choice == "4":
+        print("\n--- PCR Master Mix Formulation ---")
+        rxns = input("Number of reactions [10]: ").strip() or "10"
+        vol = input("Reaction volume in µL [50.0]: ").strip() or "50.0"
+        excess = input("Excess percentage [10.0]: ").strip() or "10.0"
+        items = build_master_mix(num_reactions=int(rxns), reaction_volume_ul=float(vol), excess_percent=float(excess))
+        total_vol = sum(it.total_volume_ul for it in items)
+        print(f"\nMaster Mix for {rxns} reactions ({total_vol:.1f} µL total incl. {excess}% excess):")
+        for item in items:
+            print(f"  - {item.component}: {item.total_volume_ul:.2f} µL ({item.volume_per_reaction_ul:.2f} µL/rxn)")
+
     elif choice == "5":
         print("\n--- Laboratory Buffer Recipe ---")
         print(f"Available buffers: {list(BUFFER_CATALOG.keys())}")
@@ -87,6 +119,33 @@ def run_wizard():
         print(f"\nRecipe for {res.name} ({res.target_volume_ml:.0f} mL):")
         for c in res.components:
             print(f"  - {c.name}: {c.amount} {c.unit} ({c.molar_concentration})")
+
+    elif choice == "6":
+        print("\n--- Nucleic Acid Precipitation & Desalting ---")
+        vol_str = input("Sample volume in µL [100.0]: ").strip() or "100.0"
+        na = input("Nucleic acid ('dna' or 'rna') [dna]: ").strip() or "dna"
+        alc = input("Alcohol ('ethanol' or 'isopropanol') [ethanol]: ").strip() or "ethanol"
+        res = calculate_precipitation(sample_volume_ul=float(vol_str), nucleic_acid=na, alcohol=alc)
+        print(f"\nPrecipitation protocol for {res.sample_volume_ul:.0f} µL {res.nucleic_acid_type}:")
+        for k, v in res.reagent_summary.items():
+            print(f"  - {k}: {v:.1f} µL")
+        print(f"--> Incubation: {res.incubation_temp}")
+        print(f"--> Centrifugation: {res.centrifugation_speed} for {res.centrifugation_time_min} min")
+
+    elif choice == "7":
+        print("\n--- Molecular Weight & Molarity Calculation ---")
+        stype = input("Sequence type ('dna', 'rna', 'protein') [dna]: ").strip().lower() or "dna"
+        seq = input("Sequence [ATGCGTACGTTAGC]: ").strip() or "ATGCGTACGTTAGC"
+        if stype == "dna":
+            mw_res = calculate_dna_mw(seq)
+        elif stype == "rna":
+            mw_res = calculate_rna_mw(seq)
+        else:
+            mw_res = calculate_protein_mw(seq)
+        print(f"\n--> Sequence Length: {mw_res.length} {'nt' if stype in ('dna', 'rna') else 'aa'}")
+        print(f"--> Average MW: {mw_res.average_mw:,.2f} Da")
+        print(f"--> Monoisotopic MW: {mw_res.monoisotopic_mw:,.4f} Da")
+        print(f"--> GC Content: {mw_res.gc_content:.1f}%")
 
     elif choice == "8":
         print("\n--- Standard Protocols Compendium ---")
@@ -146,7 +205,7 @@ def main():
     # 3. pcr
     p_pcr = subparsers.add_parser("pcr", help="Calculate PCR kinetics and dNTP usage")
     p_pcr.add_argument("-l", "--length", type=int, required=True, help="Amplicon length in bp")
-    p_pcr.add_argument("-t", "--template-ng", type=float, required=True, help="Template input in ng")
+    p_pcr.add_argument("-t", "--template-ng", required=True, help="Template input in ng (e.g. '10 ng', '0.5 ug', 10)")
     p_pcr.add_argument("-c", "--cycles", type=int, default=30, help="PCR cycles")
 
     # 4. pcr-opt
@@ -343,6 +402,13 @@ def main():
     p_rep.add_argument("-o", "--output", default=None, help="Export report to file (.md, .xlsx, .csv, .json)")
     p_rep.add_argument("--interactive", action="store_true", help="Launch interactive terminal prompt to record measurements")
 
+    # 31. eln
+    p_eln = subparsers.add_parser("eln", help="Launch State-of-the-Art Electronic Lab Notebook (ELN) and Multi-Modal LIMS")
+    p_eln.add_argument("-p", "--port", type=int, default=8080, help="Web server port (default: 8080)")
+    p_eln.add_argument("--host", default="127.0.0.1", help="Host address (default: 127.0.0.1)")
+    p_eln.add_argument("--db-url", default=None, help="Database connection URL (defaults to SQLite local CAS)")
+    p_eln.add_argument("--no-browser", action="store_true", help="Do not open web browser automatically")
+
 
 
     args = parser.parse_args()
@@ -352,12 +418,17 @@ def main():
 
     if args.command == "dilute":
         res = dilute(c1=args.c1, v1=args.v1, c2=args.c2, v2=args.v2)
+        conc_unit = "mM"
+        for val in (args.c1, args.c2):
+            if val and "/" in str(val):
+                conc_unit = "mg/mL"
+                break
         print("=" * 65)
         print("DILUTION CALCULATOR (C1 * V1 = C2 * V2)")
         print("=" * 65)
-        print(f"Stock Concentration (C1):    {res['c1']} mM")
+        print(f"Stock Concentration (C1):    {res['c1']} {conc_unit}")
         print(f"Stock Volume to Add (V1):     {res['v1'] / 1000.0:.3f} mL ({res['v1']:,.1f} µL)")
-        print(f"Target Concentration (C2):   {res['c2']} mM")
+        print(f"Target Concentration (C2):   {res['c2']} {conc_unit}")
         print(f"Final Total Volume (V2):      {res['v2'] / 1000.0:.3f} mL ({res['v2']:,.1f} µL)")
         print(f"Diluent Volume Needed:        {res['diluent_needed'] / 1000.0:.3f} mL ({res['diluent_needed']:,.1f} µL)")
         print("=" * 65)
@@ -1156,6 +1227,10 @@ def main():
     elif args.command == "excel-template":
         path = generate_lab_notebook_template(args.output)
         print(f"Interactive Excel notebook template generated at: {path}")
+
+    elif args.command == "eln":
+        from .eln.server import launch_eln_server
+        launch_eln_server(host=args.host, port=args.port, db_url=args.db_url, open_browser=not args.no_browser)
 
 if __name__ == "__main__":
     main()

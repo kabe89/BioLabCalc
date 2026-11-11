@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<!--
+  @file index.html
+  @agent eln-frontend-agent
+  @description Unified Single-Page Application (SPA) layout for BioLabCalc Electronic Lab Notebook (ELN) & Multi-Modal LIMS.
+  @architecture Modern laboratory frontend interface integrating responsive grid layouts,
+               interactive scientific canvases (FPLC, SDS-PAGE Gel, NanoDrop UV-Vis, 2D Freezer Grid),
+               kinetic live timers with SOP target deviation alerts, HITL OCR correction,
+               and global Hybrid-RAG knowledge base modal.
+-->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioLabCalc ELN & Multi-Modal LIMS Pipeline</title>
+  <link rel="stylesheet" href="../static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧪</text></svg>">
+</head>
+<body>
+
+  <!-- =========================================================================
+       Top Header Bar
+       ========================================================================= -->
+  <header class="eln-header">
+    <div class="header-left">
+      <div class="brand-title">
+        <div class="brand-icon">B</div>
+        <span>BioLabCalc <span style="font-weight:400; color:var(--text-muted);">ELN & LIMS</span></span>
+      </div>
+
+      <!-- Active Campaign Selector -->
+      <div class="campaign-selector-wrap">
+        <select id="campaign-select" class="campaign-select" title="Switch Active Campaign">
+          <option value="CAMP-2026-T7RNAP" selected>5-Day T7 RNA Polymerase High-Yield Expression & Purification (Active)</option>
+          <option value="CAMP-2026-GFP">pET-28a-GFP Induction Pilot (Completed)</option>
+          <option value="CAMP-2026-CAS9">CRISPR-Cas9 sgRNA In Vitro Transcription (Draft)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Center: Global Hybrid-RAG Search Bar Trigger -->
+    <div class="header-center">
+      <button class="search-trigger-btn" id="search-trigger-btn" title="Search all notebooks, runs, gels, and samples">
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span>🔍</span>
+          <span>Search notebooks, FPLC peaks, gels, SOPs, tubes...</span>
+        </span>
+        <span class="search-shortcut-badge">⌘K</span>
+      </button>
+    </div>
+
+    <!-- Right: WebSocket Status, Theme Toggle, User Profile -->
+    <div class="header-right">
+      <div id="ws-status-badge" class="ws-status-badge">
+        <div class="ws-status-dot"></div>
+        <span id="ws-status-text">Live Sync</span>
+      </div>
+
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+        🌙 Dark
+      </button>
+
+      <div class="user-profile-badge" id="user-profile-toggle" title="Click to switch role (Researcher / PI)">
+        <div class="user-avatar">ER</div>
+        <div class="user-info">
+          <span class="user-name">Dr. Elena Rostova</span>
+          <span class="role-badge" id="user-role-badge">Active Researcher</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       Navigation Tabs
+       ========================================================================= -->
+  <nav class="eln-tabs-nav" aria-label="Main Navigation">
+    <button class="nav-tab-btn active" data-tab="notebook">
+      <span>📖 Notebook</span>
+      <span class="tab-badge">Day 4</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="timers">
+      <span>⏱️ Kinetic Timepoints</span>
+      <span class="tab-badge">Live</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="fplc">
+      <span>📈 FPLC Chromatogram</span>
+      <span class="tab-badge">ÄKTA</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="gel">
+      <span>🧬 Gel Canvas</span>
+      <span class="tab-badge">Bio-Rad</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="nanodrop">
+      <span>🔬 NanoDrop Spectra</span>
+      <span class="tab-badge">A260/A280</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="freezer">
+      <span>❄️ Freezer LIMS</span>
+      <span class="tab-badge">-80°C</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="ocr">
+      <span>📝 OCR Digitizer</span>
+      <span class="tab-badge">HITL</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="sequences">
+      <span>🧬 Sequences & SOPs</span>
+    </button>
+  </nav>
+
+  <!-- =========================================================================
+       Main Content Container
+       ========================================================================= -->
+  <main class="eln-main-container">
+
+    <!-- -----------------------------------------------------------------------
+         Tab 1: Notebook Campaign & Daily Entry
+         ----------------------------------------------------------------------- -->
+    <div id="tab-notebook" class="tab-pane active">
+      <div class="campaign-overview-header">
+        <div>
+          <div class="campaign-meta-title" id="campaign-title-display">
+            5-Day T7 RNA Polymerase High-Yield Expression & Purification
+          </div>
+          <div class="campaign-meta-subtitle">
+            Campaign ID: <strong>CAMP-2026-T7RNAP</strong> • Construct: <code>pET-28a-T7RNAP</code> (KanR) • Target MW: <strong>98.9 kDa</strong>
+          </div>
+        </div>
+
+        <div class="campaign-yield-summary">
+          <div class="yield-stat-box">
+            <div class="yield-stat-val" id="yield-stat-conc">3.85 mg/mL</div>
+            <div class="yield-stat-label">Concentration</div>
+          </div>
+          <div class="yield-stat-box">
+            <div class="yield-stat-val" id="yield-stat-total">19.25 mg</div>
+            <div class="yield-stat-label">Total Yield</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carry-Forward State Banner -->
+      <div class="carry-forward-banner" id="carry-forward-banner">
+        <div class="carry-forward-content">
+          <div class="carry-forward-pulse"></div>
+          <div>
+            <div class="carry-forward-title" id="carry-forward-title">
+              Ni-NTA Elution Fractions B4-B8 Pooled
+            </div>
+            <div class="carry-forward-desc" id="carry-forward-desc">
+              5.0 mL pooled fractions @ 3.85 mg/mL (19.25 mg target protein) -> Ready for Day 4 Dialysis & Final QC.
+            </div>
+          </div>
+        </div>
+        <span class="badge badge-pass">State Active</span>
+      </div>
+
+      <!-- Timeline Track (Day 0 to Day 4) -->
+      <div class="timeline-track">
+        <div class="timeline-node completed" data-day="0">
+          <span class="timeline-node-day">Day 0</span>
+          <span class="timeline-node-title">Plasmid Prep</span>
+        </div>
+        <div class="timeline-node completed" data-day="1">
+          <span class="timeline-node-day">Day 1</span>
+          <span class="timeline-node-title">Transformation</span>
+        </div>
+        <div class="timeline-node completed" data-day="2">
+          <span class="timeline-node-day">Day 2</span>
+          <span class="timeline-node-title">Induction & Harvest</span>
+        </div>
+        <div class="timeline-node active" data-day="3">
+          <span class="timeline-node-day">Day 3</span>
+          <span class="timeline-node-title">Lysis & Ni-NTA</span>
+        </div>
+        <div class="timeline-node" data-day="4">
+          <span class="timeline-node-day">Day 4</span>
+          <span class="timeline-node-title">Dialysis & QC</span>
+        </div>
+      </div>
+
+      <!-- Split Layout: Markdown Editor & SOP Step Checklist -->
+      <div class="notebook-split-grid">
+        <div class="eln-card">
+          <div class="card-header">
+            <span class="card-title">📝 Daily Laboratory Entry (Markdown)</span>
+            <div class="card-actions">
+              <span class="badge badge-pass" id="save-status-badge">Auto-Saved</span>
+              <button class="btn btn-outline btn-sm" id="btn-sign-entry">✍️ Sign & Lock Entry</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <textarea id="entry-markdown-editor" class="entry-markdown-editor" placeholder="Write experimental log in Markdown..."></textarea>
+          </div>
+        </div>
+
+        <div class="eln-card">
+          <div class="card-header">
+            <span class="card-title">✅ Protocol SOP Execution Checklist</span>
+            <span class="badge badge-info">SOP-PROT-042</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div id="sop-step-checklist">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 2: Kinetic Timepoints & Timers
+         ----------------------------------------------------------------------- -->
+    <div id="tab-timers" class="tab-pane">
+      <div class="timer-dashboard-grid">
+        <!-- Live Countdown & Elapsed Timer Widget -->
+        <div id="timer-widget-container">
+          <!-- Populated by TimerWidget class -->
+        </div>
+
+        <!-- Real-Time Kinetic Timepoint Log -->
+        <div class="eln-card">
+          <div class="card-header">
+            <span class="card-title">⏱️ Kinetic Timepoint & Deviation Log</span>
+            <div class="card-actions">
+              <button class="btn btn-outline btn-sm" id="btn-export-timepoints">Export CSV</button>
+            </div>
+          </div>
+          <div class="card-body data-table-wrap" style="padding:0;">
+            <table class="scientific-table">
+              <thead>
+                <tr>
+                  <th>Timepoint ID</th>
+                  <th>Step Description</th>
+                  <th>Timestamp</th>
+                  <th>Parameter Tracked</th>
+                  <th>SOP Deviation</th>
+                  <th>Operator</th>
+                </tr>
+              </thead>
+              <tbody id="timepoints-table-body">
+                <tr>
+                  <td style="font-family:var(--font-mono);">TP-IND-01</td>
+                  <td><strong>IPTG Induction t=0h</strong></td>
+                  <td>10:00:00 AM</td>
+                  <td>OD600 = <strong>0.65</strong></td>
+                  <td><span class="badge badge-dev-zero">00:00</span></td>
+                  <td>Dr. Elena Rostova</td>
+                </tr>
+                <tr>
+                  <td style="font-family:var(--font-mono);">TP-IND-02</td>
+                  <td><strong>IPTG Induction t=2h</strong></td>
+                  <td>12:01:23 PM</td>
+                  <td>OD600 = <strong>2.15</strong></td>
+                  <td><span class="badge badge-dev-plus">+01:23</span></td>
+                  <td>Dr. Elena Rostova</td>
+                </tr>
+                <tr>
+                  <td style="font-family:var(--font-mono);">TP-IND-03</td>
+                  <td><strong>IPTG Induction t=4h Harvest</strong></td>
+                  <td>02:00:45 PM</td>
+                  <td>OD600 = <strong>3.82</strong></td>
+                  <td><span class="badge badge-dev-plus">+00:45</span></td>
+                  <td>Dr. Elena Rostova</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 3: Interactive FPLC Chromatogram
+         ----------------------------------------------------------------------- -->
+    <div id="tab-fplc" class="tab-pane">
+      <div class="fplc-container">
+        <!-- Toolbar -->
+        <div class="fplc-toolbar">
+          <div class="fplc-legend">
+            <div class="legend-item"><div class="legend-line legend-uv"></div><span>UV 280 nm (mAU)</span></div>
+            <div class="legend-item"><div class="legend-line legend-cond"></div><span>Conductivity (mS/cm)</span></div>
+            <div class="legend-item"><div class="legend-line legend-grad"></div><span>%B Elution Gradient</span></div>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn btn-primary" id="btn-pool-fractions">🧪 Pool Selected Fractions</button>
+            <button class="btn btn-outline btn-sm" id="btn-fplc-export-png">Export PNG</button>
+          </div>
+        </div>
+
+        <!-- Fraction Selection Summary Bar -->
+        <div class="fplc-selection-banner">
+          <div class="fplc-pool-stats">
+            <div>Fractions Selected: <span id="fplc-selected-range">B4 – B8</span></div>
+            <div>Total Volume: <span id="fplc-selected-vol">10.0 mL</span></div>
+            <div>Estimated Concentration: <span id="fplc-selected-conc">3.85 mg/mL</span></div>
+            <div>Estimated Yield: <span id="fplc-selected-yield">19.25 mg</span></div>
+          </div>
+          <span class="badge badge-pass">Optimal Elution Peak</span>
+        </div>
+
+        <!-- Canvas Chart Area -->
+        <div class="fplc-canvas-wrap">
+          <canvas id="fplc-chromatogram-canvas" class="fplc-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 4: Interactive Bio-Rad Gel Canvas
+         ----------------------------------------------------------------------- -->
+    <div id="tab-gel" class="tab-pane">
+      <div class="gel-workspace-grid">
+        <!-- Gel Canvas Viewport -->
+        <div class="gel-canvas-card">
+          <div class="gel-canvas-wrapper">
+            <canvas id="gel-electrophoresis-canvas" class="gel-canvas" width="720" height="480"></canvas>
+          </div>
+
+          <!-- Visual Controls Row -->
+          <div class="gel-controls-row">
+            <div class="gel-slider-wrap">
+              <label>Contrast:</label>
+              <input type="range" id="gel-slider-contrast" min="0.5" max="2.0" step="0.05" value="1.0" style="width:90px;">
+            </div>
+            <div class="gel-slider-wrap">
+              <label>Brightness:</label>
+              <input type="range" id="gel-slider-brightness" min="0.5" max="2.0" step="0.05" value="1.0" style="width:90px;">
+            </div>
+            <button class="btn btn-outline btn-sm" id="btn-gel-invert">Invert (Publication White)</button>
+            <button class="btn btn-primary btn-sm" id="btn-gel-export-pub">Export Publication Figure</button>
+          </div>
+        </div>
+
+        <!-- Gel Annotation & Ladder Calibration Sidebar -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="eln-card">
+            <div class="card-header">
+              <span class="card-title">🔬 Selected Lane Analysis</span>
+              <span class="badge badge-pass">Purity > 98%</span>
+            </div>
+            <div class="card-body">
+              <h4 id="gel-selected-lane-title" style="font-size:0.95rem; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
+                Lane 8 (Purified Eluate)
+              </h4>
+              <p id="gel-selected-lane-sample" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
+                Ni-NTA Elution (Pool B4-B8)
+              </p>
+              <div id="gel-selected-lane-bands">
+                <!-- Dynamically populated band list -->
+              </div>
+            </div>
+          </div>
+
+          <div class="eln-card">
+            <div class="card-header">
+              <span class="card-title">📐 Ladder Calibration (R² = 0.994)</span>
+            </div>
+            <div class="card-body" style="font-size:0.8rem; color:var(--text-muted);">
+              Bio-Rad Precision Plus Ladder calibration curve:
+              <div style="font-family:var(--font-mono); color:var(--accent); font-weight:700; margin:8px 0;">
+                log₁₀(MW) = -1.85 · Rf + 2.45
+              </div>
+              Interpolated target band Rf = 0.245 -> <strong>98.9 kDa</strong> (Theoretical T7 RNAP: 98.85 kDa).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 5: NanoDrop UV-Vis Spectra
+         ----------------------------------------------------------------------- -->
+    <div id="tab-nanodrop" class="tab-pane">
+      <div class="spectrum-grid">
+        <div class="eln-card">
+          <div class="card-header">
+            <span class="card-title">🔬 UV-Vis Absorption Spectrum (220 – 350 nm)</span>
+            <div class="card-actions">
+              <label style="font-size:0.8rem; display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="nanodrop-baseline-checkbox" checked>
+                Subtract 340 nm Baseline
+              </label>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="spectrum-canvas-wrap">
+              <canvas id="nanodrop-spectrum-canvas" style="width:100%; height:100%;"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="spectrum-metrics-card">
+          <div class="eln-card" style="margin-bottom:0;">
+            <div class="card-header">
+              <span class="card-title">Sample Selection</span>
+            </div>
+            <div class="card-body">
+              <select id="nanodrop-sample-select" class="campaign-select" style="width:100%;">
+                <option value="ND-2026-0881" selected>ND-2026-0881: Ni-NTA Pool B4-B8</option>
+                <option value="ND-2026-0882">ND-2026-0882: Dialyzed Final Bulk</option>
+                <option value="ND-2026-0880">ND-2026-0880: Clarified Supernatant</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Purity Ratio Cards -->
+          <div class="purity-gauge-box">
+            <div class="gauge-header">
+              <span class="gauge-title">A260 / A280 Purity Ratio</span>
+              <span class="badge badge-pass" id="badge-a260-a280">PASS</span>
+            </div>
+            <div class="gauge-value-big" id="metric-a260-a280">0.58</div>
+            <div class="gauge-target-spec">Pure Protein Spec: 0.55 – 0.70 (No nucleic acid contamination)</div>
+          </div>
+
+          <div class="purity-gauge-box">
+            <div class="gauge-header">
+              <span class="gauge-title">A260 / A230 Buffer Salt Ratio</span>
+              <span class="badge badge-pass" id="badge-a260-a230">PASS</span>
+            </div>
+            <div class="gauge-value-big" id="metric-a260-a230">2.12</div>
+            <div class="gauge-target-spec">Spec: > 1.80 (Low chaotropic / imidazole background)</div>
+          </div>
+
+          <div class="purity-gauge-box">
+            <div class="gauge-header">
+              <span class="gauge-title">Calculated Concentration</span>
+              <span class="badge badge-info">Beer-Lambert</span>
+            </div>
+            <div class="gauge-value-big" id="metric-spectrum-conc" style="color:var(--accent);">3.85 mg/mL</div>
+            <div class="gauge-target-spec">Extinction ε = 1.40 mL/(mg·cm), Path = 1.0 mm</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 6: Freezer LIMS & 2D Box Grid
+         ----------------------------------------------------------------------- -->
+    <div id="tab-freezer" class="tab-pane">
+      <div class="freezer-split-layout">
+        <!-- Location Hierarchy Tree -->
+        <div class="freezer-tree-panel">
+          <h3 style="font-size:0.9rem; font-weight:700; margin-bottom:12px; color:var(--text-primary);">
+            📍 Storage Topology
+          </h3>
+          <div class="tree-node-item">📁 -80°C Cryo-Vault Alpha</div>
+          <div class="tree-node-item" style="padding-left:24px;">📁 Rack R-02 (Enzymes)</div>
+          <div class="tree-node-item" style="padding-left:36px;">📁 Shelf S-3</div>
+          <div class="tree-node-item selected" style="padding-left:48px;">📦 Box B-07 (T7 RNAP 2026)</div>
+          <div class="tree-node-item" style="padding-left:48px;">📦 Box B-08 (GFP Pilot)</div>
+          <div class="tree-node-item">📁 -20°C Enzyme Beta</div>
+          <div class="tree-node-item">📁 4°C Cold Storage Alpha</div>
+        </div>
+
+        <!-- 2D Box Grid Visualizer -->
+        <div class="freezer-grid-wrap">
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h3 style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">
+                Box B-07: T7 RNAP Purification & Aliquots 2026
+              </h3>
+              <p style="font-size:0.8rem; color:var(--text-muted);">-80°C Cryo-Vault Alpha • Rack R-02 • Shelf S-3</p>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-outline btn-sm btn-primary" id="btn-freezer-9x9">9x9 (81 Wells)</button>
+              <button class="btn btn-outline btn-sm" id="btn-freezer-10x10">10x10 (100 Wells)</button>
+            </div>
+          </div>
+
+          <div id="freezer-grid-container">
+            <!-- Populated by FreezerGrid -->
+          </div>
+
+          <div class="freezer-legend-bar">
+            <div class="legend-item"><div class="legend-line" style="background:var(--sample-protein); width:12px; height:12px; border-radius:50%;"></div><span>Protein Aliquot</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:var(--sample-plasmid); width:12px; height:12px; border-radius:50%;"></div><span>Plasmid DNA</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:var(--sample-primer); width:12px; height:12px; border-radius:50%;"></div><span>Primer Oligo</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:var(--sample-glycerol); width:12px; height:12px; border-radius:50%;"></div><span>Glycerol Stock</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:var(--sample-empty); width:12px; height:12px; border-radius:50%;"></div><span>Empty Well</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 7: OCR Digitizer & HITL Corrector
+         ----------------------------------------------------------------------- -->
+    <div id="tab-ocr" class="tab-pane">
+      <div class="ocr-split-layout">
+        <!-- Scanned Lab Notebook Image Card -->
+        <div class="ocr-image-viewer-card">
+          <div style="text-align:center; padding:20px; color:#94a3b8;">
+            <div style="font-size:2.5rem; margin-bottom:10px;">📄</div>
+            <div style="font-weight:700; color:#f8fafc; margin-bottom:4px;">Scanned Bench Run Sheet (Page 44)</div>
+            <div style="font-size:0.8rem;">Batch Run: ÄKTA Ni-NTA Harvest Log</div>
+          </div>
+        </div>
+
+        <!-- Interactive HITL Transcription Review Pane -->
+        <div class="ocr-transcription-pane">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div>
+              <h3 style="font-size:1rem; font-weight:700; color:var(--text-primary);">
+                Human-in-the-Loop OCR Review
+              </h3>
+              <p style="font-size:0.8rem; color:var(--text-muted);">
+                Click amber-highlighted words to inspect source crop and accept/correct transcription.
+              </p>
+            </div>
+            <span class="badge badge-flag" id="ocr-status-badge">Review Required</span>
+          </div>
+
+          <div id="ocr-transcription-text" class="ocr-text-body">
+            <!-- Populated by OCRCorrector -->
+          </div>
+
+          <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn btn-outline" id="btn-revert-ocr">Revert All</button>
+            <button class="btn btn-success" id="btn-finalize-ocr">Finalize & Sign Daily Entry</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 8: Sequences & SOPs Registry
+         ----------------------------------------------------------------------- -->
+    <div id="tab-sequences" class="tab-pane">
+      <div class="sequence-split-grid">
+        <div class="eln-card">
+          <div class="card-header">
+            <span class="card-title">🧬 Primer & Construct Registry</span>
+            <span class="badge badge-pass">pET-28a-T7RNAP</span>
+          </div>
+          <div class="card-body">
+            <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:6px;">
+              Input Oligonucleotide / Primer Sequence (5' -> 3'):
+            </label>
+            <textarea id="primer-calc-input" class="entry-markdown-editor" style="min-height:100px; font-family:var(--font-mono); text-transform:uppercase;">TAATACGACTCACTATAGGGGAATTGTGAGCGGATAACAATTCCCCTCTAGAAATAATTTTGTTTAACTTTAAGAAGGAGATATACCATGGGCAGCAGCCATCATCATCATCATCACAGCAGCGGCCATATCGAAGGTCGTCATATG</textarea>
+
+            <div class="physicochem-properties-grid">
+              <div class="property-metric-card">
+                <div class="property-metric-label">Melting Temp (Tm)</div>
+                <div class="property-metric-value" id="calc-primer-tm">62.4 °C</div>
+              </div>
+              <div class="property-metric-card">
+                <div class="property-metric-label">GC Content</div>
+                <div class="property-metric-value" id="calc-primer-gc">48.2 %</div>
+              </div>
+              <div class="property-metric-card">
+                <div class="property-metric-label">Molecular Weight</div>
+                <div class="property-metric-value" id="calc-primer-mw">46.5 kDa</div>
+              </div>
+              <div class="property-metric-card">
+                <div class="property-metric-label">Length</div>
+                <div class="property-metric-value" id="calc-primer-len">150 nt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="eln-card">
+          <div class="card-header">
+            <span class="card-title">📋 Versioned Standard Operating Procedures (SOP)</span>
+            <span class="badge badge-info">v2.4 Active</span>
+          </div>
+          <div class="card-body">
+            <div style="font-size:0.85rem; line-height:1.7; color:var(--text-primary);">
+              <strong>SOP-PROT-042: Recombinant T7 RNA Polymerase Purification</strong>
+              <ul style="margin: 10px 0 10px 20px; color:var(--text-secondary);">
+                <li>Section 1: Terrific Broth High-Density Fermentation & 0.5 mM IPTG Induction.</li>
+                <li>Section 2: Sonication Lysis with Protease Inhibitors (PMSF 1 mM).</li>
+                <li>Section 3: ÄKTA Avant 5 mL HisTrap HP Ni-NTA Step-Gradient Chromatography.</li>
+                <li>Section 4: Dialysis into 50% Glycerol Long-Term Storage Buffer (-80°C).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       Global Slide-out Tube Lineage Drawer
+       ========================================================================= -->
+  <aside id="tube-lineage-drawer" class="tube-drawer" aria-label="Tube Provenance Lineage">
+    <div class="drawer-header">
+      <span class="card-title drawer-title">Tube Provenance</span>
+      <button class="btn btn-outline btn-sm" id="close-lineage-drawer-btn">✕</button>
+    </div>
+    <div class="drawer-body">
+      <!-- Populated dynamically by FreezerGrid -->
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       Global Fraction Pooling Modal
+       ========================================================================= -->
+  <div id="pool-fractions-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <span class="card-title">🧪 Pool Selected Chromatographic Fractions</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+          <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+            <div style="font-size:0.75rem; color:var(--text-muted);">Fraction Range:</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--accent);" id="modal-pool-range">B4 – B8</div>
+          </div>
+          <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+            <div style="font-size:0.75rem; color:var(--text-muted);">Total Pooled Volume:</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);" id="modal-pool-vol">10.0 mL</div>
+          </div>
+          <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+            <div style="font-size:0.75rem; color:var(--text-muted);">Estimated Conc:</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);" id="modal-pool-conc">3.85 mg/mL</div>
+          </div>
+          <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+            <div style="font-size:0.75rem; color:var(--text-muted);">Total Protein Yield:</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--pass);" id="modal-pool-yield">19.25 mg</div>
+          </div>
+        </div>
+
+        <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">Pool Name / Label:</label>
+        <input type="text" id="modal-pool-name-input" value="T7 RNAP Ni-NTA Elution Peak (His6)" style="width:100%; padding:8px 12px; font-size:0.85rem; border:1px solid var(--border); border-radius:6px; margin-bottom:16px;">
+
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+          💡 <strong>Reactive Pipeline Action:</strong> Confirming this pool will automatically link this entity to <strong>Bio-Rad Gel Lane 8</strong> and generate 6 cryogenic aliquots in <strong>Freezer Box B-07</strong>.
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn btn-outline" id="btn-cancel-pool-action">Cancel</button>
+          <button class="btn btn-primary" id="btn-confirm-pool-action">Create & Link Pool</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       Global Hybrid-RAG Search Modal
+       ========================================================================= -->
+  <div id="rag-search-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="rag-search-box">
+        <span>🔍</span>
+        <input type="text" id="rag-search-input" class="rag-search-input" placeholder="Search across all notebooks, FPLC peaks, gels, SOPs, freezer tubes..." autocomplete="off">
+        <button class="btn btn-outline btn-sm" id="close-rag-modal-btn">ESC</button>
+      </div>
+      <div class="rag-results-list" id="rag-search-results">
+        <!-- Dynamically rendered hybrid search hits -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Main ES6 Application Controller -->
+  <script type="module" src="../static/app.js"></script>
+</body>
+</html>

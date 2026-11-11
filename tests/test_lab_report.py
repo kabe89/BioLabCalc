@@ -1,6 +1,7 @@
 import unittest
 import os
 import json
+import tempfile
 from biolabcalc.lab_report import LabReport, MeasurementRecord, new_lab_report, record_measurement
 from biolabcalc.easy import new_report, record, export_report
 from biolabcalc.transcription import calculate_ivt_yield
@@ -67,22 +68,24 @@ class TestLabReport(unittest.TestCase):
         rep.add_record("A1", "Yield", 43.0, "ug", target=40.0)
         rep.add_conclusion("Experiment completed successfully with high yield.")
 
+        tmp_dir = tempfile.gettempdir()
+
         # Markdown
-        md_file = "/tmp/test_report_out.md"
+        md_file = os.path.join(tmp_dir, "test_report_out.md")
         rep.to_markdown(md_file)
         self.assertTrue(os.path.exists(md_file))
-        with open(md_file, "r") as f:
+        with open(md_file, "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn("Full Export Test", content)
             self.assertIn("Replicate Statistics", content)
 
         # CSV
-        csv_file = "/tmp/test_report_out.csv"
+        csv_file = os.path.join(tmp_dir, "test_report_out.csv")
         rep.to_csv(csv_file)
         self.assertTrue(os.path.exists(csv_file))
 
         # JSON
-        json_file = "/tmp/test_report_out.json"
+        json_file = os.path.join(tmp_dir, "test_report_out.json")
         rep.to_json(json_file)
         self.assertTrue(os.path.exists(json_file))
         with open(json_file, "r") as f:
@@ -90,19 +93,24 @@ class TestLabReport(unittest.TestCase):
             self.assertEqual(data["title"], "Full Export Test")
             self.assertEqual(len(data["records"]), 2)
 
-        # Excel
-        xl_file = "/tmp/test_report_out.xlsx"
-        rep.to_excel(xl_file)
-        self.assertTrue(os.path.exists(xl_file))
-        self.assertGreater(os.path.getsize(xl_file), 4000)
+        # Excel (optional dependency)
+        try:
+            import openpyxl
+            xl_file = os.path.join(tmp_dir, "test_report_out.xlsx")
+            rep.to_excel(xl_file)
+            self.assertTrue(os.path.exists(xl_file))
+            self.assertGreater(os.path.getsize(xl_file), 4000)
+        except ImportError:
+            pass
 
     def test_easy_report_api(self):
         r = new_report("Easy Report", experimenter="Bob")
         rec = record("Sample-Easy", "Concentration", 125.0, "ng/uL", target=120.0)
         self.assertEqual(rec.sample_id, "Sample-Easy")
 
-        out = export_report("/tmp/easy_report.md")
-        self.assertTrue(os.path.exists("/tmp/easy_report.md"))
+        easy_file = os.path.join(tempfile.gettempdir(), "easy_report.md")
+        out = export_report(easy_file)
+        self.assertTrue(os.path.exists(easy_file))
 
 if __name__ == '__main__':
     unittest.main()

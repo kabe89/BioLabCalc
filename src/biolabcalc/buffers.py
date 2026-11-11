@@ -584,7 +584,22 @@ def calculate_hepes_ivt_buffer(
     )
 
 
-CUSTOM_BUFFERS_PATH = os.path.expanduser("~/.biolabcalc/custom_buffers.json")
+def get_custom_buffers_path() -> str:
+    env_path = os.environ.get("BIOLABCALC_BUFFER_PATH")
+    if env_path:
+        return env_path
+    try:
+        home_path = os.path.expanduser("~/.biolabcalc/custom_buffers.json")
+        os.makedirs(os.path.dirname(home_path), exist_ok=True)
+        return home_path
+    except (PermissionError, OSError):
+        import tempfile
+        tmp_dir = os.path.join(tempfile.gettempdir(), ".biolabcalc")
+        os.makedirs(tmp_dir, exist_ok=True)
+        return os.path.join(tmp_dir, "custom_buffers.json")
+
+
+CUSTOM_BUFFERS_PATH = get_custom_buffers_path()
 
 
 @dataclass

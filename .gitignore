@@ -36,6 +36,8 @@ ENV/
 *.swo
 
 # Test & coverage
+test.txt
+src/biolabcalc/eln/schema/test.txt
 .tox/
 .nox/
 .coverage
@@ -51,3 +53,33 @@ coverage.xml
 # Excel generated test files
 *.xlsx
 !tests/data/*.xlsx
+
+# Slurm, Ollama, Cluster, & OpenClaw files
+*slurm*
+*ollama*
+*openclaw*
+scripts/slurm_ollama_openclaw.sh
+scripts/Modelfile*
+scripts/openclaw_config.json
+*.sh
+*.sbatch
+scripts/slurm_*.sh
+cluster_endpoint.json
+openclaw.env
+openclaw_config.json
+Modelfile*
+Dockerfile*
+*.sqsh
+logs/
+*.log
+*.out
+*.err
+
+# ELN & LIMS runtime storage and cached models
+.biolabcalc_data/
+.biolabcalc_data/**
+.biolabcalc_eln/
+.biolabcalc_eln/**
+.ollama/
+.ollama/**
+
