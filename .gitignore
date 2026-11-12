@@ -82,4 +82,6 @@ logs/
 .biolabcalc_eln/**
 .ollama/
 .ollama/**
+.wiki_clone/
+.wiki_clone/**
 
