@@ -1,6 +1,11 @@
 import os
 import unittest
-from biolabcalc.buffers import calculate_buffer_recipe, calculate_ntp_ph_adjustment, BUFFER_CATALOG
+from biolabcalc.buffers import (
+    calculate_buffer_recipe,
+    calculate_ntp_ph_adjustment,
+    calculate_tris_temperature_shift,
+    BUFFER_CATALOG,
+)
 
 class TestBuffers(unittest.TestCase):
     def test_50x_tae(self):
@@ -146,6 +151,33 @@ class TestBuffers(unittest.TestCase):
         bb.add_solid("NaCl", 50.0, 58.44)
         rec = bb.build(100.0)
         self.assertEqual(rec.target_volume_ml, 100.0)
+
+    def test_6x_loading_dye_scaling(self):
+        res_1000 = calculate_buffer_recipe("6X_LOADING_DYE", target_volume_ml=1000.0)
+        comp_map_1000 = {c.name: c for c in res_1000.components}
+        self.assertAlmostEqual(comp_map_1000["Bromophenol blue"].amount, 2.5)
+        self.assertEqual(comp_map_1000["Bromophenol blue"].unit, "g")
+        self.assertAlmostEqual(comp_map_1000["Xylene cyanol FF"].amount, 2.5)
+        self.assertEqual(comp_map_1000["Xylene cyanol FF"].unit, "g")
+        self.assertAlmostEqual(comp_map_1000["Glycerol (100%)"].amount, 300.0)
+        self.assertEqual(comp_map_1000["Glycerol (100%)"].unit, "mL")
+        self.assertTrue(any("Bring volume to 1000 mL with deionized water" in s for s in res_1000.preparation_steps))
+
+        res_100 = calculate_buffer_recipe("6X_LOADING_DYE", target_volume_ml=100.0)
+        comp_map_100 = {c.name: c for c in res_100.components}
+        self.assertAlmostEqual(comp_map_100["Bromophenol blue"].amount, 0.25)
+        self.assertAlmostEqual(comp_map_100["Xylene cyanol FF"].amount, 0.25)
+        self.assertAlmostEqual(comp_map_100["Glycerol (100%)"].amount, 30.0)
+
+    def test_calculate_tris_temperature_shift_default_temp(self):
+        shifted_cold = calculate_tris_temperature_shift(measured_ph=8.00, target_temp_c=4.0)
+        self.assertAlmostEqual(shifted_cold, 8.63, places=2)
+
+        shifted_warm = calculate_tris_temperature_shift(measured_ph=8.00, target_temp_c=37.0)
+        self.assertAlmostEqual(shifted_warm, 7.64, places=2)
+
+        shifted_custom = calculate_tris_temperature_shift(measured_ph=8.00, target_temp_c=4.0, measured_temp_c=20.0)
+        self.assertAlmostEqual(shifted_custom, 8.48, places=2)
 
 if __name__ == "__main__":
     unittest.main()

@@ -22,7 +22,7 @@ import biolabcalc
 - **Literature Citation / Reference**: *(If reporting a scientific discrepancy, cite the standard protocol or publication)*
 
 ### Environment
-- **BioLabCalc Version**: (e.g. `0.3.0`)
+- **BioLabCalc Version**: (e.g. `0.3.5`)
 - **Python Version**: (e.g. `3.10.12`, run `python --version`)
 - **Operating System**: (e.g. Windows 11, macOS Sequoia, Ubuntu 22.04)
 

@@ -12,6 +12,12 @@ class TestEcoliGrowth(unittest.TestCase):
         res = estimate_plasmid_yield(culture_volume_ml=5.0, final_od600=3.0, plasmid_type="pUC")
         self.assertGreater(res.typical_miniprep_yield_ug, 10.0)
 
+    def test_bac_plasmid_yield(self):
+        res = estimate_plasmid_yield(culture_volume_ml=10.0, final_od600=3.0, plasmid_type="BAC", plasmid_length_bp=150000)
+        self.assertEqual(res.plasmid_copies_per_cell, 1)
+        self.assertGreater(res.theoretical_yield_ug, 0.0)
+        self.assertGreater(res.typical_miniprep_yield_ug, 0.0)
+
     def test_protein_induction(self):
         res = optimize_protein_induction(protein_mw_da=35000, culture_volume_ml=1000.0, final_od600=4.0)
         self.assertGreater(res.recombinant_protein_yield_mg, 50.0)

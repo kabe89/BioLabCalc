@@ -71,5 +71,14 @@ class TestTranscription(unittest.TestCase):
         self.assertEqual(poor.relative_efficiency_percent, 10.0)
         self.assertEqual(poor.added_leading_gs, 2)
 
+    def test_modified_nucleotide_s2u(self):
+        seq = "GGGAGACCCAAGCUGGCC"
+        res_unmod = calculate_ivt_yield(seq, reaction_volume_ul=20.0, measured_yield_ug=30.0)
+        res_s2u = calculate_ivt_yield(seq, reaction_volume_ul=20.0, measured_yield_ug=30.0, modified_ntp="s2u")
+        # Sequence has 1 U: delta MW should be +16.060 Da
+        self.assertAlmostEqual(res_s2u.rna_mw - res_unmod.rna_mw, 16.060, delta=0.05)
+        self.assertEqual(res_s2u.modified_ntp, "2-thiouridine (s2U)")
+        self.assertIsNotNone(res_s2u.modified_mw)
+
 if __name__ == '__main__':
     unittest.main()

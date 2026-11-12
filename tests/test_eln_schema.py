@@ -9,6 +9,8 @@ Architectural Role: Comprehensive verification of PostgreSQL 16+ DDL,
 from __future__ import annotations
 
 import os
+import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -394,6 +396,73 @@ class TestElnSchema(unittest.TestCase):
         for model in model_classes:
             count = self.session.query(model).count()
             self.assertGreater(count, 0, f"Model {model.__name__} has 0 records after seeding.")
+
+    def test_engine_concurrency_lock_and_threads(self) -> None:
+        """
+        Verify Engine protects _shared_conn with a threading.Lock and concurrent operations succeed.
+        """
+        self.assertIsNotNone(self.engine._lock)
+        self.assertTrue(isinstance(self.engine._lock, type(threading.Lock())))
+
+        errors = []
+        def worker(w_id: int) -> None:
+            try:
+                sess = get_session(self.engine)
+                for i in range(10):
+                    u = User(
+                        username=f"worker_{w_id}_{i}",
+                        email=f"worker_{w_id}_{i}@lab.org",
+                        full_name=f"Worker {w_id} {i}",
+                        role="researcher",
+                    )
+                    sess.add(u)
+                    sess.commit()
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(len(errors), 0, f"Thread errors encountered: {errors}")
+
+    def test_engine_sqlite_wal_mode_and_timeout(self) -> None:
+        """
+        Verify file-based SQLite connects with timeout=30.0 and WAL journal mode.
+        """
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
+            db_path = tf.name
+        try:
+            file_engine = create_engine(f"sqlite:///{db_path}")
+            conn = file_engine.get_connection()
+            cur = conn.cursor()
+            cur.execute("PRAGMA journal_mode;")
+            row = cur.fetchone()
+            self.assertEqual(row[0].lower(), "wal")
+        finally:
+            if os.path.exists(db_path):
+                try:
+                    os.remove(db_path)
+                except Exception:
+                    pass
+
+    def test_engine_postgresql_uri_validation(self) -> None:
+        """
+        Verify PostgreSQL URI requires SQLAlchemy/psycopg2 and does not silently fall back to :memory:.
+        """
+        expected_msg = (
+            "PostgreSQL connections require SQLAlchemy and psycopg2-binary. "
+            "Install with 'pip install \"biolabcalc[eln]\"' or run with default SQLite database."
+        )
+        for pg_url in [
+            "postgresql://user:pass@localhost:5432/eln_db",
+            "postgres://user:pass@localhost:5432/eln_db",
+        ]:
+            with self.assertRaises(ValueError) as ctx:
+                create_engine(pg_url)
+            self.assertEqual(str(ctx.exception), expected_msg)
 
 
 if __name__ == "__main__":

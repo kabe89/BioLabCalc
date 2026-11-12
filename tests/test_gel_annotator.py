@@ -14,9 +14,9 @@ except ImportError:
 @unittest.skipUnless(HAS_DEPS, "openpyxl and matplotlib required for GelAnnotator tests")
 class TestGelAnnotator(unittest.TestCase):
     def setUp(self):
-        self.output_png = "/tmp/test_annotator_out.png"
-        self.output_xlsx = "/tmp/test_annotator_out.xlsx"
-        self.test_raw_img = "/tmp/test_raw_gel.png"
+        self.output_png = os.path.join(tempfile.gettempdir(), "test_annotator_out.png")
+        self.output_xlsx = os.path.join(tempfile.gettempdir(), "test_annotator_out.xlsx")
+        self.test_raw_img = os.path.join(tempfile.gettempdir(), "test_raw_gel.png")
 
         # Create dummy raw gel image
         img = Image.new("L", (400, 300), color=50)

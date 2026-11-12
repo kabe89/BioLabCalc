@@ -37,5 +37,41 @@ class TestMolecularWeight(unittest.TestCase):
         ng = copy_number_to_mass(copies, 300000.0, target_unit="ng")
         self.assertAlmostEqual(ng, 1.0, places=4)
 
+    def test_protein_mw_disulfide_clamping(self):
+        # Sequence has 2 cysteines -> max 1 disulfide bond
+        res_reduced = calculate_protein_mw("ACDEFCA", oxidized_cysteines=0)
+        res_oxidized = calculate_protein_mw("ACDEFCA", oxidized_cysteines=2)
+        self.assertAlmostEqual(res_reduced.average_mw - res_oxidized.average_mw, 2.016, places=2)
+
+        # Clamping: requesting 10 oxidized cysteines when sequence only has 2 should yield same as 2
+        res_clamped = calculate_protein_mw("ACDEFCA", oxidized_cysteines=10)
+        self.assertEqual(res_clamped.average_mw, res_oxidized.average_mw)
+
+        # Sequence with 0 cysteines
+        res_no_cys = calculate_protein_mw("ADEFA", oxidized_cysteines=4)
+        res_no_cys_base = calculate_protein_mw("ADEFA", oxidized_cysteines=0)
+        self.assertEqual(res_no_cys.average_mw, res_no_cys_base.average_mw)
+
+        # Negative oxidized cysteines should be treated as 0
+        res_neg = calculate_protein_mw("ACDEFCA", oxidized_cysteines=-2)
+        self.assertEqual(res_neg.average_mw, res_reduced.average_mw)
+
+    def test_stoichiometry_mw_validation(self):
+        with self.assertRaises(ValueError):
+            mass_to_copy_number(1.0, "ng", mw=0.0)
+        with self.assertRaises(ValueError):
+            mass_to_copy_number(1.0, "ng", mw=-500.0)
+
+        with self.assertRaises(ValueError):
+            concentration_to_molarity(10.0, "ng/ul", mw=0.0)
+        with self.assertRaises(ValueError):
+            concentration_to_molarity(10.0, "ng/ul", mw=-100.0)
+
+    def test_copy_number_to_mass_unit_validation(self):
+        with self.assertRaises(ValueError):
+            copy_number_to_mass(1e9, 50000.0, target_unit="unknown_unit")
+        valid_res = copy_number_to_mass(1e9, 50000.0, target_unit="ug")
+        self.assertGreater(valid_res, 0)
+
 if __name__ == '__main__':
     unittest.main()

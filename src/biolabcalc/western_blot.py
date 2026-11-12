@@ -589,7 +589,7 @@ def troubleshoot_western_blot(symptom_query: str) -> WesternTroubleshootingResul
         return TROUBLESHOOTING_DATABASE["ghost_bands"]
     elif "membrane" in clean_q or "aggregate" in clean_q or "well" in clean_q or "smear" in clean_q:
         return TROUBLESHOOTING_DATABASE["membrane_protein_aggregates"]
-    elif "patch" in clean_q or "bubble" in clean_q or "swirl" in clean_q:
+    elif any(term in clean_q for term in ("patch", "bubble", "swirl", "transfer", "uneven")):
         return TROUBLESHOOTING_DATABASE["patchy_transfer"]
 
     # Default to high background if generic

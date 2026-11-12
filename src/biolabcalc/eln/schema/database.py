@@ -465,23 +465,29 @@ class Session:
         """
         Persist all pending instances to SQLite storage and commit transaction.
         """
-        try:
-            for inst in self._new:
-                self._persist_instance(inst)
-            self._new.clear()
-            for inst in list(self._dirty):
-                self._persist_instance(inst)
-            self._dirty.clear()
-            self._conn.commit()
-        except Exception:
-            self.rollback()
-            raise
+        lock_ctx = getattr(self.engine, "_lock_ctx", None)
+        ctx = lock_ctx if lock_ctx is not None else (getattr(self.engine, "_lock", None) or threading.Lock())
+        with ctx:
+            try:
+                for inst in self._new:
+                    self._persist_instance(inst)
+                self._new.clear()
+                for inst in list(self._dirty):
+                    self._persist_instance(inst)
+                self._dirty.clear()
+                self._conn.commit()
+            except Exception:
+                self.rollback()
+                raise
 
     def rollback(self) -> None:
         """Roll back current transaction and clear pending additions."""
-        self._new.clear()
-        self._dirty.clear()
-        self._conn.rollback()
+        lock_ctx = getattr(self.engine, "_lock_ctx", None)
+        ctx = lock_ctx if lock_ctx is not None else (getattr(self.engine, "_lock", None) or threading.Lock())
+        with ctx:
+            self._new.clear()
+            self._dirty.clear()
+            self._conn.rollback()
 
     def close(self) -> None:
         """Close connection and release session resources."""
@@ -593,6 +599,141 @@ class Session:
         return inst
 
 
+class _LockContext:
+    """Reentrant context manager wrapping a threading.Lock."""
+
+    def __init__(self, lock: threading.Lock) -> None:
+        self._lock = lock
+        self._owner: Optional[int] = None
+        self._count = 0
+
+    def acquire(self) -> None:
+        tid = threading.get_ident()
+        if self._owner == tid:
+            self._count += 1
+            return
+        self._lock.acquire()
+        self._owner = tid
+        self._count = 1
+
+    def release(self) -> None:
+        tid = threading.get_ident()
+        if self._owner != tid:
+            raise RuntimeError("Cannot release lock held by another thread")
+        self._count -= 1
+        if self._count == 0:
+            self._owner = None
+            self._lock.release()
+
+    def __enter__(self) -> _LockContext:
+        self.acquire()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.release()
+
+
+class _ThreadSafeCursor:
+    """Thread-safe proxy around sqlite3.Cursor using a lock context."""
+
+    def __init__(self, cursor: sqlite3.Cursor, lock_ctx: _LockContext) -> None:
+        self._cursor = cursor
+        self._lock = lock_ctx
+
+    def execute(self, *args: Any, **kwargs: Any) -> _ThreadSafeCursor:
+        with self._lock:
+            self._cursor.execute(*args, **kwargs)
+            return self
+
+    def executemany(self, *args: Any, **kwargs: Any) -> _ThreadSafeCursor:
+        with self._lock:
+            self._cursor.executemany(*args, **kwargs)
+            return self
+
+    def fetchone(self) -> Any:
+        with self._lock:
+            return self._cursor.fetchone()
+
+    def fetchall(self) -> List[Any]:
+        with self._lock:
+            return self._cursor.fetchall()
+
+    def fetchmany(self, *args: Any, **kwargs: Any) -> List[Any]:
+        with self._lock:
+            return self._cursor.fetchmany(*args, **kwargs)
+
+    def close(self) -> None:
+        with self._lock:
+            self._cursor.close()
+
+    def __iter__(self) -> Any:
+        with self._lock:
+            return iter(self._cursor.fetchall())
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._cursor, name)
+
+
+class _ThreadSafeConnection:
+    """Thread-safe proxy around sqlite3.Connection using a lock context."""
+
+    def __init__(self, conn: sqlite3.Connection, lock: threading.Lock, lock_ctx: _LockContext) -> None:
+        self._conn = conn
+        self._lock = lock
+        self._ctx = lock_ctx
+
+    def cursor(self, *args: Any, **kwargs: Any) -> _ThreadSafeCursor:
+        with self._ctx:
+            cur = self._conn.cursor(*args, **kwargs)
+            return _ThreadSafeCursor(cur, self._ctx)
+
+    def execute(self, *args: Any, **kwargs: Any) -> _ThreadSafeCursor:
+        with self._ctx:
+            cur = self._conn.execute(*args, **kwargs)
+            return _ThreadSafeCursor(cur, self._ctx)
+
+    def executemany(self, *args: Any, **kwargs: Any) -> _ThreadSafeCursor:
+        with self._ctx:
+            cur = self._conn.executemany(*args, **kwargs)
+            return _ThreadSafeCursor(cur, self._ctx)
+
+    def executescript(self, *args: Any, **kwargs: Any) -> Any:
+        with self._ctx:
+            return self._conn.executescript(*args, **kwargs)
+
+    def commit(self) -> None:
+        with self._ctx:
+            self._conn.commit()
+
+    def rollback(self) -> None:
+        with self._ctx:
+            self._conn.rollback()
+
+    def close(self) -> None:
+        with self._ctx:
+            self._conn.close()
+
+    def create_function(self, *args: Any, **kwargs: Any) -> None:
+        with self._ctx:
+            self._conn.create_function(*args, **kwargs)
+
+    def __enter__(self) -> _ThreadSafeConnection:
+        self._ctx.acquire()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        try:
+            if exc_type is None:
+                self.commit()
+            else:
+                self.rollback()
+        finally:
+            self._ctx.release()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._conn, name)
+
+
 class Engine:
     """
     Database engine managing connections, dialect adaptations, and schema execution.
@@ -606,6 +747,24 @@ class Engine:
         self.url = url
         self.echo = echo
         self._local = threading.local()
+        self._lock = threading.Lock()
+        self.lock = self._lock
+        self._lock_ctx = _LockContext(self._lock)
+        self._sa_engine: Optional[Any] = None
+        self.sa_engine: Optional[Any] = None
+
+        if url.startswith("postgresql://") or url.startswith("postgres://"):
+            if HAS_SQLALCHEMY:
+                self._sa_engine = sa_create_engine(url)
+                self.sa_engine = self._sa_engine
+                self.db_path = ""
+                self._shared_conn = None
+                return
+            else:
+                raise ValueError(
+                    "PostgreSQL connections require SQLAlchemy and psycopg2-binary. "
+                    "Install with 'pip install \"biolabcalc[eln]\"' or run with default SQLite database."
+                )
 
         if url.startswith("sqlite:///"):
             self.db_path = url[len("sqlite:///"):]
@@ -616,23 +775,28 @@ class Engine:
         else:
             self.db_path = ":memory:"
 
-        self._shared_conn: Optional[sqlite3.Connection] = None
+        self._shared_conn: Optional[Any] = None
         if self.db_path == ":memory:":
-            self._shared_conn = sqlite3.connect(
+            raw_conn = sqlite3.connect(
                 ":memory:",
+                timeout=30.0,
                 check_same_thread=False,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
             )
-            self._shared_conn.execute("PRAGMA foreign_keys = ON;")
-            self._shared_conn.create_function("COSINE_SIMILARITY", 2, _sqlite_cosine_similarity)
+            raw_conn.execute("PRAGMA foreign_keys = ON;")
+            raw_conn.create_function("COSINE_SIMILARITY", 2, _sqlite_cosine_similarity)
+            self._shared_conn = _ThreadSafeConnection(raw_conn, self._lock, self._lock_ctx)
 
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> Any:
         """
-        Get or initialize a thread-local SQLite connection with vector functions and foreign keys.
+        Get or initialize a database connection.
 
         Returns:
             sqlite3.Connection: Active database connection.
         """
+        if self._sa_engine is not None:
+            return self._sa_engine.connect()
+
         if self._shared_conn is not None:
             return self._shared_conn
 
@@ -640,10 +804,12 @@ class Engine:
         if conn is None:
             conn = sqlite3.connect(
                 self.db_path,
+                timeout=30.0,
                 check_same_thread=False,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
             )
             conn.execute("PRAGMA foreign_keys = ON;")
+            conn.execute("PRAGMA journal_mode = WAL;")
             conn.create_function("COSINE_SIMILARITY", 2, _sqlite_cosine_similarity)
             self._local.conn = conn
         return conn
@@ -667,7 +833,7 @@ def create_engine(url: str = "sqlite:///:memory:", echo: bool = False) -> Engine
 get_engine = create_engine
 
 
-def sessionmaker(bind: Engine) -> Callable[[], Session]:
+def sessionmaker(bind: Engine) -> Callable[[], Any]:
     """
     Factory creating a callable session factory bound to an engine.
 
@@ -678,6 +844,9 @@ def sessionmaker(bind: Engine) -> Callable[[], Session]:
         Callable[[], Session]: Session constructor.
 
     """
+    if HAS_SQLALCHEMY and getattr(bind, "_sa_engine", None) is not None:
+        return sa_sessionmaker(bind=bind._sa_engine)
+
     def _create_session() -> Session:
         return Session(engine=bind)
     return _create_session
@@ -691,6 +860,9 @@ def init_db(engine: Engine) -> None:
         engine (Engine): Target database engine.
 
     """
+    if getattr(engine, "_sa_engine", None) is not None:
+        return
+
     conn = engine.get_connection()
     cur = conn.cursor()
 

@@ -1,5 +1,10 @@
 import unittest
-from biolabcalc.primers import analyze_primer, design_primers
+from biolabcalc.primers import (
+    analyze_primer,
+    design_primers,
+    calculate_tm_santalucia,
+    calculate_tm_santaluicia,
+)
 
 class TestPrimers(unittest.TestCase):
     def test_analyze_primer(self):
@@ -12,6 +17,21 @@ class TestPrimers(unittest.TestCase):
         # High dimer primer gets lower score
         p_dimer = analyze_primer("ATGCCGTCCAGGCTGCTGGTC")
         self.assertLess(p_dimer.quality_score, 50.0)
+
+    def test_calculate_tm_santalucia_spelling_and_excess(self):
+        seq = "GTAAAACGACGGCCAGT"
+        tm_lucia, dh1, ds1, dg1 = calculate_tm_santalucia(seq)
+        tm_alias, dh2, ds2, dg2 = calculate_tm_santaluicia(seq)
+        self.assertEqual(tm_lucia, tm_alias)
+        self.assertEqual(dh1, dh2)
+        self.assertEqual(ds1, ds2)
+        self.assertEqual(dg1, dg2)
+
+        # Excess primer (default True, x=1.0) vs equimolar (False, x=4.0)
+        tm_excess, _, _, _ = calculate_tm_santalucia(seq, is_excess_primer=True)
+        tm_equimolar, _, _, _ = calculate_tm_santalucia(seq, is_excess_primer=False)
+        self.assertEqual(tm_lucia, tm_excess)
+        self.assertGreater(tm_excess, tm_equimolar)
 
     def test_design_primers(self):
         tmpl = "ATGCCGTCCAGGCTGCTGGTCTTCGACACCGAGACCACTGGGCTGCTGTCGGGCTCGGTGAGCCAGGCCCGCTGGGCCCGGGACCGCTTCAGCCGCGTCGTGCACATCGTGGACCCCA" * 4

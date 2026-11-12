@@ -103,6 +103,10 @@ class NanoDropExperiment:
     instrument_model: str = "NanoDrop One"
     export_date: str = ""
 
+    def __iter__(self):
+        """Iterate over samples in experiment."""
+        return iter(self.samples)
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Serialize experiment summary to dictionary.

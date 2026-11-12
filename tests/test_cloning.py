@@ -4,6 +4,7 @@ from biolabcalc.cloning import (
     plan_restriction_digest,
     calculate_ligation,
     calculate_gibson_assembly,
+    calculate_golden_gate_assembly,
 )
 
 class TestCloning(unittest.TestCase):
@@ -34,6 +35,34 @@ class TestCloning(unittest.TestCase):
         self.assertEqual(len(res.insert_masses_ng), 2)
         # Total pmol between 0.02 and 0.5 pmol
         self.assertTrue(0.02 <= res.total_dna_pmol <= 0.5)
+
+    def test_golden_gate_assembly_digest_temperature(self):
+        # Esp3I is a 37°C enzyme
+        res_esp3i = calculate_golden_gate_assembly(
+            vector_length_bp=4000,
+            insert_lengths_bp=[1000],
+            type_iis_enzyme="Esp3I",
+        )
+        self.assertIn("37°C for 3 min", res_esp3i.thermocycling_protocol[0])
+
+        # BsmBI is a 42°C enzyme
+        res_bsmbi = calculate_golden_gate_assembly(
+            vector_length_bp=4000,
+            insert_lengths_bp=[1000],
+            type_iis_enzyme="BsmBI-v2",
+        )
+        self.assertIn("42°C for 3 min", res_bsmbi.thermocycling_protocol[0])
+
+    def test_restriction_digest_buffer_selection(self):
+        # Single digest with BsmBI requires NEBuffer r3.1
+        res_bsmbi = plan_restriction_digest(dna_mass_ug=1.0, enzyme_1="BsmBI")
+        self.assertEqual(res_bsmbi.recommended_buffer, "1X NEBuffer r3.1 Buffer")
+        self.assertIn("10X NEBuffer r3.1 Buffer", res_bsmbi.reagent_volumes)
+
+        # Double digest with BsmBI (r3.1) and EcoRI (rCutSmart) selects compatible NEBuffer r3.1
+        res_double = plan_restriction_digest(dna_mass_ug=1.0, enzyme_1="EcoRI", enzyme_2="BsmBI")
+        self.assertEqual(res_double.recommended_buffer, "1X NEBuffer r3.1 Buffer")
+        self.assertIn("10X NEBuffer r3.1 Buffer", res_double.reagent_volumes)
 
 if __name__ == '__main__':
     unittest.main()

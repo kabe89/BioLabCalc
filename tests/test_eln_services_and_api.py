@@ -277,6 +277,26 @@ class TestSOPService(unittest.TestCase):
         self.assertEqual(updated_fork.step_executions[0].status, "completed")
         self.assertEqual(updated_fork.step_executions[0].deviation_notes, "Overnight culture grown 16h20m instead of 16h")
 
+    def test_fork_sop_unapproved_raises_value_error(self):
+        master = self.sop_service.create_sop(
+            sop_id="SOP-DRAFT-002",
+            title="Draft Protocol",
+            version="1.0",
+            category="Purification",
+            description="Testing draft SOP cannot be forked",
+            parameters={"ph": 7.4},
+            steps=[{"step_index": 1, "name": "Step 1", "instruction": "Initial step.", "planned_duration_minutes": 10.0}],
+            created_by="researcher_test",
+        )
+        self.assertEqual(master.status, "draft")
+        with self.assertRaises(ValueError) as ctx:
+            self.sop_service.fork_sop_for_entry(
+                sop_id="SOP-DRAFT-002",
+                entry_id="ENTRY-D1-002",
+                forked_by="researcher_test",
+            )
+        self.assertIn("Cannot fork SOP 'SOP-DRAFT-002' with status 'draft'. Only approved SOPs can be executed in experimental entries.", str(ctx.exception))
+
 
 class TestSequenceService(unittest.TestCase):
     """

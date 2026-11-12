@@ -317,6 +317,11 @@ class SOPService:
             if not master:
                 raise KeyError(f"Master SOP '{sop_id}' does not exist.")
 
+            if master.status != "approved":
+                raise ValueError(
+                    f"Cannot fork SOP '{sop_id}' with status '{master.status}'. Only approved SOPs can be executed in experimental entries."
+                )
+
             # Create deep copy of parameters and merge overrides
             locked_params = copy.deepcopy(master.parameters)
             if parameter_overrides:

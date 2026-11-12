@@ -68,6 +68,13 @@ class TestWesternBlot(unittest.TestCase):
         t_sig = troubleshoot_western_blot("no_signal")
         self.assertIn("No bands", t_sig.symptom)
 
+        # Test transfer and uneven symptom routing
+        t_transfer = troubleshoot_western_blot("transfer issues")
+        self.assertIn("uneven transfer", t_transfer.symptom.lower())
+
+        t_uneven = troubleshoot_western_blot("uneven blot")
+        self.assertIn("uneven transfer", t_uneven.symptom.lower())
+
     def test_easy_western_helpers(self):
         plan = western("mTOR", 289.0, transfer="wet_tank")
         self.assertIn("Tris-Acetate", plan.recommended_gel_percentage)

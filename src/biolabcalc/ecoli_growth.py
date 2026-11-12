@@ -23,6 +23,7 @@ PLASMID_COPY_NUMBERS: Dict[str, int] = {
     "pBR322": 25,      # Medium-copy
     "pACYC": 15,       # Low/medium-copy (pACYC184 with p15A origin)
     "pSC101": 5,       # Very low-copy
+    "BAC": 1,          # Single-copy (Bacterial Artificial Chromosome)
 }
 
 @dataclass(frozen=True)

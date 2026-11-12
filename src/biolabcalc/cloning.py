@@ -150,9 +150,26 @@ def plan_restriction_digest(
     if star_warning:
         notes.append("WARNING: Enzyme volume exceeds 10% of reaction volume. Star activity risk due to high glycerol.")
 
+    # Determine compatible buffer
+    if e2 is None:
+        chosen_buffer = e1.standard_buffer
+    elif e1.standard_buffer == e2.standard_buffer:
+        chosen_buffer = e1.standard_buffer
+    elif "NEBuffer r3.1" in (e1.standard_buffer, e2.standard_buffer) and "rCutSmart" in (e1.standard_buffer, e2.standard_buffer):
+        chosen_buffer = "NEBuffer r3.1"
+    else:
+        chosen_buffer = e1.standard_buffer
+        notes.append(
+            f"Double digest advisory: {e1.name} standard buffer ({e1.standard_buffer}) and "
+            f"{e2.name} standard buffer ({e2.standard_buffer}) may be incompatible. "
+            "Sequential digestion or separate buffer optimization recommended."
+        )
+
+    buffer_name = f"{chosen_buffer} Buffer" if not chosen_buffer.endswith("Buffer") else chosen_buffer
+
     reagents = {
         "Nuclease-Free Water": max(0.0, water_vol),
-        "10X rCutSmart Buffer": buffer_vol,
+        f"10X {buffer_name}": buffer_vol,
         "DNA Sample": dna_vol,
         f"{e1.name} (Enzyme 1)": e1_vol,
     }
@@ -164,7 +181,7 @@ def plan_restriction_digest(
         enzyme_2=e2,
         dna_mass_ug=dna_mass_ug,
         reaction_volume_ul=reaction_volume_ul,
-        recommended_buffer="1X rCutSmart Buffer",
+        recommended_buffer=f"1X {buffer_name}",
         incubation_temp_celsius=inc_temp,
         incubation_time_min=60,
         heat_inactivation=heat_inact,
@@ -430,7 +447,7 @@ def calculate_golden_gate_assembly(
 
     # Cycling protocol
     enz_lower = type_iis_enzyme.lower()
-    digest_temp = 42 if ("bsmbi" in enz_lower or "esp3i" in enz_lower) else 37
+    digest_temp = 42 if "bsmbi" in enz_lower else 37
 
     cycling = [
         f"1. Assembly Cycling (30 cycles): {digest_temp}°C for 3 min (digestion) -> 16°C for 4 min (ligation)",

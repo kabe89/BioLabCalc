@@ -1,6 +1,6 @@
 """BioLabCalc: A multifaceted Python library and Excel extension for daily molecular biology research."""
 
-__version__ = "0.3.0"
+__version__ = "0.3.5"
 
 from .seq_utils import (
     clean_sequence,
@@ -54,6 +54,7 @@ from .protein import (
 )
 
 from .primers import (
+    calculate_tm_santalucia,
     calculate_tm_santaluicia,
     analyze_primer,
     design_primers,
@@ -207,6 +208,8 @@ __all__ = [
     "concentration_to_molarity",
     "MolecularWeightResult",
     "calculate_ivt_yield",
+    "detect_and_trim_promoter",
+    "evaluate_initiation_efficiency",
     "IVTResult",
     "calculate_pcr_kinetics",
     "calculate_qpcr_efficiency",
@@ -221,9 +224,11 @@ __all__ = [
     "ExtinctionCoefficientResult",
     "ProteinYieldResult",
     "StandardCurveResult",
+    "calculate_tm_santalucia",
     "calculate_tm_santaluicia",
     "analyze_primer",
     "design_primers",
+    "check_heterodimer",
     "PrimerAnalysis",
     "PrimerPair",
     "get_fluorophore",
@@ -241,6 +246,7 @@ __all__ = [
     "GelBand",
     "LADDER_CATALOG",
     "calculate_ecoli_growth",
+    "calculate_inoculation_volume",
     "estimate_plasmid_yield",
     "optimize_protein_induction",
     "EcoliGrowthResult",
@@ -252,18 +258,30 @@ __all__ = [
     "plan_restriction_digest",
     "calculate_ligation",
     "calculate_gibson_assembly",
+    "calculate_golden_gate_assembly",
+    "GoldenGateResult",
+    "are_overhangs_compatible",
     "ENZYME_DATABASE",
     "DigestSetupResult",
     "LigationSetupResult",
     "GibsonAssemblyResult",
     "calculate_buffer_recipe",
+    "calculate_hepes_ivt_buffer",
+    "HepesIVTBufferResult",
+    "calculate_tris_temperature_shift",
+    "create_custom_buffer",
     "calculate_ntp_ph_adjustment",
     "NTPNeutralizationResult",
     "BUFFER_CATALOG",
     "BufferRecipeResult",
     "BufferComponent",
     "calculate_precipitation",
+    "calculate_phenol_chloroform_extraction",
     "PrecipitationProtocol",
+    "PhenolChloroformProtocol",
+    "plan_western_blot",
+    "troubleshoot_western_blot",
+    "WesternBlotPlanResult",
     "export_analysis_to_excel",
     "GelAnnotator",
     "get_interactive_html",

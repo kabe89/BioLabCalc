@@ -633,44 +633,8 @@ class FPLCParser:
                 except Exception:
                     pass
 
-        # Parse IEEE float32 arrays if structured blocks are present
-        volumes: List[float] = []
-        uv280: List[float] = []
-        # Fallback to simulated chromatogram based on binary length
-        num_points = 500
-        step = 0.05
-        for i in range(num_points):
-            v = i * step
-            # SEC peak at 12.5 mL (MW ~150 kDa)
-            peak = 250.0 * math.exp(-0.5 * ((v - 12.5) / 0.8) ** 2)
-            # Secondary peak at 15.2 mL
-            peak2 = 80.0 * math.exp(-0.5 * ((v - 15.2) / 0.6) ** 2)
-            noise = (math.sin(i * 0.4) * 0.5)
-            volumes.append(round(v, 2))
-            uv280.append(round(peak + peak2 + noise + 5.0, 2))
-
-        fractions = [
-            FractionEvent("A1", 11.0, 12.0, 85.0),
-            FractionEvent("A2", 12.0, 13.0, 250.0),
-            FractionEvent("A3", 13.0, 14.0, 95.0),
-            FractionEvent("A4", 14.5, 15.5, 80.0),
-        ]
-
-        return FPLCResult(
-            file_format="UNICORN_RES",
-            volume_ml=volumes,
-            time_min=[v / 0.75 for v in volumes],
-            uv280_mau=uv280,
-            uv260_mau=[u * 0.55 for u in uv280],
-            uv215_mau=[u * 3.2 for u in uv280],
-            conductivity_ms_cm=[15.0 + (v * 0.2) for v in volumes],
-            conc_b_percent=[0.0 for _ in volumes],
-            pressure_mpa=[0.25 + (v * 0.002) for v in volumes],
-            flow_rate_ml_min=[0.75 for _ in volumes],
-            fractions=fractions,
-            column=cls.match_column("Superdex 200 Increase 10/300 GL"),
-            buffer_a=cls.parse_buffer_recipe("Buffer A", "20 mM HEPES pH 7.5, 150 mM NaCl, 1 mM TCEP"),
-            buffer_b=cls.parse_buffer_recipe("Buffer B", "20 mM HEPES pH 7.5, 150 mM NaCl, 1 mM TCEP"),
+        raise ValueError(
+            "Unable to parse binary UNICORN .res stream; please export run curves as CSV or ASC from UNICORN software"
         )
 
     @classmethod

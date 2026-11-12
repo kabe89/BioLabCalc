@@ -1,5 +1,5 @@
 import unittest
-from biolabcalc.spectroscopy import prepare_standard_solution
+from biolabcalc.spectroscopy import prepare_standard_solution, assess_nanodrop_purity
 
 class TestSpectroscopy(unittest.TestCase):
     def test_prepare_standard_solution_rna(self):
@@ -35,6 +35,24 @@ class TestSpectroscopy(unittest.TestCase):
             prepare_standard_solution(target_molarity_um=-2.0, target_volume_ul=100.0)
         with self.assertRaises(ValueError):
             prepare_standard_solution(target_molarity_um=2.0, target_volume_ul=-50.0)
+
+    def test_assess_nanodrop_purity_below_detection_limit(self):
+        res = assess_nanodrop_purity(a260=0.01, a280=0.015, a230=0.02, sample_type="rna")
+        self.assertEqual(res.purity_status, "Below Detection Limit")
+        self.assertFalse(res.phenol_contamination_risk)
+        self.assertFalse(res.protein_contamination)
+        self.assertFalse(res.protein_contamination_risk)
+        self.assertFalse(res.salt_or_solvent_contamination)
+        feedback_text = " ".join(res.diagnostic_feedback).lower()
+        self.assertIn("below the reliable spectrophotometric detection limit", feedback_text)
+        self.assertNotIn("critical", feedback_text)
+        self.assertNotIn("phenol contamination", feedback_text)
+
+    def test_assess_nanodrop_purity_pure(self):
+        res = assess_nanodrop_purity(a260=2.0, a280=1.0, a230=0.95, sample_type="rna")
+        self.assertEqual(res.purity_status, "Pure")
+        self.assertFalse(res.protein_contamination)
+        self.assertFalse(res.phenol_contamination_risk)
 
 if __name__ == '__main__':
     unittest.main()

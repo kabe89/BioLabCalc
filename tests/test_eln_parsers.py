@@ -228,6 +228,12 @@ class TestFPLCParser(unittest.TestCase):
         self.assertEqual(res.file_format, "UNICORN_ZIP")
         self.assertEqual(len(res.volume_ml), 3)
 
+    def test_parse_res_binary_unsupported_raises_value_error(self):
+        raw_res = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 512
+        with self.assertRaises(ValueError) as ctx:
+            FPLCParser.parse(raw_res, filename="run.res")
+        self.assertIn("Unable to parse binary UNICORN .res stream; please export run curves as CSV or ASC from UNICORN software", str(ctx.exception))
+
 
 class TestNanoDropParser(unittest.TestCase):
     """Test NanoDrop spectrophotometer parser."""
@@ -292,6 +298,16 @@ class TestNanoDropParser(unittest.TestCase):
         self.assertEqual(len(exp.samples), 1)
         self.assertEqual(exp.samples[0].sample_name, "Sample_X")
         self.assertEqual(exp.samples[0].concentration, 55.5)
+
+    def test_nanodrop_experiment_iterable(self):
+        csv_data = (
+            "Sample ID,User ID,Date and Time,Concentration,Units,A260,A280,260/280,260/230,A230,Pathlength,A340\n"
+            "Sample_1,UserA,2026-10-15 14:30,100.0,ng/µL,2.000,1.000,2.00,2.20,0.909,1.0,0.010\n"
+            "Sample_2,UserB,2026-10-15 14:32,200.0,ng/µL,4.000,2.000,2.00,2.20,1.818,1.0,0.010\n"
+        )
+        exp = NanoDropParser.parse(csv_data.encode("utf-8"), filename="test_iter.csv")
+        sample_names = [s.sample_name for s in exp]
+        self.assertEqual(sample_names, ["Sample_1", "Sample_2"])
 
 
 class TestBioRadParser(unittest.TestCase):

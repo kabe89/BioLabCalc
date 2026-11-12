@@ -91,13 +91,13 @@ def check_hairpin(seq: str) -> int:
     return max_stem
 
 
-def calculate_tm_santaluicia(
+def calculate_tm_santalucia(
     seq: str,
     primer_conc_nm: float = 400.0,
     na_conc_mm: float = 50.0,
     mg_conc_mm: float = 1.5,
     dntp_conc_mm: float = 0.8,
-    is_excess_primer: bool = False,
+    is_excess_primer: bool = True,
 ) -> Tuple[float, float, float, float]:
     """Calculate melting temperature (Tm) using SantaLucia (1998, PNAS 95:1460-1465) unified nearest-neighbor parameters.
 
@@ -164,17 +164,29 @@ def calculate_tm_santaluicia(
     return round(tm_celsius, 2), round(dh_total, 2), round(ds_salt_corrected, 2), round(dg_37, 2)
 
 
+# Alias retaining previous spelling
+calculate_tm_santaluicia = calculate_tm_santalucia
+
+
 def analyze_primer(
     seq: str,
     primer_conc_nm: float = 400.0,
     na_conc_mm: float = 50.0,
     mg_conc_mm: float = 1.5,
     dntp_conc_mm: float = 0.8,
+    is_excess_primer: bool = True,
 ) -> PrimerAnalysis:
     """Perform comprehensive thermodynamic and quality analysis on a candidate primer."""
     clean = clean_sequence(seq)
     length = len(clean)
-    tm, dh, ds, dg = calculate_tm_santaluicia(clean, primer_conc_nm, na_conc_mm, mg_conc_mm, dntp_conc_mm)
+    tm, dh, ds, dg = calculate_tm_santalucia(
+        clean,
+        primer_conc_nm=primer_conc_nm,
+        na_conc_mm=na_conc_mm,
+        mg_conc_mm=mg_conc_mm,
+        dntp_conc_mm=dntp_conc_mm,
+        is_excess_primer=is_excess_primer,
+    )
     gc = calculate_gc_content(clean)
 
     # 3' GC clamp: count of G or C in last 5 bases
@@ -340,3 +352,17 @@ def design_primers(
     # Sort by quality score descending
     pairs.sort(key=lambda p: p.pair_quality_score, reverse=True)
     return pairs[:max_pairs]
+
+
+__all__ = [
+    "calculate_tm_santalucia",
+    "calculate_tm_santaluicia",
+    "analyze_primer",
+    "design_primers",
+    "check_self_dimer",
+    "check_hairpin",
+    "check_heterodimer",
+    "PrimerAnalysis",
+    "PrimerPair",
+    "NN_PARAMS",
+]

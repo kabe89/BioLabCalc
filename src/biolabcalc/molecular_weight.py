@@ -266,8 +266,8 @@ def calculate_protein_mw(seq: str, oxidized_cysteines: int = 0) -> MolecularWeig
     avg_sum = sum(AMINO_ACID_MW.get(aa, 110.0) * n for aa, n in counts.items()) + 18.015
     mono_sum = sum(AMINO_ACID_MONOISOTOPIC.get(aa, 110.0) * n for aa, n in counts.items()) + 18.01056
 
-    if oxidized_cysteines > 0:
-        disulfide_bonds = oxidized_cysteines // 2
+    disulfide_bonds = max(0, min(oxidized_cysteines, counts.get("C", 0))) // 2
+    if disulfide_bonds > 0:
         avg_sum -= disulfide_bonds * 2.016
         mono_sum -= disulfide_bonds * 2.01565
 
@@ -338,6 +338,8 @@ def moles_to_mass(mol_val: float, mol_unit: str, mw: float) -> tuple[float, str]
 
 
 def mass_to_copy_number(mass_val: float, mass_unit: str, mw: float) -> float:
+    if mw <= 0:
+        raise ValueError("Molecular weight must be positive.")
     unit_key = mass_unit.lower().strip()
     if unit_key not in MASS_TO_GRAMS:
         raise ValueError(f"Unsupported mass unit '{mass_unit}'. Supported: {list(MASS_TO_GRAMS.keys())}")
@@ -347,13 +349,18 @@ def mass_to_copy_number(mass_val: float, mass_unit: str, mw: float) -> float:
 
 
 def copy_number_to_mass(copies: float, mw: float, target_unit: str = "ng") -> float:
+    unit_key = target_unit.lower().strip()
+    if unit_key not in MASS_TO_GRAMS:
+        raise ValueError(f"Unsupported mass unit '{target_unit}'. Supported: {list(MASS_TO_GRAMS.keys())}")
     moles = copies / AVOGADRO
     grams = moles * mw
-    factor = MASS_TO_GRAMS.get(target_unit.lower(), 1e-9)
+    factor = MASS_TO_GRAMS[unit_key]
     return grams / factor
 
 
 def concentration_to_molarity(conc_val: float, conc_unit: str, mw: float) -> tuple[float, str]:
+    if mw <= 0:
+        raise ValueError("Molecular weight must be positive.")
     c_unit = conc_unit.lower().replace("µ", "u")
     if c_unit in ("ng/ul", "ug/ml", "mg/l"):
         g_per_l = conc_val * 1e-3

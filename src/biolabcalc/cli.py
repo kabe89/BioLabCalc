@@ -158,10 +158,10 @@ def main():
 
     # 0. dilute
     p_dil = subparsers.add_parser("dilute", help="Solve C1*V1 = C2*V2 dilution calculation (e.g. -c1 '100 mM' -c2 '25 mM' -v2 '16 mL')")
-    p_dil.add_argument("-c1", default=None, help="Stock concentration (e.g. '100 mM')")
-    p_dil.add_argument("-v1", default=None, help="Stock volume (e.g. '4.0 mL')")
-    p_dil.add_argument("-c2", default=None, help="Target working concentration (e.g. '25 mM')")
-    p_dil.add_argument("-v2", default=None, help="Target final volume (e.g. '16 mL')")
+    p_dil.add_argument("-c1", "--conc1", dest="c1", default=None, help="Stock concentration (e.g. '100 mM')")
+    p_dil.add_argument("-v1", "--vol1", dest="v1", default=None, help="Stock volume (e.g. '4.0 mL')")
+    p_dil.add_argument("-c2", "--conc2", dest="c2", default=None, help="Target working concentration (e.g. '25 mM')")
+    p_dil.add_argument("-v2", "--vol2", dest="v2", default=None, help="Target final volume (e.g. '16 mL')")
 
     # 0b. wizard
     p_wiz = subparsers.add_parser("wizard", aliases=["interactive"], help="Interactive guided step-by-step wizard for bench calculations")
@@ -171,8 +171,8 @@ def main():
     p_mw.add_argument("-s", "--sequence", required=True, help="Sequence string")
     p_mw.add_argument("-t", "--type", choices=["dna", "rna", "protein"], default="dna", help="Sequence type")
     p_mw.add_argument("--ds", action="store_true", help="Double-stranded (for DNA)")
-    p_mw.add_argument("--end-5", choices=["hydroxyl", "monophosphate", "triphosphate"], default="hydroxyl", help="5' phosphorylation state")
-    p_mw.add_argument("--end-3", choices=["hydroxyl", "monophosphate", "diphosphate", "triphosphate", "cyclic_phosphate"], default="hydroxyl", help="3' terminal phosphorylation state")
+    p_mw.add_argument("--end-5", "--end5", dest="end_5", choices=["hydroxyl", "monophosphate", "triphosphate"], default="hydroxyl", help="5' phosphorylation state")
+    p_mw.add_argument("--end-3", "--end3", dest="end_3", choices=["hydroxyl", "monophosphate", "diphosphate", "triphosphate", "cyclic_phosphate"], default="hydroxyl", help="3' terminal phosphorylation state")
     p_mw.add_argument("--backbone", choices=["monophosphate", "phosphorothioate"], default="monophosphate", help="Internucleotide backbone chemistry")
 
     # 2. ivt
@@ -197,10 +197,10 @@ def main():
 
     # 4. pcr-opt
     p_pcr_opt = subparsers.add_parser("pcr-opt", help="Optimize PCR annealing temp, extension time, and cycling")
-    p_pcr_opt.add_argument("--fwd-tm", type=float, required=True, help="Forward primer Tm in °C")
-    p_pcr_opt.add_argument("--rev-tm", type=float, required=True, help="Reverse primer Tm in °C")
+    p_pcr_opt.add_argument("--fwd-tm", "--tm-fwd", dest="fwd_tm", type=float, required=True, help="Forward primer Tm in °C")
+    p_pcr_opt.add_argument("--rev-tm", "--tm-rev", dest="rev_tm", type=float, required=True, help="Reverse primer Tm in °C")
     p_pcr_opt.add_argument("-l", "--length", type=int, required=True, help="Amplicon length in bp")
-    p_pcr_opt.add_argument("-p", "--polymerase", default="taq", choices=["taq", "q5", "phusion", "kapa"], help="Polymerase type")
+    p_pcr_opt.add_argument("-p", "--polymerase", "--poly", dest="polymerase", default="taq", choices=["taq", "q5", "phusion", "kapa"], help="Polymerase type")
     p_pcr_opt.add_argument("--gc", type=float, default=50.0, help="Amplicon GC percentage")
 
     # 5. protein
@@ -216,19 +216,27 @@ def main():
 
     # 7. nanodrop
     p_nano = subparsers.add_parser("nanodrop", help="Prepare standardized solutions (e.g. 4uM ssRNA at 500uL) and predict NanoDrop readings")
-    p_nano.add_argument("-u", "--molarity-um", type=float, required=True, help="Target molarity in µM (e.g. 4.0)")
+    p_nano.add_argument("-u", "-m", "--molarity-um", dest="molarity_um", type=float, required=True, help="Target molarity in µM (e.g. 4.0)")
     p_nano.add_argument("-v", "--volume-ul", type=float, required=True, help="Target volume in µL (e.g. 500.0)")
     p_nano.add_argument("-t", "--type", default="rna", choices=["rna", "dna", "ssdna", "dsdna", "protein"], help="Biomolecule type")
     p_nano.add_argument("-s", "--sequence", default=None, help="Sequence (optional)")
-    p_nano.add_argument("--length", type=int, default=100, help="Length in nt/bp (used if sequence omitted)")
-    p_nano.add_argument("--stock-ng-ul", type=float, default=None, help="Stock concentration in ng/µL (for dilution)")
-    p_nano.add_argument("--end-5", choices=["hydroxyl", "monophosphate", "triphosphate"], default="hydroxyl", help="5' end state")
+    p_nano.add_argument("-l", "--length", dest="length", type=int, default=100, help="Length in nt/bp (used if sequence omitted)")
+    p_nano.add_argument("--stock-ng-ul", "--stock", dest="stock_ng_ul", type=float, default=None, help="Stock concentration in ng/µL (for dilution)")
+    p_nano.add_argument("--end-5", "--end5", dest="end_5", choices=["hydroxyl", "monophosphate", "triphosphate"], default="hydroxyl", help="5' end state")
 
     # 8. fluo
-    p_fluo = subparsers.add_parser("fluo", help="Calculate fluorophore modifications and Degree of Labeling (DOL)")
-    p_fluo.add_argument("-s", "--sequence", required=True, help="Sequence")
-    p_fluo.add_argument("-t", "--type", default="dna", choices=["dna", "rna", "protein"], help="Molecule type")
-    p_fluo.add_argument("-d", "--dye", required=True, help="Dye name (e.g. FAM, Cy3, Cy5, Alexa488)")
+    p_fluo = subparsers.add_parser("fluo", help="Calculate fluorophore modifications, dye properties, and Degree of Labeling (DOL)")
+    p_fluo.add_argument("-s", "--sequence", default=None, help="Sequence for modification calculation")
+    p_fluo.add_argument("-t", "--type", default="dna", choices=["dna", "rna", "protein"], help="Molecule type (default: dna)")
+    p_fluo.add_argument("-d", "--dye", default=None, help="Dye name (e.g. FAM, Cy3, Cy5, Alexa488)")
+    p_fluo.add_argument("--info", nargs="?", const="", default=None, help="Print spectral and physical information for a dye (e.g. --info FAM or with -d FAM)")
+    p_fluo.add_argument("--dol", action="store_true", help="Calculate degree of labeling (DOL)")
+    p_fluo.add_argument("--a-dye", type=float, default=None, help="Absorbance at dye absorbance maximum (for --dol)")
+    p_fluo.add_argument("--a280", type=float, default=None, help="Absorbance at 280 nm for protein conjugate (for --dol)")
+    p_fluo.add_argument("--a260", type=float, default=None, help="Absorbance at 260 nm for oligonucleotide conjugate (for --dol)")
+    p_fluo.add_argument("--prot-e280", type=float, default=None, help="Protein molar extinction coefficient at 280 nm in M^-1 cm^-1 (for --dol)")
+    p_fluo.add_argument("--dna-e260", type=float, default=None, help="Oligonucleotide molar extinction coefficient at 260 nm in M^-1 cm^-1 (for --dol)")
+    p_fluo.add_argument("--pathlength", type=float, default=1.0, help="Pathlength in cm (default: 1.0)")
 
     # 9. gel
     p_gel = subparsers.add_parser("gel", help="Simulate gel electrophoresis migration against MW ladders")
@@ -309,16 +317,18 @@ def main():
     p_prec.add_argument("-v", "--volume-ul", type=float, required=True, help="Sample volume in µL")
     p_prec.add_argument("-t", "--type", default="dna", choices=["dna", "rna"], help="Nucleic acid type")
     p_prec.add_argument("-a", "--alcohol", default="ethanol", choices=["ethanol", "isopropanol"], help="Alcohol type")
-    p_prec.add_argument("-s", "--salt", default="naoac", choices=["naoac", "nh4oac", "licl", "nacl"], help="Salt type")
+    p_prec.add_argument("-s", "--salt", default="naoac", choices=["naoac", "nh4oac", "licl", "nacl"], help="Salt type (naoac, nh4oac, licl, nacl)")
+    p_prec.add_argument("--carrier", dest="carrier", action="store_true", default=True, help="Include glycogen carrier (default: True)")
+    p_prec.add_argument("--no-carrier", dest="carrier", action="store_false", help="Do not include glycogen carrier")
 
     # 20. ntp-ph
     p_ntp = subparsers.add_parser("ntp-ph", help="Calculate NaOH requirement and protocol for NTP pH adjustment")
-    p_ntp.add_argument("-v", "--initial-vol", type=float, default=4.0, help="Initial stock volume in mL (default: 4.0)")
-    p_ntp.add_argument("-c", "--initial-conc", type=float, default=100.0, help="Initial stock concentration in mM (default: 100.0)")
-    p_ntp.add_argument("-V", "--target-vol", type=float, default=16.0, help="Target final volume in mL (default: 16.0)")
-    p_ntp.add_argument("-C", "--target-conc", type=float, default=25.0, help="Target final concentration in mM (default: 25.0)")
-    p_ntp.add_argument("-p", "--target-ph", type=float, default=7.5, help="Target pH (default: 7.5)")
-    p_ntp.add_argument("-f", "--form", default="disodium_salt", choices=["disodium_salt", "pre_neutralized", "free_acid"], help="Starting stock chemical form")
+    p_ntp.add_argument("-v", "-v1", "--initial-vol", dest="initial_vol", type=float, default=4.0, help="Initial stock volume in mL (default: 4.0)")
+    p_ntp.add_argument("-c", "-c1", "--initial-conc", dest="initial_conc", type=float, default=100.0, help="Initial stock concentration in mM (default: 100.0)")
+    p_ntp.add_argument("-V", "-v2", "--target-vol", dest="target_vol", type=float, default=16.0, help="Target final volume in mL (default: 16.0)")
+    p_ntp.add_argument("-C", "-c2", "--target-conc", dest="target_conc", type=float, default=25.0, help="Target final concentration in mM (default: 25.0)")
+    p_ntp.add_argument("-p", "--target-ph", "--ph", dest="target_ph", type=float, default=7.5, help="Target pH (default: 7.5)")
+    p_ntp.add_argument("-f", "--form", "--starting-form", dest="form", default="disodium_salt", choices=["disodium_salt", "pre_neutralized", "free_acid"], help="Starting stock chemical form")
     p_ntp.add_argument("-s", "--species", default="equimolar_mix", choices=["equimolar_mix", "ATP", "CTP", "GTP", "UTP"], help="NTP species")
     p_ntp.add_argument("-b", "--base-molarity", type=float, default=5.0, help="Molarity of NaOH stock in M (default: 5.0)")
 
@@ -356,14 +366,14 @@ def main():
 
     # 29. western
     p_wb = subparsers.add_parser("western", help="Plan Western blot experiment: SDS-PAGE, transfer, loading, and antibodies")
-    p_wb.add_argument("-n", "--name", default="Target Protein", help="Target protein name (e.g. GluK2, Actin, p-ERK)")
+    p_wb.add_argument("-n", "--name", "-target", "--target", dest="name", default="Target Protein", help="Target protein name (e.g. GluK2, Actin, p-ERK)")
     p_wb.add_argument("-m", "--mw", type=float, default=None, help="Target molecular weight in kDa (e.g. 100.0)")
     p_wb.add_argument("-c", "--conc", type=float, default=2.5, help="Lysate total protein concentration in mg/mL (default: 2.5)")
-    p_wb.add_argument("-l", "--load-ug", type=float, default=20.0, help="Target protein mass per lane in µg (default: 20.0)")
+    p_wb.add_argument("-l", "--load-ug", "--ug", dest="load_ug", type=float, default=20.0, help="Target protein mass per lane in µg (default: 20.0)")
     p_wb.add_argument("--phospho", action="store_true", help="Target is phosphorylated epitope (enforces 5% BSA blocking; bans milk)")
-    p_wb.add_argument("--membrane-protein", action="store_true", help="Target is transmembrane receptor (enforces 70°C denaturation; bans 95°C boiling)")
+    p_wb.add_argument("--membrane-protein", "--membrane_protein", dest="membrane_protein", action="store_true", help="Target is transmembrane receptor (enforces 70°C denaturation; bans 95°C boiling)")
     p_wb.add_argument("--transfer", choices=["wet_tank", "semi_dry", "fast_semi_dry"], default="wet_tank", help="Electrotransfer system (default: wet_tank)")
-    p_wb.add_argument("--membrane", choices=["pvdf", "nitrocellulose"], default="pvdf", help="Membrane type (default: pvdf)")
+    p_wb.add_argument("--membrane", nargs="?", const="pvdf_flag", default="pvdf", help="Membrane type ('pvdf', 'nitrocellulose') or flag for membrane protein")
     p_wb.add_argument("--troubleshoot", default=None, help="Diagnose artifact: 'no_signal', 'high_background', 'ghost_bands', 'membrane_protein_aggregates', 'patchy_transfer'")
 
     # 30. report
@@ -371,13 +381,13 @@ def main():
     p_rep.add_argument("-t", "--title", default="Laboratory Experiment Report", help="Report or experiment title")
     p_rep.add_argument("-r", "--researcher", default="Researcher", help="Researcher name")
     p_rep.add_argument("-p", "--project", default="General", help="Project or notebook ID")
-    p_rep.add_argument("--obj", default="", help="Experimental objective")
+    p_rep.add_argument("--obj", "--objective", dest="obj", default="", help="Experimental objective")
     p_rep.add_argument("-s", "--sample", default=None, help="Sample ID (e.g. WT-1, Sample-A)")
     p_rep.add_argument("--param", default=None, help="Parameter or assay (e.g. Yield, A260, Conc)")
-    p_rep.add_argument("-v", "--value", type=float, default=None, help="Measured numeric value")
+    p_rep.add_argument("-v", "--value", "--val", dest="value", type=float, default=None, help="Measured numeric value")
     p_rep.add_argument("-u", "--unit", default="", help="Measurement unit (e.g. ug, ng/uL, AU, bp)")
     p_rep.add_argument("--target", type=float, default=None, help="Target or expected value")
-    p_rep.add_argument("--tolerance", type=float, default=None, help="Acceptable QC deviation tolerance %")
+    p_rep.add_argument("--tolerance", "--tol", dest="tolerance", type=float, default=None, help="Acceptable QC deviation tolerance %")
     p_rep.add_argument("--notes", default="", help="Bench observations or notes")
     p_rep.add_argument("--conclusion", default=None, help="Add conclusion or key takeaway")
     p_rep.add_argument("-o", "--output", default=None, help="Export report to file (.md, .xlsx, .csv, .json)")
@@ -472,23 +482,69 @@ def main():
         print("=" * 70)
 
     elif args.command == "fluo":
-        if args.type == "dna":
-            base_res = calculate_dna_mw(args.sequence)
-        elif args.type == "rna":
-            base_res = calculate_rna_mw(args.sequence)
+        if args.info is not None:
+            dye_name = args.info if args.info else args.dye
+            if not dye_name:
+                print("Error: Specify a dye name for --info (e.g. --info FAM or -d FAM)")
+                sys.exit(1)
+            fl = get_fluorophore(dye_name)
+            print("=" * 60)
+            print(f"FLUOROPHORE DATABASE ENTRY: {fl.name} ({fl.common_name})")
+            print("=" * 60)
+            print(f"Added Molecular Weight:     {fl.added_mw:.2f} Da (Monoisotopic: {fl.added_monoisotopic:.2f} Da)")
+            print(f"Excitation Maximum (λex):   {fl.excitation_max_nm} nm")
+            print(f"Emission Maximum (λem):     {fl.emission_max_nm} nm ({fl.color_description})")
+            print(f"Extinction Coeff (εmax):    {fl.extinction_coeff_m_cm:,} M^-1 cm^-1")
+            print(f"Correction Factor CF260:    {fl.cf260:.2f}")
+            print(f"Correction Factor CF280:    {fl.cf280:.2f}")
+            print("=" * 60)
+        elif args.dol:
+            if args.a_dye is None:
+                print("Error: --a-dye is required for Degree of Labeling (--dol) calculation.")
+                sys.exit(1)
+            dye_name = args.dye or "FAM"
+            res = calculate_degree_of_labeling(
+                absorbance_max_dye=args.a_dye,
+                absorbance_280=args.a280,
+                absorbance_260=args.a260,
+                fluorophore_name=dye_name,
+                protein_extinction_coeff=args.prot_e280,
+                oligo_extinction_coeff=args.dna_e260,
+                pathlength_cm=args.pathlength,
+            )
+            print("=" * 65)
+            print(f"DEGREE OF LABELING (DOL) CALCULATION ({res.molecule_type.upper()})")
+            print("=" * 65)
+            print(f"Fluorophore:                {res.fluorophore_name}")
+            print(f"Absorbance at Dye Amax:     {res.absorbance_max_dye:.3f} AU")
+            print(f"Corrected Biomolecule Abs:  {res.absorbance_corrected_biomolecule:.4f} AU")
+            print(f"Biomolecule Concentration:  {res.biomolecule_concentration_um:.2f} µM")
+            print(f"Dye Concentration:          {res.dye_concentration_um:.2f} µM")
+            print(f"Degree of Labeling (DOL):   {res.degree_of_labeling:.3f} dye / molecule")
+            print(f"Labeling Efficiency:        {res.labeling_efficiency_percent:.1f}%")
+            print(f"Interpretation:             {res.interpretation}")
+            print("=" * 65)
         else:
-            base_res = calculate_protein_mw(args.sequence)
-        mod_res = apply_fluorophore_modification(base_res, [args.dye])
-        fl = mod_res.primary_fluorophore
-        print("=" * 60)
-        print(f"FLUOROPHORE MODIFICATION: {fl.name}")
-        print("=" * 60)
-        print(f"Unmodified MW:       {mod_res.original_mw:,.2f} Da")
-        print(f"Modified MW:         {mod_res.total_modified_mw:,.2f} Da (+{mod_res.total_added_mw} Da)")
-        print(f"Excitation / Emission:{fl.excitation_max_nm} nm / {fl.emission_max_nm} nm ({fl.color_description})")
-        print(f"Extinction Coeff:    {fl.extinction_coeff_m_cm:,} M^-1 cm^-1")
-        print(f"Correction Factors:  CF260 = {fl.cf260:.2f} | CF280 = {fl.cf280:.2f}")
-        print("=" * 60)
+            if not args.sequence or not args.dye:
+                print("Error: biolabcalc fluo requires -s/--sequence and -d/--dye (or use --info / --dol).")
+                sys.exit(1)
+            if args.type == "dna":
+                base_res = calculate_dna_mw(args.sequence)
+            elif args.type == "rna":
+                base_res = calculate_rna_mw(args.sequence)
+            else:
+                base_res = calculate_protein_mw(args.sequence)
+            mod_res = apply_fluorophore_modification(base_res, [args.dye])
+            fl = mod_res.primary_fluorophore
+            print("=" * 60)
+            print(f"FLUOROPHORE MODIFICATION: {fl.name}")
+            print("=" * 60)
+            print(f"Unmodified MW:       {mod_res.original_mw:,.2f} Da")
+            print(f"Modified MW:         {mod_res.total_modified_mw:,.2f} Da (+{mod_res.total_added_mw} Da)")
+            print(f"Excitation / Emission:{fl.excitation_max_nm} nm / {fl.emission_max_nm} nm ({fl.color_description})")
+            print(f"Extinction Coeff:    {fl.extinction_coeff_m_cm:,} M^-1 cm^-1")
+            print(f"Correction Factors:  CF260 = {fl.cf260:.2f} | CF280 = {fl.cf280:.2f}")
+            print("=" * 60)
 
     elif args.command == "gel":
         sim = simulate_gel(sample_sizes=args.sizes, ladder_key=args.ladder)
@@ -653,7 +709,7 @@ def main():
             ann = GelAnnotator.from_image(args.image, title=args.title, gel_info=args.info, invert_colors=args.invert)
             ann.set_lanes(lane_list)
         else:
-            ann = GelAnnotator.synthetic(num_lanes=len(lane_list), title=args.title, gel_info=args.info, invert_colors=args.invert or True)
+            ann = GelAnnotator.synthetic(num_lanes=len(lane_list), title=args.title, gel_info=args.info, invert_colors=args.invert)
             ann.set_lanes(lane_list)
 
         ann.add_ladder(lane_index=args.ladder_lane, ladder_type=args.ladder, side=args.ladder_side)
@@ -816,15 +872,23 @@ def main():
             print("Error: Target molecular weight in kDa (--mw / -m) is required to plan a Western blot.")
             sys.exit(1)
 
+        mem_type = "pvdf"
+        is_mem_prot = args.membrane_protein
+        if args.membrane == "pvdf_flag":
+            is_mem_prot = True
+            mem_type = "pvdf"
+        elif args.membrane in ("pvdf", "nitrocellulose"):
+            mem_type = args.membrane
+
         plan = plan_western_blot(
             target_protein_name=args.name,
             target_mw_kda=args.mw,
             lysate_conc_mg_ml=args.conc,
             target_protein_ug_per_lane=args.load_ug,
             is_phospho_target=args.phospho,
-            is_membrane_protein=args.membrane_protein,
+            is_membrane_protein=is_mem_prot,
             transfer_system=args.transfer,
-            membrane_type=args.membrane,
+            membrane_type=mem_type,
         )
 
         print("=" * 70)
@@ -1174,6 +1238,7 @@ def main():
             nucleic_acid=args.type,
             alcohol=args.alcohol,
             salt=args.salt,
+            low_concentration_carrier=args.carrier,
         )
         print("=" * 65)
         print(f"NUCLEIC ACID PRECIPITATION PROTOCOL ({res.nucleic_acid_type})")

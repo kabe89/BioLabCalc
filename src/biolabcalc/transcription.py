@@ -413,6 +413,9 @@ def calculate_ivt_yield(
     elif mod_str in ("m5c", "5methylcytidine"):
         mod_delta_mw = counts.get("C", 0) * 14.027
         mod_desc = "5-methylcytidine (m5C)"
+    elif mod_str in ("s2u", "2thiouridine"):
+        mod_delta_mw = counts.get("U", 0) * 16.060
+        mod_desc = "2-thiouridine (s2U)"
     elif mod_str in ("psi", "pseudouridine"):
         mod_desc = "Pseudouridine (Ψ)"
     elif mod_str and mod_str != "none":

@@ -133,14 +133,15 @@ BUFFER_CATALOG: Dict[str, Dict[str, Any]] = {
         "storage": "4°C or -20°C",
         "safety": "Powder dye can stain clothing and skin.",
         "components": [
-            ("Bromophenol blue", 0.25, "g", "0.25% w/v", "Migrates ~300 bp in 1% agarose"),
-            ("Xylene cyanol FF", 0.25, "g", "0.25% w/v", "Migrates ~4000 bp in 1% agarose"),
-            ("Glycerol (100%)", 30.0, "mL", "30% v/v", "Density agent"),
+            ("Bromophenol blue", 2.5, "g", "0.25% w/v", "Migrates ~300 bp in 1% agarose"),
+            ("Xylene cyanol FF", 2.5, "g", "0.25% w/v", "Migrates ~4000 bp in 1% agarose"),
+            ("Glycerol (100%)", 300.0, "mL", "30% v/v", "Density agent"),
         ],
         "steps": [
-            "Dissolve dyes in ~50 mL deionized water.",
-            "Add 30 mL glycerol.",
-            "Bring volume to 100 mL with water. Aliquot into 1.5 mL tubes and store at -20°C."
+            "Dissolve dyes in ~500 mL deionized water.",
+            "Add 300 mL glycerol.",
+            "Bring volume to 1000 mL with deionized water.",
+            "Aliquot into 1.5 mL tubes and store at -20°C."
         ]
     },
     "LB_BROTH": {
@@ -436,8 +437,8 @@ def calculate_ntp_ph_adjustment(
 
 def calculate_tris_temperature_shift(
     measured_ph: float,
-    measured_temp_c: float,
     target_temp_c: float,
+    measured_temp_c: float = 25.0,
     dpka_dt: float = -0.030,
 ) -> float:
     """Calculate expected pH shift for Tris buffers across temperatures.
@@ -446,12 +447,12 @@ def calculate_tris_temperature_shift(
     ----------
     measured_ph : float
         pH measured at reference temperature (e.g. 8.00).
-    measured_temp_c : float
-        Temperature in Celsius at measurement (e.g. 25.0°C).
     target_temp_c : float
         Operating temperature in Celsius (e.g. 4.0°C for cold-room, 37.0°C for incubation).
-    dpka_dt : float
-        Temperature coefficient of Tris pKa (typically -0.028 to -0.031 pH units / °C).
+    measured_temp_c : float, optional
+        Temperature in Celsius at measurement (default is 25.0°C).
+    dpka_dt : float, optional
+        Temperature coefficient of Tris pKa (typically -0.028 to -0.031 pH units / °C, default -0.030).
 
     Returns
     -------

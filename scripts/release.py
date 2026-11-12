@@ -41,7 +41,7 @@ def main():
 
     if args.build:
         clean_build_artifacts()
-        run_cmd(f"{sys.executable} setup.py sdist bdist_wheel")
+        run_cmd(f'"{sys.executable}" setup.py sdist bdist_wheel')
 
     if args.check:
         run_cmd("twine check dist/*")

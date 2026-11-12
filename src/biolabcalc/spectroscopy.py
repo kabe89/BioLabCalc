@@ -281,13 +281,17 @@ class NanoDropPurityResult:
     sample_type: str
     a260_a280_ratio: float
     a260_a230_ratio: float
-    purity_status: str  # "Pure", "Marginal", "Contaminated"
+    purity_status: str  # "Pure", "Marginal", "Contaminated", "Below Detection Limit"
     protein_contamination: bool
     salt_or_solvent_contamination: bool
     phenol_contamination_risk: bool
     corrected_a260: float
     corrected_concentration_ng_ul: float
     diagnostic_feedback: List[str]
+
+    @property
+    def protein_contamination_risk(self) -> bool:
+        return self.protein_contamination
 
 
 def assess_nanodrop_purity(
@@ -320,6 +324,26 @@ def assess_nanodrop_purity(
 
     target_r280 = 2.00 if is_rna else 1.80
     conv_factor = 40.0 if is_rna else 50.0
+
+    if a260 < 0.02:
+        return NanoDropPurityResult(
+            a260=a260,
+            a280=a280,
+            a230=a230,
+            sample_type=s_type.upper(),
+            a260_a280_ratio=r280,
+            a260_a230_ratio=r230,
+            purity_status="Below Detection Limit",
+            protein_contamination=False,
+            salt_or_solvent_contamination=False,
+            phenol_contamination_risk=False,
+            corrected_a260=round(a260, 3),
+            corrected_concentration_ng_ul=round(a260 * conv_factor, 2),
+            diagnostic_feedback=[
+                f"Absorbance at 260 nm ({a260:.4f}) is below the reliable spectrophotometric detection limit (A260 < 0.02). "
+                "Sample is blank/water or below detection threshold; contamination ratios are not diagnostically meaningful."
+            ],
+        )
 
     feedback: List[str] = []
     prot_contam = False

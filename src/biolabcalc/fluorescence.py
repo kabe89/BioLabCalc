@@ -63,10 +63,21 @@ class DegreeOfLabelingResult:
 
 def get_fluorophore(name: str) -> Fluorophore:
     """Retrieve fluorophore metadata by common name or identifier."""
-    key = name.upper().replace("-", "").replace(" ", "").replace("_", "")
+    norm_query = name.upper().replace(" ", "").replace("-", "").replace("_", "")
     for k, v in FLUOROPHORE_DATABASE.items():
-        if k == key or key in v.common_name.upper().replace("-", "").replace(" ", ""):
+        norm_k = k.upper().replace(" ", "").replace("-", "").replace("_", "")
+        norm_name = v.name.upper().replace(" ", "").replace("-", "").replace("_", "")
+        norm_common = v.common_name.upper().replace(" ", "").replace("-", "").replace("_", "")
+        if norm_query in (norm_k, norm_name, norm_common):
             return v
+
+    for k, v in FLUOROPHORE_DATABASE.items():
+        norm_k = k.upper().replace(" ", "").replace("-", "").replace("_", "")
+        norm_name = v.name.upper().replace(" ", "").replace("-", "").replace("_", "")
+        norm_common = v.common_name.upper().replace(" ", "").replace("-", "").replace("_", "")
+        if norm_query in norm_k or norm_query in norm_name or norm_query in norm_common:
+            return v
+
     raise KeyError(f"Fluorophore '{name}' not found. Available: {list(FLUOROPHORE_DATABASE.keys())}")
 
 def apply_fluorophore_modification(

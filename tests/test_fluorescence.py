@@ -12,6 +12,28 @@ class TestFluorescence(unittest.TestCase):
         fl_cy5 = get_fluorophore("Cy5")
         self.assertEqual(fl_cy5.excitation_max_nm, 650)
 
+    def test_get_fluorophore_multiword_and_normalized(self):
+        af488 = get_fluorophore("Alexa Fluor 488")
+        self.assertEqual(af488.name, "Alexa Fluor 488")
+        self.assertEqual(af488.excitation_max_nm, 495)
+
+        af488_alias = get_fluorophore("AF488")
+        self.assertEqual(af488_alias.name, "Alexa Fluor 488")
+
+        af488_hyphen = get_fluorophore("alexa-fluor-488")
+        self.assertEqual(af488_hyphen.name, "Alexa Fluor 488")
+
+        texas = get_fluorophore("Texas Red")
+        self.assertEqual(texas.common_name, "Texas Red")
+        self.assertEqual(texas.excitation_max_nm, 596)
+
+        bhq1 = get_fluorophore("Black Hole Quencher 1")
+        self.assertEqual(bhq1.name, "Black Hole Quencher 1")
+        self.assertEqual(bhq1.common_name, "BHQ-1")
+
+        with self.assertRaises(KeyError):
+            get_fluorophore("Unknown_Fluorophore_999")
+
     def test_apply_fluorophore_modification(self):
         dna = calculate_dna_mw("ATGC")
         mod = apply_fluorophore_modification(dna, ["FAM", "BHQ1"])

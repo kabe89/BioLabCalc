@@ -167,12 +167,12 @@ def generate_lab_notebook_template(output_path: str) -> str:
         c.border = HEADER_BORDER
 
     mm_components = [
-        ("Nuclease-Free Water", "-", "-", 34.5, "=D8**"),
-        ("5X PCR Buffer", "5X", "1X", 10.0, "=D9**"),
-        ("dNTP Mix", "10 mM each", "0.2 mM each", 1.0, "=D10**"),
-        ("Forward Primer", "10 µM", "0.4 µM", 2.0, "=D11**"),
-        ("Reverse Primer", "10 µM", "0.4 µM", 2.0, "=D12**"),
-        ("DNA Polymerase", "2 U/µL", "1 U", 0.5, "=D13**"),
+        ("Nuclease-Free Water", "-", "-", 34.5, "=D8*$B$5*$D$5"),
+        ("5X PCR Buffer", "5X", "1X", 10.0, "=D9*$B$5*$D$5"),
+        ("dNTP Mix", "10 mM each", "0.2 mM each", 1.0, "=D10*$B$5*$D$5"),
+        ("Forward Primer", "10 µM", "0.4 µM", 2.0, "=D11*$B$5*$D$5"),
+        ("Reverse Primer", "10 µM", "0.4 µM", 2.0, "=D12*$B$5*$D$5"),
+        ("DNA Polymerase", "2 U/µL", "1 U", 0.5, "=D13*$B$5*$D$5"),
         ("Template DNA (add per tube)", "-", "-", 2.0, "Add 2.0 µL to each tube"),
     ]
 
@@ -305,7 +305,7 @@ def generate_lab_notebook_template(output_path: str) -> str:
         c4 = ws_prot.cell(row=s_idx, column=4, value=s_abs)
         # Using linear regression: x = (y - intercept) / slope
         # In Excel: SLOPE(known_y, known_x), INTERCEPT(known_y, known_x)
-        c5 = ws_prot.cell(row=s_idx, column=5, value=f"=(D{s_idx}-INTERCEPT(0:5, 0:5))/SLOPE(0:5, 0:5)")
+        c5 = ws_prot.cell(row=s_idx, column=5, value=f"=(D{s_idx}-INTERCEPT(B20:B25, A20:A25))/SLOPE(B20:B25, A20:A25)")
         c6 = ws_prot.cell(row=s_idx, column=6, value=s_vol)
         c7 = ws_prot.cell(row=s_idx, column=7, value=f"=(E{s_idx}*F{s_idx})/1000")
         c8 = ws_prot.cell(row=s_idx, column=8, value=f"=G{s_idx}*1000000")
@@ -499,6 +499,14 @@ def generate_lab_notebook_template(output_path: str) -> str:
 
     # DOL Calculator section
     ws_fl.cell(row=15, column=1, value="Degree of Labeling (DOL) Calculator").font = SECTION_FONT
+    dol_headers = ["Metric / Parameter", "Value", "Unit", "Guidance"]
+    for c_idx, h in enumerate(dol_headers, 1):
+        c = ws_fl.cell(row=15, column=c_idx, value=h)
+        c.fill = BLUE_SUBHEADER
+        c.font = WHITE_BOLD_FONT
+        c.alignment = Alignment(horizontal="center")
+        c.border = HEADER_BORDER
+
     dol_inputs = [
         ("Selected Dye", "FAM", "-", "Choose fluorophore from table above"),
         ("Dye Extinction Coeff (ε_dye)", 75000, "M^-1 cm^-1", "Molar extinction coefficient"),
@@ -724,252 +732,6 @@ def export_analysis_to_excel(
     # Remove the initial blank sheet if other sheets were created
     if len(wb.sheetnames) > 1 and default_sheet in wb.worksheets:
         wb.remove(default_sheet)
-
-
-    # Sheet 5: Standardized Solution Prep & NanoDrop Predictor
-    ws_sol = wb.create_sheet(title="Solution_Prep_NanoDrop")
-    ws_sol.views.sheetView[0].showGridLines = True
-    ws_sol.cell(row=1, column=1, value="Standardized Solution Prep & NanoDrop Absorbance Predictor").font = TITLE_FONT
-    ws_sol.cell(row=2, column=1, value="Calculates exact required mass, moles, pipetting volumes, and what you should observe at the NanoDrop.").font = NOTE_FONT
-
-    ws_sol.cell(row=4, column=1, value="1. Target Solution Parameters").font = SECTION_FONT
-    sol_headers = ["Parameter", "Input Value", "Unit", "Description / Guidance"]
-    for c_idx, h in enumerate(sol_headers, 1):
-        c = ws_sol.cell(row=5, column=c_idx, value=h)
-        c.fill = NAVY_HEADER
-        c.font = WHITE_BOLD_FONT
-        c.alignment = Alignment(horizontal="center")
-        c.border = HEADER_BORDER
-
-    sol_inputs = [
-        ("Target Molarity", 4.0, "µM", "Desired final concentration (e.g. 4.0 µM)"),
-        ("Target Volume", 500.0, "µL", "Desired final total volume (e.g. 500.0 µL)"),
-        ("Biomolecule Type", "ssRNA", "-", "ssRNA (40 µg/mL/AU), dsDNA (50), ssDNA (33)"),
-        ("Transcript Length", 36, "nt", "Number of nucleotides or amino acids"),
-        ("Molecular Weight", 11883.0, "g/mol (Da)", "Calculated or entered MW"),
-        ("Stock Solution Conc.", 500.0, "ng/µL", "Concentration of stock if diluting (optional)"),
-    ]
-    for idx, (p, v, u, d) in enumerate(sol_inputs, 6):
-        c1 = ws_sol.cell(row=idx, column=1, value=p)
-        c2 = ws_sol.cell(row=idx, column=2, value=v)
-        c3 = ws_sol.cell(row=idx, column=3, value=u)
-        c4 = ws_sol.cell(row=idx, column=4, value=d)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        c2.fill = INPUT_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    ws_sol.cell(row=13, column=1, value="2. Stoichiometry & Required Quantities").font = SECTION_FONT
-    sol_res_headers = ["Metric", "Formula / Calculated Value", "Unit", "Interpretation"]
-    for c_idx, h in enumerate(sol_res_headers, 1):
-        c = ws_sol.cell(row=14, column=c_idx, value=h)
-        c.fill = BLUE_SUBHEADER
-        c.font = WHITE_BOLD_FONT
-        c.alignment = Alignment(horizontal="center")
-        c.border = HEADER_BORDER
-
-    sol_results = [
-        ("Required Amount (Moles)", "=(B6*B7)/1000", "nmol", "= Molarity * Volume"),
-        ("Required Amount (pmol)", "=B15*1000", "pmol", "Molar quantity in tube"),
-        ("Required Mass (µg)", "=(B15*B10)/1000", "µg", "= nmol * MW / 1000"),
-        ("Required Mass (ng)", "=B17*1000", "ng", "Total nanograms needed"),
-        ("Target Concentration", "=B18/B7", "ng/µL", "Direct concentration of solution"),
-        ("Stock Volume to Pipette", "=IF(B11>0, B18/B11, 0)", "µL", "Pipette this volume of stock"),
-        ("Buffer Volume to Add", "=IF(B11>0, B7-B20, B7)", "µL", "Add buffer up to target volume"),
-    ]
-    for idx, (m, f_val, u, interp) in enumerate(sol_results, 15):
-        c1 = ws_sol.cell(row=idx, column=1, value=m)
-        c2 = ws_sol.cell(row=idx, column=2, value=f_val)
-        c3 = ws_sol.cell(row=idx, column=3, value=u)
-        c4 = ws_sol.cell(row=idx, column=4, value=interp)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        c2.fill = CALC_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    ws_sol.cell(row=23, column=1, value="3. What You Should Get at the NanoDrop").font = SECTION_FONT
-    nano_headers = ["NanoDrop Readout", "Expected Value", "Unit", "Standard Bench Range"]
-    for c_idx, h in enumerate(nano_headers, 1):
-        c = ws_sol.cell(row=24, column=c_idx, value=h)
-        c.fill = NAVY_HEADER
-        c.font = WHITE_BOLD_FONT
-        c.alignment = Alignment(horizontal="center")
-        c.border = HEADER_BORDER
-
-    nano_rows = [
-        ("Nucleic Acid Concentration", "=B19", "ng/µL", "Should match target concentration within ±5%"),
-        ("A260 (10 mm normalized)", "=B19/40.0", "AU", "Normalized absorbance at 260 nm"),
-        ("A260 (1 mm physical pedestal)", "=B26*0.1", "AU", "Raw instrument reading on 1 mm pedestal"),
-        ("A260 / A280 Ratio", 2.00, "-", "Pure RNA: ~2.00 (Pure dsDNA: ~1.80)"),
-        ("A260 / A230 Ratio", 2.10, "-", "Pure sample range: 2.00 to 2.20"),
-    ]
-    for idx, (r, f_val, u, b_range) in enumerate(nano_rows, 25):
-        c1 = ws_sol.cell(row=idx, column=1, value=r)
-        c2 = ws_sol.cell(row=idx, column=2, value=f_val)
-        c3 = ws_sol.cell(row=idx, column=3, value=u)
-        c4 = ws_sol.cell(row=idx, column=4, value=b_range)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        if isinstance(f_val, str) and f_val.startswith("="):
-            c2.fill = CALC_FILL
-        else:
-            c2.fill = INPUT_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    _autofit_columns(ws_sol)
-
-    # Sheet 6: Fluorophore Modifications & DOL
-    ws_fl = wb.create_sheet(title="Fluorophore_Modifications")
-    ws_fl.views.sheetView[0].showGridLines = True
-    ws_fl.cell(row=1, column=1, value="Fluorophore Modifications & Degree of Labeling (DOL)").font = TITLE_FONT
-    ws_fl.cell(row=2, column=1, value="Spectral properties, mass additions, and DOL efficiency calculator.").font = NOTE_FONT
-
-    fl_headers = ["Dye ID", "Common Name", "Added MW (Da)", "Ex (nm)", "Em (nm)", "ε_max (M^-1 cm^-1)", "CF260", "CF280", "Color / Channel"]
-    for c_idx, h in enumerate(fl_headers, 1):
-        c = ws_fl.cell(row=4, column=c_idx, value=h)
-        c.fill = NAVY_HEADER
-        c.font = WHITE_BOLD_FONT
-        c.alignment = Alignment(horizontal="center")
-        c.border = HEADER_BORDER
-
-    fl_catalog = [
-        ("FAM", "6-FAM", 537.5, 495, 520, 75000, 0.30, 0.17, "Green (FITC channel)"),
-        ("Cy3", "Cyanine 3", 767.0, 550, 570, 150000, 0.08, 0.05, "Orange-Red (TRITC channel)"),
-        ("Cy5", "Cyanine 5", 793.0, 650, 670, 250000, 0.05, 0.05, "Far-Red (Cy5 channel)"),
-        ("AF488", "Alexa Fluor 488", 643.4, 495, 519, 73000, 0.30, 0.11, "Bright Green"),
-        ("AF647", "Alexa Fluor 647", 1250.0, 650, 665, 270000, 0.03, 0.03, "Far-Red"),
-        ("TexasRed", "Texas Red-X", 816.9, 596, 620, 85000, 0.23, 0.18, "Deep Red"),
-        ("TAMRA", "TAMRA", 527.5, 557, 583, 65000, 0.32, 0.36, "Rose"),
-        ("BHQ-1", "Black Hole Quencher 1", 518.5, 534, 0, 34000, 0.35, 0.25, "Dark Quencher (FAM/TET)"),
-    ]
-    for idx, row_v in enumerate(fl_catalog, 5):
-        for c_idx, v in enumerate(row_v, 1):
-            cell = ws_fl.cell(row=idx, column=c_idx, value=v)
-            cell.font = REGULAR_FONT
-            cell.border = THIN_BORDER
-            if c_idx in (3, 4, 5, 6, 7, 8):
-                cell.alignment = Alignment(horizontal="right")
-            else:
-                cell.alignment = Alignment(horizontal="center")
-
-    # DOL Calculator section
-    ws_fl.cell(row=15, column=1, value="Degree of Labeling (DOL) Calculator").font = SECTION_FONT
-    dol_inputs = [
-        ("Selected Dye", "FAM", "-", "Choose fluorophore from table above"),
-        ("Dye Extinction Coeff (ε_dye)", 75000, "M^-1 cm^-1", "Molar extinction coefficient"),
-        ("Dye Correction Factor (CF)", 0.30, "-", "CF260 for oligos, CF280 for proteins"),
-        ("Biomolecule Extinction Coeff", 360000, "M^-1 cm^-1", "ε260 (oligo) or ε280 (protein)"),
-        ("Absorbance at Dye Max (A_max)", 0.650, "AU", "Peak absorbance of attached dye"),
-        ("Absorbance at 260 or 280 nm", 1.250, "AU", "Total absorbance of labeled conjugate"),
-        ("Corrected Biomolecule Abs", "=B21-(B20*B18)", "AU", "A_corrected = A_total - (A_max * CF)"),
-        ("Biomolecule Conc (µM)", "=(B22/B19)*1000000", "µM", "= A_corr / ε_biomol"),
-        ("Dye Conc (µM)", "=(B20/B17)*1000000", "µM", "= A_max / ε_dye"),
-        ("Degree of Labeling (DOL)", "=B24/B23", "moles dye / mol", "Target: ~0.8 to 1.2 for single 5'/3' label"),
-    ]
-    for idx, (p, v, u, d) in enumerate(dol_inputs, 16):
-        c1 = ws_fl.cell(row=idx, column=1, value=p)
-        c2 = ws_fl.cell(row=idx, column=2, value=v)
-        c3 = ws_fl.cell(row=idx, column=3, value=u)
-        c4 = ws_fl.cell(row=idx, column=4, value=d)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        if isinstance(v, str) and v.startswith("="):
-            c2.fill = CALC_FILL
-        else:
-            c2.fill = INPUT_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    _autofit_columns(ws_fl)
-
-    # Sheet 7: E. coli Growth & Expression Optimization
-    ws_ec = wb.create_sheet(title="Ecoli_Growth_Optimization")
-    ws_ec.views.sheetView[0].showGridLines = True
-    ws_ec.cell(row=1, column=1, value="E. coli Culture Growth & Expression Optimization").font = TITLE_FONT
-    ws_ec.cell(row=2, column=1, value="Inoculation scheduling, doubling times, plasmid yields, and recombinant protein production.").font = NOTE_FONT
-
-    ws_ec.cell(row=4, column=1, value="1. Growth Kinetics & Induction Schedule").font = SECTION_FONT
-    ec_inputs = [
-        ("Initial Inoculation OD600", 0.05, "AU", "Starting density after dilution"),
-        ("Target Induction OD600", 0.65, "AU", "Mid-log phase target (0.6 - 0.8)"),
-        ("Culture Medium", "LB", "-", "LB (20 min), 2xYT (18 min), TB (22 min), M9 (50 min)"),
-        ("Growth Temperature", 37.0, "°C", "37°C standard, 30°C slow, 18°C cold"),
-        ("Doubling Time (td)", 20.0, "min", "Generation time under aeration"),
-        ("Culture Volume", 1000.0, "mL", "Total shake flask or bioreactor volume"),
-    ]
-    for idx, (p, v, u, d) in enumerate(ec_inputs, 5):
-        c1 = ws_ec.cell(row=idx, column=1, value=p)
-        c2 = ws_ec.cell(row=idx, column=2, value=v)
-        c3 = ws_ec.cell(row=idx, column=3, value=u)
-        c4 = ws_ec.cell(row=idx, column=4, value=d)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        c2.fill = INPUT_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    ws_ec.cell(row=12, column=1, value="2. Growth Outputs (Calculated)").font = SECTION_FONT
-    ec_results = [
-        ("Required Doublings", "=LOG(B6/B5, 2)", "generations", "Number of cell divisions"),
-        ("Time to Induction (Minutes)", "=B13*B9", "minutes", "= doublings * doubling time"),
-        ("Time to Induction (Hours)", "=B14/60", "hours", "Plan your lab schedule"),
-        ("Cell Count at Induction", "=B6*800000000", "cells/mL", "~8.0e8 cells/mL per 1.0 OD600"),
-        ("Total Cells in Culture", "=B16*B10", "total cells", "Total biomass in vessel"),
-    ]
-    for idx, (m, f_val, u, interp) in enumerate(ec_results, 13):
-        c1 = ws_ec.cell(row=idx, column=1, value=m)
-        c2 = ws_ec.cell(row=idx, column=2, value=f_val)
-        c3 = ws_ec.cell(row=idx, column=3, value=u)
-        c4 = ws_ec.cell(row=idx, column=4, value=interp)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        c2.fill = CALC_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    ws_ec.cell(row=19, column=1, value="3. Plasmid & Protein Yield Projections").font = SECTION_FONT
-    ec_proj = [
-        ("Plasmid Copy Number (pUC)", 600, "copies/cell", "High-copy pUC vector (~500-700)"),
-        ("Plasmid Size", 3000, "bp", "Double-stranded plasmid length"),
-        ("Theoretical Plasmid Yield", "=(B17*B20*1853916)/(6.02214e23)*1e6", "µg", "Max theoretical DNA yield"),
-        ("Typical Column Kit Recovery", "=B22*0.55", "µg", "~50-60% typical silica recovery"),
-        ("Target Protein MW", 45000, "Da", "Recombinant protein molecular weight"),
-        ("Expression Level (% of total)", 15.0, "%", "Typical T7 / BL21(DE3) expression (10-25%)"),
-        ("Recombinant Protein Yield", "=(B10*B6*0.150)*(B25/100)", "mg", "Estimated total expressed protein"),
-        ("Recombinant Protein (nmol)", "=(B26*1000/B24)*1000", "nmol", "Molar quantity of protein"),
-    ]
-    for idx, (p, v, u, d) in enumerate(ec_proj, 20):
-        c1 = ws_ec.cell(row=idx, column=1, value=p)
-        c2 = ws_ec.cell(row=idx, column=2, value=v)
-        c3 = ws_ec.cell(row=idx, column=3, value=u)
-        c4 = ws_ec.cell(row=idx, column=4, value=d)
-        c1.font = BOLD_FONT
-        c2.font = BOLD_FONT
-        if isinstance(v, str) and v.startswith("="):
-            c2.fill = CALC_FILL
-        else:
-            c2.fill = INPUT_FILL
-        c2.alignment = Alignment(horizontal="right")
-        c3.font = REGULAR_FONT
-        c4.font = NOTE_FONT
-        for cell in (c1, c2, c3, c4): cell.border = THIN_BORDER
-
-    _autofit_columns(ws_ec)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     wb.save(output_path)
