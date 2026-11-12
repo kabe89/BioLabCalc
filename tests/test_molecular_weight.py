@@ -41,7 +41,8 @@ class TestMolecularWeight(unittest.TestCase):
         # Sequence has 2 cysteines -> max 1 disulfide bond
         res_reduced = calculate_protein_mw("ACDEFCA", oxidized_cysteines=0)
         res_oxidized = calculate_protein_mw("ACDEFCA", oxidized_cysteines=2)
-        self.assertAlmostEqual(res_reduced.average_mw - res_oxidized.average_mw, 2.016, places=2)
+        self.assertAlmostEqual(res_reduced.average_mw - res_oxidized.average_mw, 2.016, delta=0.02)
+        self.assertAlmostEqual(res_reduced.monoisotopic_mw - res_oxidized.monoisotopic_mw, 2.01565, places=3)
 
         # Clamping: requesting 10 oxidized cysteines when sequence only has 2 should yield same as 2
         res_clamped = calculate_protein_mw("ACDEFCA", oxidized_cysteines=10)

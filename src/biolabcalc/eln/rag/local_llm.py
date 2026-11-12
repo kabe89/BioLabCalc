@@ -6,6 +6,8 @@ cluster head-nodes, or SLURM compute nodes (vLLM, TGI, LocalAI) without cloud
 API keys, providing a deterministic zero-dependency offline fallback.
 """
 
+from __future__ import annotations
+
 import json
 import math
 import os

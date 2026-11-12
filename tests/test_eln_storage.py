@@ -132,7 +132,7 @@ class TestPreviewGenerator(unittest.TestCase):
         # Create 16-bit grayscale image simulating gel band
         img = Image.new("I;16", (100, 200), color=500)
         # Add high-intensity band in center
-        pixels = list(img.getdata())
+        pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata())
         for y in range(80, 120):
             for x in range(30, 70):
                 pixels[y * 100 + x] = 45000

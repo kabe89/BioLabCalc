@@ -148,8 +148,8 @@ class PreviewGenerator:
             w, h = img.size
             # Handle 16-bit grayscale or float
             if img.mode in ("I;16", "I", "F"):
-                # Use raw pixel sequence
-                raw_pixels = list(img.getdata())
+                # Use raw pixel sequence (get_flattened_data for Pillow 11+, getdata fallback)
+                raw_pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata())
                 if auto_contrast and raw_pixels:
                     sorted_px = sorted(raw_pixels)
                     n = len(sorted_px)

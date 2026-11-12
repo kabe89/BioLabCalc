@@ -7,6 +7,8 @@ and appends structured Markdown citations referencing exact authors, dates,
 campaigns, instruments, and source notebook files.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 import json
 from typing import Any, Dict, List, Optional, Union
