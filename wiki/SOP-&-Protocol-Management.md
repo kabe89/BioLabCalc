@@ -219,6 +219,23 @@ The SOP router (`biolabcalc.eln.api.routes.sops`) exposes the following endpoint
 
 ---
 
+## 🌐 Shared Protocol Repository & SOP Branching
+
+In multi-user laboratory network environments, researchers often need to branch or customize standard laboratory protocols for specific research objectives without overwriting standard master blueprints.
+
+### 1. Protocol Lineage & Forking
+When a researcher customizes an existing SOP:
+* **Lineage Preservation**: The branched SOP maintains a pointer to `parent_sop_id` and creates an incremental version (e.g. `1.0-fork.1`).
+* **Custom Parameter Overrides**: The user can modify incubation times, buffer formulas, or antibiotic concentrations while inheriting all validated safety steps.
+* **Shared Drive Storage**: Protocols are stored in the central database on the shared network drive, making new methods immediately accessible to all lab members.
+
+### 2. Multi-User Protocol Synchronization
+When multiple researchers access the protocol library over a shared network drive:
+* Concurrency controls prevent simultaneous conflicting edits to master blueprints.
+* Protocol revisions generate an audit trail event documenting who modified the protocol, when, and the rational diff between versions.
+
+---
+
 ## 🔗 Related Documentation
 * [Electronic Lab Notebook (ELN)](Electronic-Lab-Notebook-(ELN)) — System architecture and web SPA overview.
 * [GxP Compliance & Audit Trails](GxP-Compliance-&-Audit-Trails) — Audit ledger hashing, 21 CFR Part 11, and electronic signatures.

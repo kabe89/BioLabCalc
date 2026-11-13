@@ -78,7 +78,7 @@ export class TimerWidget {
     this.container.innerHTML = `
       <div class="timer-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span class="badge badge-info" id="timer-step-badge">${this.options.stepName}</span>
+          <span class="badge badge-info" id="timer-step-badge"></span>
           <div style="display:flex; gap:6px;">
             <button class="btn btn-outline btn-sm ${this.mode === 'countdown' ? 'btn-primary' : ''}" id="mode-countdown-btn">Countdown</button>
             <button class="btn btn-outline btn-sm ${this.mode === 'elapsed' ? 'btn-primary' : ''}" id="mode-elapsed-btn">Elapsed</button>
@@ -122,6 +122,11 @@ export class TimerWidget {
         </div>
       </div>
     `;
+
+    const badgeEl = this.container.querySelector('#timer-step-badge');
+    if (badgeEl) {
+      badgeEl.textContent = this.options.stepName || '';
+    }
 
     this._bindDomEvents();
   }

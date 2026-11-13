@@ -1,0 +1,31 @@
+# ============================================================================
+# BioLabCalc ELN & Multi-Modal LIMS Server Configuration
+# ============================================================================
+# Copy this file to config.yaml and customize for your hosting environment.
+# Or run `./configure --env <environment> --host <host> --port <port>`
+
+server:
+  host: "127.0.0.1"          # Server host to bind (e.g., "127.0.0.1", "0.0.0.0", or domain)
+  port: 8080                 # Server TCP port
+  open_browser: false        # Automatically open default browser on launch
+  quiet: false               # Suppress ASCII banner and startup messages
+  cors_origins:
+    - "*"
+
+database:
+  url: null                  # Database URL (defaults to SQLite: ~/.biolabcalc_eln/eln_lims.db)
+  storage_dir: null          # CAS blob storage directory (defaults to .biolabcalc_data or temp)
+  storage_mode: "local"      # Storage mode: local | network_share | client_server
+  shared_folder_path: null   # Path to shared network folder (e.g. "Z:\LabShare" or "\\server\share\data")
+  lock_timeout_seconds: 60   # Lock acquisition wait timeout for concurrent writes
+
+governance:
+  default_approval_policy: "peer_review"  # open_collaboration | peer_review | designated_reviewer | pi_approval
+  require_digital_seal: true              # Cryptographic SHA-256 seal for finalized entries
+
+security:
+  anonymize_logs: true       # Mask IP addresses, user paths, and sensitive tokens in logs
+  token_secret: null         # Secret for session tokens (auto-generated if null)
+  require_auth: false        # Require auth tokens for API access
+
+environment: "development"   # Target environment: development | production | test | offline

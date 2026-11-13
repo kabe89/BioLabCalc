@@ -8,14 +8,23 @@ with structured [[UNCERTAIN:...]] token correction.
 
 import io
 import math
+import os
 import struct
+import sys
 import unittest
 import xml.etree.ElementTree as ET
 import zipfile
 import zlib
 from pathlib import Path
 
-from PIL import Image
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 from biolabcalc.eln.parsers.abf_parser import ABFData, ABFParser
 from biolabcalc.eln.parsers.biorad_parser import BioRadImage, BioRadParser
@@ -313,6 +322,7 @@ class TestNanoDropParser(unittest.TestCase):
 class TestBioRadParser(unittest.TestCase):
     """Test Bio-Rad Image Lab (.scn) and TIFF parser."""
 
+    @unittest.skipIf(Image is None, "Pillow is required for image tests")
     def test_parse_biorad_tiff(self):
         # Create synthetic 16-bit TIFF with Bio-Rad XML metadata block
         img = Image.new("I;16", (120, 160), color=800)

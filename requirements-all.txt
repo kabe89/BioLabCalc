@@ -1,0 +1,17 @@
+# ==============================================================================
+# BioLabCalc - Complete Environment Specification (All Dependencies)
+# ==============================================================================
+# Comprehensive environment installation including all core features, ELN
+# server runtime, cloud storage clients, advanced scientific packages,
+# development and testing suites, packaging tools, and database drivers.
+#
+# Install with:
+#   pip install -r requirements-all.txt
+# ==============================================================================
+
+-r requirements-dev.txt
+
+# ------------------------------------------------------------------------------
+# Production Relational Database Driver
+# ------------------------------------------------------------------------------
+psycopg2-binary>=2.9.0      # PostgreSQL 16+ adapter with pgvector compatibility for enterprise production ELN deployments

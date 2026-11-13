@@ -44,12 +44,20 @@ ENZYME_DATABASE: Dict[str, RestrictionEnzyme] = {
 }
 
 def get_restriction_enzyme(name: str) -> RestrictionEnzyme:
-    """Look up restriction enzyme details."""
-    key = name.upper().replace("-", "").replace(" ", "").replace("_", "")
-    if key in ENZYME_DATABASE:
-        return ENZYME_DATABASE[key]
+    """Look up restriction enzyme details with flexible alias, casing, and High-Fidelity (-HF) matching."""
+    norm = name.upper().replace("-", "").replace(" ", "").replace("_", "")
+    # 1. Exact match in keys
+    if norm in ENZYME_DATABASE:
+        return ENZYME_DATABASE[norm]
+    # 2. Match without HF / v2 suffixes (e.g. ECORIHF -> ECORI, BAMHIHF -> BAMHI)
+    import re
+    stripped = re.sub(r'(HFV2|HF|V2)$', '', norm)
+    if stripped in ENZYME_DATABASE:
+        return ENZYME_DATABASE[stripped]
+    # 3. Fuzzy search in name
     for k, v in ENZYME_DATABASE.items():
-        if key in v.name.upper():
+        v_norm = v.name.upper().replace("-", "").replace(" ", "").replace("_", "")
+        if norm == v_norm or stripped == v_norm or v_norm in norm or norm in v_norm:
             return v
     raise KeyError(f"Enzyme '{name}' not found. Available: {list(ENZYME_DATABASE.keys())}")
 

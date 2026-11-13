@@ -38,6 +38,7 @@ class ASGIApplication:
         title: str = "BioLabCalc ELN & LIMS Pipeline API",
         version: str = "1.0.0",
         static_dir: Optional[str] = None,
+        templates_dir: Optional[str] = None,
     ) -> None:
         """
         Initialize ASGI application.
@@ -45,10 +46,12 @@ class ASGIApplication:
         Parameter title (str): API title.
         Parameter version (str): Semantic version.
         Parameter static_dir (Optional[str]): Optional static directory to serve assets from.
+        Parameter templates_dir (Optional[str]): Optional templates directory containing index.html.
         """
         self.title = title
         self.version = version
         self.static_dir = static_dir
+        self.templates_dir = templates_dir
         self.router = Router()
         self.auth_service = get_auth_service()
         self.ws_manager = get_websocket_manager()
@@ -56,6 +59,30 @@ class ASGIApplication:
         # Mount all route handlers
         for sub_router in ALL_ROUTERS:
             self.router.include_router(sub_router)
+
+        # Root index endpoint
+        @self.router.get("/")
+        def root_index(current_user: Optional[UserSession] = None) -> Dict[str, Any]:
+            return {
+                "status": "online",
+                "service": self.title,
+                "version": self.version,
+                "description": "BioLabCalc Electronic Lab Notebook (ELN) & Multi-Modal LIMS Pipeline API",
+                "endpoints": {
+                    "health": "/health",
+                    "campaigns": "/api/v1/campaigns",
+                    "sequences": "/api/v1/sequences",
+                    "inventory": "/api/v1/inventory",
+                    "nanodrop": "/api/v1/nanodrop",
+                    "gels": "/api/v1/gels",
+                    "fplc": "/api/v1/fplc",
+                    "timepoints": "/api/v1/timepoints",
+                    "sops": "/api/v1/sops",
+                    "search": "/api/v1/search",
+                    "files": "/api/v1/files",
+                },
+                "ui": "/",
+            }
 
         # Healthcheck endpoint
         @self.router.get("/health")
@@ -212,13 +239,45 @@ class ASGIApplication:
                     await self._send_json_response(send, 400, {"status": "error", "message": f"Malformed JSON: {e}"})
                     return
 
-        # Check static files (safeguarded against directory traversal)
-        if self.static_dir and os.path.isdir(self.static_dir) and method == "GET":
-            real_static = os.path.realpath(self.static_dir)
-            target = os.path.realpath(os.path.join(self.static_dir, path.lstrip("/")))
-            if os.path.commonpath([real_static, target]) == real_static and os.path.isfile(target):
-                await self._serve_static(send, target)
-                return
+        # Check static files & root SPA (safeguarded against directory traversal)
+        if method == "GET":
+            import posixpath
+            norm_path = posixpath.normpath(path)
+            # 1. Root SPA HTML page
+            if norm_path in ("/", "/index.html", "."):
+                tmpl_dir = self.templates_dir
+                if not tmpl_dir and self.static_dir:
+                    candidate = os.path.join(os.path.dirname(self.static_dir), "templates")
+                    if os.path.isdir(candidate):
+                        tmpl_dir = candidate
+                if not tmpl_dir:
+                    try:
+                        from ..web import get_web_dir
+                        tmpl_dir = os.path.join(get_web_dir(), "templates")
+                    except Exception:
+                        pass
+
+                index_path = os.path.join(tmpl_dir, "index.html") if tmpl_dir else None
+                accept = headers.get("accept", "")
+                wants_json = "application/json" in accept and "text/html" not in accept
+                if not wants_json and index_path and os.path.isfile(index_path):
+                    await self._serve_static(send, index_path, content_type="text/html; charset=utf-8")
+                    return
+
+            # 2. Static assets (/static/... or files inside static_dir)
+            if self.static_dir and os.path.isdir(self.static_dir):
+                real_static = os.path.realpath(self.static_dir)
+                clean_rel = norm_path
+                if clean_rel.startswith("/static/"):
+                    clean_rel = clean_rel[len("/static/"):]
+                elif clean_rel.startswith("static/"):
+                    clean_rel = clean_rel[len("static/"):]
+                else:
+                    clean_rel = clean_rel.lstrip("/")
+                target = os.path.realpath(os.path.join(self.static_dir, os.path.basename(clean_rel)))
+                if os.path.commonpath([real_static, target]) == real_static and os.path.isfile(target):
+                    await self._serve_static(send, target)
+                    return
 
         res = self.dispatch_sync(method=method, path=full_path, payload=payload, headers=headers)
         await self._send_json_response(send, res["status_code"], res["json"])
@@ -294,12 +353,28 @@ class ASGIApplication:
         await send({"type": "http.response.start", "status": status_code, "headers": headers})
         await send({"type": "http.response.body", "body": body_bytes})
 
-    async def _serve_static(self, send: Callable, filepath: str) -> None:
-        """Serve static file bytes."""
+    async def _serve_static(self, send: Callable, filepath: str, content_type: Optional[str] = None) -> None:
+        """Serve static file bytes with accurate MIME content-type."""
+        if not content_type:
+            ext = os.path.splitext(filepath)[1].lower()
+            mime_map = {
+                ".html": "text/html; charset=utf-8",
+                ".css": "text/css; charset=utf-8",
+                ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
+                ".json": "application/json; charset=utf-8",
+                ".svg": "image/svg+xml",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".ico": "image/x-icon",
+            }
+            content_type = mime_map.get(ext, "application/octet-stream")
+
         with open(filepath, "rb") as f:
             content = f.read()
         headers = [
-            (b"content-type", b"text/plain"),
+            (b"content-type", content_type.encode("ascii")),
             (b"content-length", str(len(content)).encode("ascii")),
             (b"access-control-allow-origin", b"*"),
         ]
@@ -424,6 +499,7 @@ def create_app(
     title: str = "BioLabCalc ELN & LIMS Pipeline",
     version: str = "1.0.0",
     static_dir: Optional[str] = None,
+    templates_dir: Optional[str] = None,
 ) -> ASGIApplication:
     """
     Factory function creating and configuring the ELN & LIMS ASGI application.
@@ -431,6 +507,7 @@ def create_app(
     Parameter title (str): Application title.
     Parameter version (str): Application version.
     Parameter static_dir (Optional[str]): Path to static assets.
+    Parameter templates_dir (Optional[str]): Path to HTML templates.
     Return Type: ASGIApplication
     """
-    return ASGIApplication(title=title, version=version, static_dir=static_dir)
+    return ASGIApplication(title=title, version=version, static_dir=static_dir, templates_dir=templates_dir)

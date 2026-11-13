@@ -1,4 +1,11 @@
+import os
+import sys
 import unittest
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.molecular_weight import (
     calculate_dna_mw, calculate_rna_mw, calculate_protein_mw,
     mass_to_moles, moles_to_mass, mass_to_copy_number, copy_number_to_mass, concentration_to_molarity

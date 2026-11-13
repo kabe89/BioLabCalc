@@ -1,4 +1,11 @@
+import os
+import sys
 import unittest
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.seq_utils import clean_sequence, validate_sequence, reverse_complement, calculate_gc_content, count_bases, translate_dna
 
 class TestSeqUtils(unittest.TestCase):

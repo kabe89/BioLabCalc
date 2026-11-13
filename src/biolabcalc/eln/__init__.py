@@ -4,12 +4,13 @@ Component: State-of-the-Art Electronic Lab Notebook (ELN) & Multi-Modal LIMS Pac
 Architectural Role: Core package initialization for ELN and LIMS suite.
 """
 
-from . import parsers, storage
+from . import config, parsers, storage
 
 __version__ = "1.0.0"
 
 __all__ = [
     "__version__",
+    "config",
     "storage",
     "parsers",
 ]

@@ -1,4 +1,11 @@
+import os
+import sys
 import unittest
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.precipitation import calculate_precipitation
 
 class TestPrecipitation(unittest.TestCase):

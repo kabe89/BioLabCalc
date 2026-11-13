@@ -29,6 +29,20 @@ ALL_ROUTERS = [
     search_router,
 ]
 
+# Dynamically mount custom experiments and approvals routers when available
+try:
+    from .custom_experiments import router as custom_experiments_router
+    ALL_ROUTERS.append(custom_experiments_router)
+except ImportError:
+    custom_experiments_router = None
+
+try:
+    from .approvals import router as approvals_router
+    ALL_ROUTERS.append(approvals_router)
+except ImportError:
+    approvals_router = None
+
+
 __all__ = [
     "ALL_ROUTERS",
     "campaigns_router",

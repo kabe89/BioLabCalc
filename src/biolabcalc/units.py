@@ -113,7 +113,7 @@ class UnitParser:
         if t_unit not in cls.VOLUME_FACTORS:
             raise ValueError(f"Unknown target volume unit '{target_unit}'.")
         val_in_ul = num * cls.VOLUME_FACTORS[unit]
-        return round(val_in_ul / cls.VOLUME_FACTORS[t_unit], 6)
+        return round(val_in_ul / cls.VOLUME_FACTORS[t_unit], 12)
 
     @classmethod
     def parse_concentration(cls, val: Union[str, float, int], target_unit: str = "mm") -> float:
@@ -136,7 +136,7 @@ class UnitParser:
             if "/" not in t_unit:
                 t_unit = "mg/ml"
             val_in_mg_ml = num * cls.MASS_CONC_FACTORS[unit_clean]
-            return round(val_in_mg_ml / cls.MASS_CONC_FACTORS[t_unit], 6)
+            return round(val_in_mg_ml / cls.MASS_CONC_FACTORS[t_unit], 12)
 
         # Input is molar (no '/')
         if "/" in t_unit:
@@ -147,7 +147,7 @@ class UnitParser:
         if t_unit not in cls.CONC_FACTORS:
             raise ValueError(f"Unknown target concentration unit '{target_unit}'.")
         val_in_mm = num * cls.CONC_FACTORS[unit_clean]
-        return round(val_in_mm / cls.CONC_FACTORS[t_unit], 6)
+        return round(val_in_mm / cls.CONC_FACTORS[t_unit], 12)
 
     @classmethod
     def parse_mass(cls, val: Union[str, float, int], target_unit: str = "ug") -> float:
@@ -161,7 +161,7 @@ class UnitParser:
         if t_unit not in cls.MASS_FACTORS:
             raise ValueError(f"Unknown target mass unit '{target_unit}'.")
         val_in_ug = num * cls.MASS_FACTORS[unit]
-        return round(val_in_ug / cls.MASS_FACTORS[t_unit], 6)
+        return round(val_in_ug / cls.MASS_FACTORS[t_unit], 12)
 
     @classmethod
     def parse_moles(cls, val: Union[str, float, int], target_unit: str = "nmol") -> float:
@@ -175,4 +175,4 @@ class UnitParser:
         if t_unit not in cls.MOLE_FACTORS:
             raise ValueError(f"Unknown target molar unit '{target_unit}'.")
         val_in_nmol = num * cls.MOLE_FACTORS[unit]
-        return round(val_in_nmol / cls.MOLE_FACTORS[t_unit], 6)
+        return round(val_in_nmol / cls.MOLE_FACTORS[t_unit], 12)

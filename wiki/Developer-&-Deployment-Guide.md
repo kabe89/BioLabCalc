@@ -300,6 +300,86 @@ print(f"Total stored blobs: {len(all_blobs)}")
 
 ---
 
+## 🌐 Shared Network Drive Deployment (`network_share` Mode)
+
+Many academic and biotechnology wet-labs share experimental data via a local network drive (e.g., Windows SMB UNC paths `\\server\share\biolabcalc_data`, mapped drives like `Z:\lab_data`, or NFS/POSIX `/mnt/lab_share`).
+
+### 1. Network Concurrency Architecture
+Standard SQLite databases running in Write-Ahead Logging (WAL) mode can experience file locking errors over network filesystems because SQLite's `-shm` shared-memory indexing requires OS-level shared memory that does not span network boundaries.
+
+BioLabCalc resolves this automatically when a network path is designated:
+* **Network-Safe Pragmas**:
+  ```sql
+  PRAGMA journal_mode = DELETE;     -- Avoids -shm shared-memory file creation
+  PRAGMA busy_timeout = 60000;      -- 60s lock queue wait time for concurrent writes
+  PRAGMA locking_mode = NORMAL;     -- Allows concurrent multi-user reads
+  ```
+* **Cross-Process Advisory File Locking**: Critical sections (such as migrations and batch operations) use `.lock` tokens with exponential backoff and stale-lock recovery.
+* **Optimistic Concurrency Control (OCC)**: Entries track UUID `version_token` stamps; simultaneous modifications trigger conflict detection rather than silent data overwrites.
+
+### 2. Configuration Setup
+Run the automated configuration wizard:
+```bash
+python run.py setup --shared-dir "Z:\BioLabCalc_Data" --role "Active Researcher"
+```
+Or manually configure `config.yaml`:
+```yaml
+database:
+  storage_mode: "network_share"
+  shared_folder_path: "Z:\\BioLabCalc_Data"
+  lock_timeout_seconds: 60
+```
+
+---
+
+## 📦 Zero-Install Standalone Portable Distribution
+
+For laboratory workstations connected to scientific instruments where users lack administrator privileges or a local Python environment, BioLabCalc provides a standalone portable bundle.
+
+### 1. Creating the Portable Bundle
+Generate the zero-install bundle:
+```bash
+python scripts/package_portable.py
+```
+This prepares `dist/biolabcalc_portable/` containing:
+* `run_lab.bat` — One-click Windows desktop launcher.
+* `run_lab.sh` — One-click macOS / Linux desktop launcher.
+* `config.yaml.example` — Preset configuration template.
+* `README_PORTABLE.txt` — Zero-admin quickstart instructions.
+
+### 2. First-Run Deployment on a Bench Workstation
+1. Copy `biolabcalc_portable` to the workstation desktop, USB drive, or shared network drive.
+2. Double-click `run_lab.bat` (or execute `./run_lab.sh`).
+3. If no `config.yaml` is detected, the setup wizard will launch in the browser or terminal to select your shared laboratory folder.
+
+---
+
+## 🔍 Diagnostic Failure Logging & Troubleshooting (`failures.log`)
+
+To assist bench researchers and lab managers when network drives disconnect or permissions fail, BioLabCalc includes an automated diagnostic recorder.
+
+### 1. Diagnostic Architecture
+Any unhandled exception, network share disconnect, lock collision, or file permission issue is intercepted by `biolabcalc.diagnostics`:
+* **Plain-English Explanations**: Converts complex tracebacks into actionable guidance.
+* **Sanitized Logs**: Masks sensitive paths, user directories, and IP addresses.
+* **Persistent Logs**: Writes to `failures.log` and `failures.jsonl`.
+* **Git-Ignored Protection**: All diagnostic logs are strictly excluded in `.gitignore` to prevent committing laboratory operational data.
+
+### 2. Viewing Diagnostics via CLI
+Inspect recent laboratory operational issues:
+```bash
+# View last 10 diagnostic reports with remediation suggestions
+python run.py diagnostics
+
+# View raw JSON output for automation
+python run.py diagnostics --json
+
+# Clear failure history
+python run.py diagnostics --clear
+```
+
+---
+
 ## 🔗 Related Documentation
 * [Electronic Lab Notebook (ELN)](Electronic-Lab-Notebook-(ELN)) — System architecture and server options.
 * [GxP Compliance & Audit Trails](GxP-Compliance-&-Audit-Trails) — 21 CFR Part 11 ledger verification commands.

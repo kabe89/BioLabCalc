@@ -11,10 +11,13 @@ import os
 import sys
 import json
 import logging
+import posixpath
 import threading
 import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Optional, Dict, Any
+
+from .config import load_config, anonymize_ip, anonymize_path
 
 logger = logging.getLogger("biolabcalc.eln.server")
 
@@ -45,48 +48,75 @@ def get_default_storage_dir() -> str:
 
 
 def launch_eln_server(
-    host: str = "127.0.0.1",
-    port: int = 8080,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
     db_url: Optional[str] = None,
-    open_browser: bool = True,
+    open_browser: Optional[bool] = None,
     blocking: bool = True,
+    quiet: Optional[bool] = None,
+    config_path: Optional[str] = None,
+    anonymize: Optional[bool] = None,
 ) -> str:
     """
     Launch the State-of-the-Art ELN & LIMS application server.
 
     Args:
-        host: Host IP or hostname (default: '127.0.0.1').
-        port: Listening TCP port (default: 8080).
-        db_url: Database connection string (defaults to local SQLite database in ~/.biolabcalc_eln).
+        host: Host IP or hostname (designated server host; overrides config.yaml).
+        port: Listening TCP port (overrides config.yaml).
+        db_url: Database connection string (defaults to config.yaml or local SQLite).
         open_browser: Whether to automatically launch the default web browser.
         blocking: If True, blocks the calling thread until interrupted; if False, runs in daemon thread.
+        quiet: If True, suppresses startup banners and routing notices to stdout.
+        config_path: Optional path to designated config.yaml.
+        anonymize: If True, enables log and IP anonymization.
 
     Returns:
         The accessible server URL (e.g. 'http://127.0.0.1:8080').
     """
-    storage_dir = get_default_storage_dir()
-    db_path = os.path.join(storage_dir, "eln_lims.db")
-    effective_db_url = db_url or f"sqlite:///{db_path}"
+    cfg = load_config(config_path)
+    cfg_server = cfg.get("server", {})
+    cfg_db = cfg.get("database", {})
+    cfg_sec = cfg.get("security", {})
 
-    print("=" * 80)
-    print("  BIOLABCALC STATE-OF-THE-ART ELECTRONIC LAB NOTEBOOK (ELN) & MULTI-MODAL LIMS")
-    print("=" * 80)
-    print(f"[*] Engine:           Multi-Modal Hybrid Architecture")
-    print(f"[*] Database:         {effective_db_url}")
-    print(f"[*] CAS Blob Storage: {os.path.join(storage_dir, 'blobs')}")
-    print(f"[*] Host Address:     http://{host}:{port}")
-    print("=" * 80)
+    effective_host = host if host is not None else cfg_server.get("host", "127.0.0.1")
+    effective_port = port if port is not None else int(cfg_server.get("port", 8080))
+    effective_open_browser = open_browser if open_browser is not None else cfg_server.get("open_browser", True)
+    effective_quiet = quiet if quiet is not None else cfg_server.get("quiet", False)
+    effective_anonymize = anonymize if anonymize is not None else cfg_sec.get("anonymize_logs", True)
+
+    storage_dir = cfg_db.get("storage_dir") or get_default_storage_dir()
+    db_path = os.path.join(storage_dir, "eln_lims.db")
+    effective_db_url = db_url or cfg_db.get("url") or f"sqlite:///{db_path}"
+
+    display_host = anonymize_ip(effective_host) if effective_anonymize else effective_host
+    display_db = anonymize_path(effective_db_url) if effective_anonymize else effective_db_url
+    display_storage = anonymize_path(storage_dir) if effective_anonymize else storage_dir
+
+    if not effective_quiet:
+        print("=" * 80)
+        print("  BIOLABCALC STATE-OF-THE-ART ELECTRONIC LAB NOTEBOOK (ELN) & MULTI-MODAL LIMS")
+        print("=" * 80)
+        print(f"[*] Engine:           Multi-Modal Hybrid Architecture")
+        print(f"[*] Database:         {display_db}")
+        print(f"[*] CAS Blob Storage: {display_storage}")
+        print(f"[*] Host Address:     http://{display_host}:{effective_port}")
+        print("=" * 80)
+    else:
+        logger.info(f"ELN Server starting on http://{display_host}:{effective_port} (db: {display_db})")
 
     # Initialize database schema
     try:
         from .schema.database import init_db, get_engine
         engine = get_engine(effective_db_url)
         init_db(engine)
-        print("[+] Database schema verified.")
+        if not effective_quiet:
+            print("[+] Database schema verified.")
+        else:
+            logger.info("Database schema verified.")
     except Exception as e:
         logger.warning(f"Database initialization notice: {e}")
 
-    server_url = f"http://{host}:{port}"
+    server_url = f"http://{effective_host}:{effective_port}"
 
     # Check if uvicorn & FastAPI app are available
     try:
@@ -95,31 +125,37 @@ def launch_eln_server(
         from .web import get_web_dir
         web_dir = get_web_dir()
         static_dir = os.path.join(web_dir, "static")
-        app = create_app(static_dir=static_dir)
+        templates_dir = os.path.join(web_dir, "templates")
+        app = create_app(static_dir=static_dir, templates_dir=templates_dir)
 
         def run_uvicorn():
-            uvicorn.run(app, host=host, port=port, log_level="info")
+            log_level = "warning" if effective_quiet else "info"
+            uvicorn.run(app, host=effective_host, port=effective_port, log_level=log_level)
 
         if blocking:
-            if open_browser:
+            if effective_open_browser:
                 threading.Timer(1.0, lambda: webbrowser.open(server_url)).start()
-            print(f"[+] Launching Uvicorn ASGI server on {server_url} (Press Ctrl+C to stop)...")
+            if not effective_quiet:
+                print(f"[+] Launching Uvicorn ASGI server on {server_url} (Press Ctrl+C to stop)...")
+            else:
+                logger.info(f"Launching Uvicorn ASGI server on {server_url}")
             run_uvicorn()
         else:
             t = threading.Thread(target=run_uvicorn, daemon=True)
             t.start()
-            if open_browser:
+            if effective_open_browser:
                 threading.Timer(1.0, lambda: webbrowser.open(server_url)).start()
 
         return server_url
     except ImportError:
         # Pure-Python Fallback Server using http.server and embedded API dispatcher
         return _launch_fallback_server(
-            host=host,
-            port=port,
+            host=effective_host,
+            port=effective_port,
             storage_dir=storage_dir,
-            open_browser=open_browser,
+            open_browser=effective_open_browser,
             blocking=blocking,
+            quiet=effective_quiet,
         )
 
 
@@ -129,6 +165,7 @@ def _launch_fallback_server(
     storage_dir: str,
     open_browser: bool,
     blocking: bool,
+    quiet: bool = False,
 ) -> str:
     """Fallback standard library HTTP server when Uvicorn is not installed."""
     from .web import get_web_dir
@@ -137,7 +174,7 @@ def _launch_fallback_server(
     web_root = get_web_dir()
     templates_dir = os.path.join(web_root, "templates")
     static_dir = os.path.join(web_root, "static")
-    asgi_app = create_app(static_dir=static_dir)
+    asgi_app = create_app(static_dir=static_dir, templates_dir=templates_dir)
 
     class ELNRequestHandler(SimpleHTTPRequestHandler):
         def _handle_api(self, method: str):
@@ -171,8 +208,9 @@ def _launch_fallback_server(
                 self.end_headers()
 
         def do_GET(self):
-            parsed_path = self.path.split("?")[0]
-            if parsed_path in ("/", "/index.html"):
+            raw_path = self.path.split("?")[0]
+            parsed_path = posixpath.normpath(raw_path)
+            if parsed_path in ("/", "/index.html", "."):
                 index_path = os.path.join(templates_dir, "index.html")
                 if os.path.exists(index_path):
                     self.send_response(200)
@@ -181,27 +219,44 @@ def _launch_fallback_server(
                     with open(index_path, "rb") as f:
                         self.wfile.write(f.read())
                     return
-            elif parsed_path.startswith("/static/"):
-                rel_path = parsed_path[len("/static/"):].lstrip("/")
-                real_static = os.path.realpath(static_dir)
-                target = os.path.realpath(os.path.join(static_dir, rel_path))
-                if os.path.commonpath([real_static, target]) == real_static and os.path.isfile(target):
-                    self.send_response(200)
-                    if target.endswith(".css"):
-                        self.send_header("Content-Type", "text/css; charset=utf-8")
-                    elif target.endswith(".js"):
-                        self.send_header("Content-Type", "application/javascript; charset=utf-8")
-                    elif target.endswith(".svg"):
-                        self.send_header("Content-Type", "image/svg+xml")
-                    self.end_headers()
-                    with open(target, "rb") as f:
-                        self.wfile.write(f.read())
-                    return
-            elif parsed_path.startswith("/api/"):
+
+            # Check static files (e.g. /static/styles.css, /../static/styles.css, or /styles.css)
+            clean_rel = parsed_path
+            if clean_rel.startswith("/static/"):
+                clean_rel = clean_rel[len("/static/"):]
+            elif clean_rel.startswith("static/"):
+                clean_rel = clean_rel[len("static/"):]
+            else:
+                clean_rel = clean_rel.lstrip("/")
+
+            filename = os.path.basename(clean_rel)
+            real_static = os.path.realpath(static_dir)
+            target = os.path.realpath(os.path.join(real_static, filename))
+            if os.path.commonpath([real_static, target]) == real_static and os.path.isfile(target):
+                self.send_response(200)
+                if target.endswith(".css"):
+                    self.send_header("Content-Type", "text/css; charset=utf-8")
+                elif target.endswith(".js") or target.endswith(".mjs"):
+                    self.send_header("Content-Type", "application/javascript; charset=utf-8")
+                elif target.endswith(".svg"):
+                    self.send_header("Content-Type", "image/svg+xml")
+                elif target.endswith(".png"):
+                    self.send_header("Content-Type", "image/png")
+                elif target.endswith(".ico"):
+                    self.send_header("Content-Type", "image/x-icon")
+                else:
+                    self.send_header("Content-Type", "application/octet-stream")
+                self.end_headers()
+                with open(target, "rb") as f:
+                    self.wfile.write(f.read())
+                return
+
+            if parsed_path.startswith("/api/"):
                 self._handle_api("GET")
                 return
 
-            super().do_GET()
+            self.send_response(404)
+            self.end_headers()
 
         def do_POST(self):
             if self.path.startswith("/api/"):
@@ -230,7 +285,10 @@ def _launch_fallback_server(
     server = HTTPServer((host, port), ELNRequestHandler)
     actual_port = server.server_address[1]
     server_url = f"http://{host}:{actual_port}"
-    print(f"[+] Fallback pure-Python server running at {server_url} (Press Ctrl+C to stop)")
+    if not quiet:
+        print(f"[+] Fallback pure-Python server running at {server_url} (Press Ctrl+C to stop)")
+    else:
+        logger.info(f"Fallback pure-Python server running at {server_url}")
 
     if blocking:
         if open_browser:

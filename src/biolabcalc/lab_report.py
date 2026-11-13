@@ -478,6 +478,145 @@ class LabReport:
                 f.write(json_str)
         return json_str
 
+    export_markdown = to_markdown
+    export_json = to_json
+    export_csv = to_csv
+    export_excel = to_excel
+
+
+    @classmethod
+    def from_json(cls, json_str_or_path: str) -> LabReport:
+        """Load a LabReport and its records from a JSON string or file path."""
+        if os.path.exists(json_str_or_path):
+            with open(json_str_or_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = json.loads(json_str_or_path)
+
+        rep = cls(
+            title=data.get("title", "Laboratory Experiment Report"),
+            experimenter=data.get("experimenter", "Researcher"),
+            project=data.get("project", "General"),
+            objective=data.get("objective", ""),
+            date=data.get("date"),
+        )
+        for r in data.get("records", []):
+            rep.records.append(MeasurementRecord(
+                sample_id=r.get("sample_id", "Sample-1"),
+                parameter=r.get("parameter", "Measurement"),
+                value=float(r.get("value", 0.0)),
+                unit=r.get("unit", ""),
+                target_or_expected=r.get("target_or_expected"),
+                tolerance_pct=r.get("tolerance_pct"),
+                status=r.get("status", "PASS"),
+                timestamp=r.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                notes=r.get("notes", ""),
+            ))
+        rep.conclusions = list(data.get("conclusions", []))
+        return rep
+
+    @classmethod
+    def from_csv(cls, filepath_or_str: str) -> LabReport:
+        """Load a LabReport and its records from a CSV file or string."""
+        rep = cls()
+        if os.path.exists(filepath_or_str):
+            with open(filepath_or_str, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    val = float(row.get("Value", 0.0))
+                    tgt_raw = row.get("Target / Expected")
+                    tgt = float(tgt_raw) if tgt_raw and tgt_raw != "-" else None
+                    tol_raw = row.get("Tolerance (%)")
+                    tol = float(tol_raw) if tol_raw and tol_raw != "-" else None
+                    rep.records.append(MeasurementRecord(
+                        sample_id=row.get("Sample ID", "Sample-1"),
+                        parameter=row.get("Parameter", "Measurement"),
+                        value=val,
+                        unit=row.get("Unit", ""),
+                        target_or_expected=tgt,
+                        tolerance_pct=tol,
+                        status=row.get("Status", "PASS"),
+                        timestamp=row.get("Timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        notes=row.get("Notes", ""),
+                    ))
+        return rep
+
+    @classmethod
+    def from_markdown(cls, filepath_or_str: str) -> LabReport:
+        """Load a LabReport and its records from a Markdown report file or string."""
+        if os.path.exists(filepath_or_str):
+            with open(filepath_or_str, "r", encoding="utf-8") as f:
+                content = f.read()
+        else:
+            content = filepath_or_str
+
+        rep = cls()
+        in_table = False
+        for line in content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("# 🧪 "):
+                rep.title = line[4:].strip()
+            elif line.startswith("| Sample ID |"):
+                in_table = True
+                continue
+            elif in_table and line.startswith("| :---"):
+                continue
+            elif in_table and line.startswith("|"):
+                parts = [p.strip() for p in line.split("|")[1:-1]]
+                if len(parts) >= 8:
+                    s_id = parts[0].strip("`")
+                    param = parts[1]
+                    val_str = parts[2].replace("*", "").strip()
+                    try:
+                        val = float(val_str)
+                    except ValueError:
+                        continue
+                    unit = parts[3]
+                    tgt_str = parts[4]
+                    tgt = float(tgt_str) if tgt_str and tgt_str != "-" else None
+                    status = parts[6]
+                    notes = parts[7]
+                    rep.records.append(MeasurementRecord(
+                        sample_id=s_id,
+                        parameter=param,
+                        value=val,
+                        unit=unit,
+                        target_or_expected=tgt,
+                        status=status,
+                        notes=notes,
+                    ))
+            elif in_table and not line.startswith("|"):
+                in_table = False
+        return rep
+
+    @classmethod
+    def load_or_create(cls, filepath: str, title: str = "Laboratory Experiment Report") -> LabReport:
+        """Load an existing report from file if present, or create a new empty report session."""
+        if os.path.exists(filepath):
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext == ".json":
+                try:
+                    return cls.from_json(filepath)
+                except Exception:
+                    pass
+            elif ext in (".md", ".markdown", ".txt"):
+                try:
+                    rep = cls.from_markdown(filepath)
+                    if rep.records:
+                        return rep
+                except Exception:
+                    pass
+            elif ext == ".csv":
+                try:
+                    rep = cls.from_csv(filepath)
+                    if rep.records:
+                        return rep
+                except Exception:
+                    pass
+        return cls(title=title)
+
 
 # Global default active session for easy interactive / script recording
 _DEFAULT_REPORT: LabReport = LabReport()
@@ -524,3 +663,159 @@ def record_measurement(
         tolerance_pct=tolerance_pct,
         notes=notes,
     )
+
+
+def auto_record(
+    result: Any,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Sample-1",
+    notes: str = "",
+) -> List[MeasurementRecord]:
+    """Automatically map quantitative parameters from any BioLabCalc calculation result into a LabReport.
+
+    Extracts primary analytical variables across molecular biology calculators (PCR, IVT, Digestion,
+    Ligation, Gibson, NanoDrop, Protein Quantification, Buffers, E. coli Growth, and Precipitation)
+    and records them as structured MeasurementRecords in the specified report (or active default report).
+
+    Args:
+        result: A calculation result dataclass, object, or dict.
+        report: Target LabReport instance (defaults to active global report).
+        sample_id: Identifier for the sample/aliquot (defaults to 'Sample-1').
+        notes: Optional contextual notes to append to each measurement record.
+
+    Returns:
+        List of created MeasurementRecord instances.
+    """
+    rep = report if report is not None else get_active_report()
+    created: List[MeasurementRecord] = []
+
+    def _rec(param: str, val: Any, unit: str, target: Optional[float] = None, tol: Optional[float] = None):
+        try:
+            v_float = float(val)
+        except (TypeError, ValueError):
+            return
+        rec = rep.add_record(
+            sample_id=sample_id,
+            parameter=param,
+            value=v_float,
+            unit=unit,
+            target=target,
+            tolerance_pct=tol,
+            notes=notes,
+        )
+        created.append(rec)
+
+    type_name = type(result).__name__
+
+    # 1. PCR Kinetics & Optimization
+    if hasattr(result, "amplicon_length_bp") and hasattr(result, "amplicon_yield_ng"):
+        _rec("Amplicon Length", getattr(result, "amplicon_length_bp", 0), "bp")
+        _rec("Template Input", getattr(result, "template_initial_ng", 0), "ng")
+        _rec("Amplicon Yield", getattr(result, "amplicon_yield_ng", 0), "ng")
+        _rec("Amplicon pmol", getattr(result, "amplicon_yield_pmol", 0), "pmol")
+        _rec("PCR Efficiency", getattr(result, "efficiency_percent", 0), "%", target=100.0, tol=20.0)
+        _rec("dNTP Initial", getattr(result, "dntp_initial_nmol", 0), "nmol")
+        _rec("dNTP Consumed", getattr(result, "dntp_consumed_nmol", 0), "nmol")
+    elif hasattr(result, "annealing_temp_celsius") and hasattr(result, "extension_time_seconds"):
+        _rec("Annealing Temp", getattr(result, "annealing_temp_celsius", 0), "°C")
+        _rec("Extension Time", getattr(result, "extension_time_seconds", 0), "s")
+        _rec("GC Content", getattr(result, "gc_percent", 0), "%")
+
+    # 2. In Vitro Transcription (IVT)
+    elif hasattr(result, "rna_yield_ug") and hasattr(result, "transcript_turnover_ratio"):
+        _rec("RNA Length", getattr(result, "rna_length", 0), "nt")
+        _rec("RNA Molecular Weight", getattr(result, "rna_mw", 0), "Da")
+        _rec("RNA Yield", getattr(result, "rna_yield_ug", 0), "µg")
+        _rec("RNA Yield pmol", getattr(result, "rna_yield_pmol", 0), "pmol")
+        _rec("Turnover Ratio", getattr(result, "transcript_turnover_ratio", 0), "x")
+        _rec("NTP Incorporation", getattr(result, "ntp_incorporation_percent", 0), "%", target=100.0, tol=30.0)
+        _rec("Overall Efficiency", getattr(result, "overall_efficiency_percent", 0), "%")
+        _rec("Pyrophosphate Released", getattr(result, "pyrophosphate_released_ug", 0), "µg")
+    elif hasattr(result, "optimal_incubation_hours"):
+        _rec("Optimal Incubation Time", getattr(result, "optimal_incubation_hours", 0), "h")
+
+    # 3. Restriction Digestion
+    elif hasattr(result, "dna_mass_ug") and hasattr(result, "reaction_volume_ul") and hasattr(result, "enzyme_1"):
+        _rec("DNA Mass", getattr(result, "dna_mass_ug", 0), "µg")
+        _rec("Reaction Volume", getattr(result, "reaction_volume_ul", 0), "µL")
+        _rec("Incubation Temp", getattr(result, "incubation_temp_celsius", 0), "°C")
+        _rec("Incubation Time", getattr(result, "incubation_time_min", 0), "min")
+
+    # 4. Molecular Assembly (Ligation, Gibson, Golden Gate)
+    elif hasattr(result, "vector_mass_ng") and hasattr(result, "insert_mass_ng"):
+        _rec("Vector Mass", getattr(result, "vector_mass_ng", 0), "ng")
+        _rec("Insert Mass", getattr(result, "insert_mass_ng", 0), "ng")
+        _rec("Molar Ratio", getattr(result, "molar_ratio_insert_to_vector", 0), "ratio")
+        _rec("Vector pmol", getattr(result, "vector_pmol", 0), "pmol")
+        _rec("Insert pmol", getattr(result, "insert_pmol", 0), "pmol")
+    elif hasattr(result, "vector_mass_ng") and hasattr(result, "total_dna_pmol"):
+        _rec("Vector Mass", getattr(result, "vector_mass_ng", 0), "ng")
+        _rec("Total DNA pmol", getattr(result, "total_dna_pmol", 0), "pmol")
+        for i, mass in enumerate(getattr(result, "insert_masses_ng", [])):
+            _rec(f"Insert {i + 1} Mass", mass, "ng")
+    elif hasattr(result, "total_dna_mass_ng") and hasattr(result, "insert_to_vector_ratio"):
+        _rec("Vector Mass", getattr(result, "vector_mass_ng", 0), "ng")
+        _rec("Total DNA Mass", getattr(result, "total_dna_mass_ng", 0), "ng")
+        _rec("Molar Ratio", getattr(result, "insert_to_vector_ratio", 0), "ratio")
+
+    # 5. Protein Quantification & Yield
+    elif hasattr(result, "concentration_mg_ml") and hasattr(result, "total_yield_mg"):
+        _rec("Protein Concentration", getattr(result, "concentration_mg_ml", 0), "mg/mL")
+        _rec("Total Protein Yield", getattr(result, "total_yield_mg", 0), "mg")
+        _rec("Molarity", getattr(result, "molarity_um", 0), "µM")
+        _rec("Molecular Weight", getattr(result, "molecular_weight", 0), "Da")
+    elif hasattr(result, "extinction_coeff_reduced") and hasattr(result, "molecular_weight"):
+        _rec("Extinction Coeff (reduced)", getattr(result, "extinction_coeff_reduced", 0), "M⁻¹cm⁻¹")
+        _rec("Molecular Weight", getattr(result, "molecular_weight", 0), "Da")
+
+    # 6. Spectroscopy & NanoDrop QC
+    elif hasattr(result, "a260") and hasattr(result, "a280") and hasattr(result, "a260_a280_ratio"):
+        st = str(getattr(result, "sample_type", "dna")).lower()
+        target_ratio = 2.0 if "rna" in st else 1.8
+        _rec("A260", getattr(result, "a260", 0), "AU")
+        _rec("A280", getattr(result, "a280", 0), "AU")
+        _rec("A230", getattr(result, "a230", 0), "AU")
+        _rec("A260/A280", getattr(result, "a260_a280_ratio", 0), "ratio", target=target_ratio, tol=15.0)
+        _rec("A260/A230", getattr(result, "a260_a230_ratio", 0), "ratio", target=2.0, tol=20.0)
+        _rec("Corrected Concentration", getattr(result, "corrected_concentration_ng_ul", 0), "ng/µL")
+    elif hasattr(result, "target_molarity_um") and hasattr(result, "required_mass_ug"):
+        _rec("Target Molarity", getattr(result, "target_molarity_um", 0), "µM")
+        _rec("Required Mass", getattr(result, "required_mass_ug", 0), "µg")
+        _rec("Actual Concentration", getattr(result, "actual_concentration_ng_ul", 0), "ng/µL")
+        _rec("Expected A260", getattr(result, "expected_nanodrop_a260_sequence_specific", 0), "AU")
+
+    # 7. Buffers & Reconstitution
+    elif hasattr(result, "target_volume_ml") and (hasattr(result, "ph_specification") or hasattr(result, "components")):
+        _rec("Buffer Volume", getattr(result, "target_volume_ml", 0), "mL")
+    elif hasattr(result, "target_volume_ml") and hasattr(result, "hepes_salt_g"):
+        _rec("Buffer Volume", getattr(result, "target_volume_ml", 0), "mL")
+
+    # 8. Bacterial Growth & Induction
+    elif hasattr(result, "doubling_time_min") and hasattr(result, "hours_to_target_od"):
+        _rec("Doubling Time", getattr(result, "doubling_time_min", 0), "min")
+        _rec("Time to Target OD", getattr(result, "hours_to_target_od", 0), "h")
+        _rec("Target Cells/mL", getattr(result, "target_cells_per_ml", 0), "cells/mL")
+    elif hasattr(result, "plasmid_yield_ug") and hasattr(result, "culture_volume_ml"):
+        _rec("Plasmid Yield", getattr(result, "plasmid_yield_ug", 0), "µg")
+        _rec("Culture Volume", getattr(result, "culture_volume_ml", 0), "mL")
+
+    # 9. Nucleic Acid Precipitation
+    elif hasattr(result, "sample_volume_ul") and hasattr(result, "alcohol_volume_ul"):
+        _rec("Sample Volume", getattr(result, "sample_volume_ul", 0), "µL")
+        _rec("Salt Volume", getattr(result, "salt_volume_ul", 0), "µL")
+        _rec("Alcohol Volume", getattr(result, "alcohol_volume_ul", 0), "µL")
+
+    # 10. Molecular Weight & Biopolymer Properties
+    elif hasattr(result, "average_mw") and hasattr(result, "length"):
+        _rec("Sequence Length", getattr(result, "length", 0), "nt")
+        _rec("Average MW", getattr(result, "average_mw", 0), "Da")
+        _rec("GC Content", getattr(result, "gc_content", 0), "%")
+
+    # 11. Generic mapping for Dict or objects with numeric attributes
+    elif isinstance(result, dict):
+        for k, v in result.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                _rec(k.replace("_", " ").title(), v, "")
+
+    return created
+

@@ -6,12 +6,21 @@ local directory sharding, S3 backend abstraction, and scientific preview generat
 """
 
 import io
+import os
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from PIL import Image
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 from biolabcalc.eln.storage.blob_store import (
     BlobMetadata,
@@ -114,6 +123,7 @@ class TestBlobStore(unittest.TestCase):
 class TestPreviewGenerator(unittest.TestCase):
     """Unit tests for web preview generation."""
 
+    @unittest.skipIf(Image is None, "Pillow is required for image tests")
     def test_generate_image_preview(self):
         # Create synthetic test image
         img = Image.new("RGB", (2000, 1000), color=(100, 150, 200))
@@ -128,6 +138,7 @@ class TestPreviewGenerator(unittest.TestCase):
         self.assertLessEqual(max(preview.width, preview.height), 800)
         self.assertTrue(len(preview.preview_bytes) > 0)
 
+    @unittest.skipIf(Image is None, "Pillow is required for image tests")
     def test_generate_gel_preview_16bit(self):
         # Create 16-bit grayscale image simulating gel band
         img = Image.new("I;16", (100, 200), color=500)
@@ -167,6 +178,7 @@ class TestPreviewGenerator(unittest.TestCase):
         self.assertIn("SEC Trace", svg_text)
         self.assertIn("A2", svg_text)
 
+    @unittest.skipIf(Image is None, "Pillow is required for image tests")
     def test_generate_trace_preview_png(self):
         x = [0.0, 1.0, 2.0, 3.0]
         y = {"Signal": [5.0, 25.0, 100.0, 15.0]}

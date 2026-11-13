@@ -1,6 +1,6 @@
 # Command-Line Interface (CLI) Reference
 
-BioLabCalc provides a command-line interface via the `biolabcalc` binary. The CLI provides 30 specialized subcommands spanning molecular biology calculations, protocol planning, image processing, spreadsheet generation, and web-based laboratory interfaces.
+BioLabCalc provides a command-line interface via the `biolabcalc` binary. The CLI provides 34 specialized subcommands spanning molecular biology calculations, protocol planning, image processing, spreadsheet generation, and web-based laboratory interfaces.
 
 ```bash
 biolabcalc <subcommand> [options]
@@ -12,6 +12,23 @@ To view global help or help for a specific subcommand:
 biolabcalc --help
 biolabcalc <subcommand> --help
 ```
+
+### Global Options
+
+| Flag | Parameter | Description |
+| :--- | :--- | :--- |
+| `-V` | `--version` | Display BioLabCalc package version (`biolabcalc 0.3.5`) and exit |
+| `-q` | `--quiet` | Quiet mode: suppress startup banners, decorative ASCII borders, and header bars |
+| `-h` | `--help` | Show command-line options and usage summary |
+
+Subcommands accepting sequences (`mw`, `ivt`, `rc`, `translate`, etc.) also support:
+- `-s <seq>`: Direct sequence string or `-s -` to read from standard input / UNIX pipes.
+- `-f <file>`: Load sequence from FASTA or plain-text file.
+- `--json`: Output machine-readable structured JSON.
+- `--compact`: Output single-line unindented JSON for shell pipelines.
+
+Subcommands performing biophysical or protocol calculations (`pcr`, `ivt`, `protein`, `digest`, `nanodrop`, `purity`, `convert`) support:
+- `--log-report <filepath>`: Automatically captures quantitative results, expected targets, and QC tolerances into an audit-ready multi-step report session (`.md` or `.json`). Running consecutive commands targeting the same file continuously accumulates measurements into a unified laboratory ledger.
 
 ---
 
@@ -49,6 +66,10 @@ biolabcalc <subcommand> --help
 | [`western`](#28-western) | Western Blot | Plans Western blot SDS-PAGE, transfer, antibodies, and troubleshooting|
 | [`report`](#29-report) | Data Logging | Records experimental QC data and exports Markdown/Excel/JSON |
 | [`eln`](#30-eln) | Web Applications | Launches Electronic Lab Notebook (ELN) and LIMS web server |
+| [`convert`](#31-convert) | Utilities | Converts mass, moles, volume, and concentration with MW support |
+| [`batch-csv`](#32-batch-csv) | High-Throughput | High-throughput batch sequence analysis from CSV or TSV |
+| [`rc`](#33-rc) | Sequences | Computes 5' -> 3' reverse complement of DNA or RNA |
+| [`translate`](#34-translate) | Sequences | Translates nucleotide sequences to amino acids across 6 frames |
 
 ---
 
@@ -90,6 +111,23 @@ Diluent Volume Needed:        12.000 mL (12,000.0 µL)
 ### 2. `wizard`
 
 Launches an interactive, menu-driven CLI wizard guiding researchers through standard benchtop calculations.
+
+#### Available Guided Workflows
+
+The wizard guides researchers interactively through 10 laboratory workflows:
+
+| Option | Workflow Name | Description |
+| :---: | :--- | :--- |
+| `[1]` | **Solution Dilution** | Solves $C_1 V_1 = C_2 V_2$ with automatic stock/diluent volume calculation |
+| `[2]` | **NTP Solution Prep & pH Adjustment** | Neutralizes 100 mM nucleotide stocks to pH 7.5 with 5M NaOH requirements |
+| `[3]` | **In Vitro Transcription (IVT)** | Calculates RNA yield, NTP stoichiometry, limiting reagents, and turnover |
+| `[4]` | **PCR Master Mix Formulation** | Formulates master mix volumes for $N$ reactions with customizable excess |
+| `[5]` | **Laboratory Buffer Formulation** | Computes component masses and recipes for catalog or custom buffers |
+| `[6]` | **Nucleic Acid Precipitation** | Plans ethanol/isopropanol precipitation with salts and optional glycogen carrier |
+| `[7]` | **Molecular Weight & Molarity** | Computes sequence length, average/monoisotopic MW, and GC percentage |
+| `[8]` | **Restriction Digest Planning** | Formulates single/double digests, enzyme units, CutSmart buffer, and water |
+| `[9]` | **Ligation & Gibson Setup** | Calculates insert masses and molar ratios (e.g. 3:1) for molecular cloning |
+| `[10]`| **Unit & Stoichiometry Conversion**| Universal converter across mass, moles, volumes, and concentrations |
 
 #### Options
 
@@ -156,6 +194,7 @@ Calculates *in vitro* transcription (IVT) reaction stoichiometry, limiting NTP i
 | | `--mod-ntp` | Choice | `None` | Modified nucleotide: `m1Psi`, `Psi`, `5moU`, `m5C` |
 | | `--buffer` | Choice | `hepes` | Reaction buffer: `hepes` or `tris` |
 | | `--temp` | Float | `37.0` | Incubation temperature (°C) |
+| | `--log-report` | String | `None` | Append IVT yield, turnover, and NTP metrics to report file (`.md` or `.json`) |
 
 #### Example
 
@@ -195,6 +234,7 @@ Models exponential PCR amplification kinetics, primer/template copy numbers, cyc
 | `-l` | `--length` | Integer | *Required* | Amplicon length in base pairs |
 | `-t` | `--template-ng` | String / Float | *Required* | Initial template mass (e.g., `'10 ng'`, `10`) |
 | `-c` | `--cycles` | Integer | `30` | Number of thermocycling cycles |
+| | `--log-report` | String | `None` | Append amplicon yield, copy number, and efficiency to report file (`.md` or `.json`) |
 
 #### Example
 
@@ -264,6 +304,7 @@ Quantifies protein concentrations and total yields from ultraviolet absorbance r
 | `-s` | `--sequence` | String | *Required* | Amino acid sequence (one-letter code) |
 | `-a` | `--a280` | Float | *Required* | Absorbance at 280 nm |
 | `-v` | `--volume-ml`| Float | `1.0` | Purified stock volume in mL |
+| | `--log-report` | String | `None` | Append protein concentration, total yield, and molarity to report file (`.md` or `.json`) |
 
 #### Example
 
@@ -330,6 +371,7 @@ Calculates pipetting recipes to achieve target micromolar concentrations and pre
 | `-l` | `--length` | Integer | `100` | Sequence length (used if sequence omitted)|
 | | `--stock-ng-ul`, `--stock`| Float | `None` | Stock concentration for dilution |
 | | `--end-5`, `--end5` | Choice | `hydroxyl` | 5' state: `hydroxyl`, `monophosphate`, `triphosphate` |
+| | `--log-report` | String | `None` | Append solution recipe, target molarity, and expected A260 to report file (`.md` or `.json`) |
 
 #### Example
 
@@ -417,12 +459,26 @@ biolabcalc fluo --dol -d ALEXA488 --a-dye 0.820 --a280 0.640 --prot-e280 210000
 
 Simulates relative electrophoretic migration ($R_f$) of sample band sizes against a molecular weight ladder and renders an ASCII schematic in the terminal.
 
+#### Molecular Weight Ladder Choices
+
+BioLabCalc includes 7 standard molecular weight ladder catalogs spanning DNA, RNA, and protein electrophoresis:
+
+| Ladder Key | Formal Catalog Name | Unit | Size Range | Reference Bands | Optimal Matrix |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `1kb_dna` | 1 kb DNA Ladder | bp | 500 – 10,000 bp | 3,000 bp, 1,000 bp | 0.8% – 1.2% Agarose |
+| `100bp_dna` | 100 bp DNA Ladder | bp | 100 – 1,517 bp | 500 bp | 1.5% – 2.0% Agarose |
+| `low_range_ssdna` | Low Range ssDNA/RNA Oligo Ladder | nt | 10 – 100 nt | 50 nt | 10% – 15% Urea-PAGE |
+| `protein_broad` | Broad Range Prestained Protein Ladder | kDa | 10 – 250 kDa | 70 kDa, 25 kDa | 4% – 20% SDS-PAGE |
+| `ssrna_ladder` | ssRNA High Range Ladder | nt | 500 – 9,000 nt | 1,000 nt | 1.2% Formaldehyde/MOPS |
+| `low_range_ssrna` | Low Range ssRNA Ladder | nt | 50 – 1,000 nt | 500 nt | 2.0% Formaldehyde/MOPS |
+| `microrna_ladder` | microRNA / Small RNA Ladder | nt | 17 – 25 nt | 21 nt | 15% Urea-PAGE |
+
 #### Options
 
 | Flag | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `-s` | `--sizes` | Float list | *Required* | Space-separated band sizes (bp or kDa) |
-| `-l` | `--ladder` | Choice | `1kb_dna` | `1kb_dna`, `100bp_dna`, `low_range_ssdna`, `protein_broad_range` |
+| `-s` | `--sizes` | Float list | *Required* | Space-separated band sizes (bp, nt, or kDa) |
+| `-l` | `--ladder` | Choice | `1kb_dna` | Choice of 7 ladders: `1kb_dna`, `100bp_dna`, `low_range_ssdna`, `protein_broad`, `ssrna_ladder`, `low_range_ssrna`, `microrna_ladder` |
 
 #### Example
 
@@ -577,6 +633,7 @@ Plans single or double restriction endonuclease digestion reactions, identifying
 | `-e1`| `--enzyme-1` | String | `EcoRI` | First restriction enzyme name |
 | `-e2`| `--enzyme-2` | String | `None` | Optional second enzyme for double digest |
 | | `--dna-conc` | Float | `None` | Stock DNA concentration (ng/µL) |
+| | `--log-report` | String | `None` | Append digestion reaction parameters and enzyme volumes to report file (`.md` or `.json`) |
 
 #### Example
 
@@ -868,6 +925,7 @@ Analyzes micro-volume spectrophotometer absorbance readings ($A_{260}$, $A_{280}
 | | `--a280` | Float | *Required* | Absorbance at 280 nm |
 | | `--a230` | Float | *Required* | Absorbance at 230 nm |
 | `-t` | `--type` | Choice | `rna` | Sample type: `rna` or `dna` |
+| | `--log-report` | String | `None` | Append A260/A280, A260/A230 ratios and purity metrics to report file (`.md` or `.json`) |
 
 #### Example
 
@@ -1132,9 +1190,265 @@ Launches the Electronic Lab Notebook (ELN) and Laboratory Information Management
 | | `--host` | String | `127.0.0.1` | Network interface binding |
 | | `--db-url` | String | `None` | SQLite / PostgreSQL connection URL |
 | | `--no-browser`| Flag | `False` | Suppresses automatic browser launch |
+| `-q` | `--quiet` | Flag | `False` | Quiet mode: suppress startup banners and routing logs to standard output |
 
 #### Example
 
 ```bash
-biolabcalc eln --port 8080
+biolabcalc eln --port 8080 -q
 ```
+
+---
+
+### 31. `convert`
+
+Universal laboratory unit and stoichiometry converter. Supports intra-domain unit conversions (mass, volume, molarity, substance amount) and cross-domain stoichiometry conversions between mass and moles using molecular weight ($MW$).
+
+#### Options
+
+| Flag | Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `-v` | `--val`, `--value` | String | *Required* | Input quantity with unit (e.g., `'500 ng'`, `'10 uM'`, `'2.5 mL'`) |
+| `-t` | `--to` | String | *Required* | Target output unit (e.g., `'pmol'`, `'ng/ul'`, `'ul'`, `'g'`) |
+| | `--mw` | Float | `None` | Molecular weight in Da (g/mol) required for mass $\leftrightarrow$ mole conversions |
+| | `--json` | Flag | `False` | Output structured machine-readable JSON |
+| | `--compact` | Flag | `False` | Output single-line JSON |
+| | `--log-report` | String | `None` | Append source and converted stoichiometry measurements to report file (`.md` or `.json`) |
+
+#### Examples
+
+```bash
+# Convert 500 ng of a 50 kDa protein to picomoles
+biolabcalc convert -v "500 ng" -t "pmol" --mw 50000
+
+# Convert concentration units
+biolabcalc convert -v "10 uM" -t "nM" --json
+```
+
+---
+
+### 32. `batch-csv`
+
+High-throughput batch sequence analysis engine for tabular data. Reads CSV or TSV files containing sequence columns, strips FASTA headers or formatting artifacts, and generates an annotated output table with sequence lengths, molecular weights, GC percentages, and extinction coefficients.
+
+#### Options
+
+| Flag | Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `-i` | `--input` | String | *Required* | Path to input CSV or TSV file |
+| `-o` | `--output` | String | *Required* | Path to destination annotated CSV or TSV file |
+| `-d` | `--delimiter` | String | `None` | Explicit delimiter character (e.g., `','` or `'\t'`) |
+| | `--json` | Flag | `False` | Output execution summary as JSON |
+| | `--compact` | Flag | `False` | Output single-line JSON |
+
+#### Example
+
+```bash
+biolabcalc batch-csv -i input_oligos.csv -o annotated_oligos.csv
+```
+
+---
+
+### 33. `rc`
+
+Computes the $5' \rightarrow 3'$ reverse complement of a single-stranded DNA or RNA sequence. Preserves IUPAC degenerate nucleotide codes ($R \leftrightarrow Y, S \leftrightarrow S, W \leftrightarrow W, K \leftrightarrow M, B \leftrightarrow V, D \leftrightarrow H, N \leftrightarrow N$).
+
+#### Options
+
+| Flag | Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `-s` | `--sequence` | String | `None` | Direct sequence string (or `'-'` to read from standard input pipe) |
+| `-f` | `--file` | String | `None` | Path to FASTA or plain-text sequence file |
+| `-t` | `--type` | Choice | `dna` | Polymer sequence chemistry (`dna` or `rna`) |
+| | `--json` | Flag | `False` | Output structured JSON with length and GC content |
+| | `--compact` | Flag | `False` | Output single-line JSON |
+| `-q` | `--quiet` | Flag | `False` | Suppress decorative borders, printing only the transformed sequence |
+
+#### Examples
+
+```bash
+# Direct sequence
+biolabcalc rc -s "ATGCGTACGTTAGC"
+
+# Pipe via UNIX standard input
+echo "GGGAGACCCAAGCUGGCC" | biolabcalc rc -s - -t rna -q
+```
+
+---
+
+### 34. `translate`
+
+Translates DNA or RNA nucleotide sequences into amino acid peptide sequences across reading frames ($+1, +2, +3, -1, -2, -3$). Automatically handles co-transcriptional RNA-to-cDNA conversion and stop codon termination.
+
+#### Options
+
+| Flag | Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `-s` | `--sequence` | String | `None` | Direct sequence string (or `'-'` for stdin) |
+| `-f` | `--file` | String | `None` | Path to FASTA or plain-text sequence file |
+| `-m` | `--frame` | Integer | `1` | Reading frame: `1`, `2`, `3` (forward); `-1`, `-2`, `-3` (reverse complement) |
+| | `--all-frames` | Flag | `False` | Translate across all six reading frames concurrently |
+| | `--to-stop` | Flag | `False` | Terminate translation upon encountering the first stop codon (`*`) |
+| | `--json` | Flag | `False` | Output structured translation JSON |
+| | `--compact` | Flag | `False` | Output single-line JSON |
+| `-q` | `--quiet` | Flag | `False` | Suppress decorative headers, printing only translated amino acids |
+
+#### Examples
+
+```bash
+# Forward frame +1 translation to first stop codon
+biolabcalc translate -s "ATGGGCAGCAGCCATCATCATCATCATCACAGCAGCGGC" --to-stop
+
+# Six-frame translation in JSON
+biolabcalc translate -s "ATGCGTACGTTAGC" --all-frames --json
+```
+
+---
+
+## Multi-Step Audit Trail Logging (`--log-report`)
+
+Modern molecular biology campaigns rarely consist of a single standalone calculation. A typical wet-lab workflow transitions through sequential stages: template amplification, restriction digest, UV-Vis purity quantification, *in vitro* transcription synthesis, and stoichiometric unit conversion.
+
+To eliminate manual data re-entry and provide audit-ready documentation compliant with regulatory standards (see [GxP Compliance & Audit Trails](GxP-Compliance-&-Audit-Trails)), BioLabCalc supports the `--log-report <filepath>` option across analytical subcommands:
+* `pcr`: Amplicon size, template input, yield ($\text{ng}$ and $\text{pmol}$), amplification efficiency, and dNTP consumption.
+* `ivt`: Transcript length, RNA molecular weight, predicted microgram yield, turnover ratio, NTP incorporation efficiency, and pyrophosphate release.
+* `protein`: Protein concentration ($\text{mg/mL}$), molarity ($\mu\text{M}$), total yield ($\text{mg}$), and extinction coefficients.
+* `digest`: Substrate DNA mass, reaction volume, incubation temperature, incubation duration, and enzyme quantities.
+* `nanodrop`: Target molarity, required template mass, actual concentration, and sequence-specific expected $A_{260}$.
+* `purity`: Absorbance readings ($A_{260}$, $A_{280}$, $A_{230}$), $A_{260}/A_{280}$ and $A_{260}/A_{230}$ purity ratios, and corrected concentrations.
+* `convert`: Input quantity, target unit, converted stoichiometric value, and molecular weight conversion basis.
+
+### Consecutive Multi-Step Campaign Execution
+
+When `--log-report <filepath>` is supplied, BioLabCalc inspects `<filepath>`. If the report file already exists, newly calculated measurements are appended to the existing session ledger; if the file does not yet exist, a new session report is initialized.
+
+```bash
+# Step 1: PCR Amplification kinetics simulation
+biolabcalc pcr -l 1200 -t 10 -c 30 --log-report session.md
+
+# Step 2: Restriction Digestion reaction planning
+biolabcalc digest --dna-ug 2.0 -v 50.0 -e1 EcoRI-HF -e2 BamHI-HF --dna-conc 250.0 --log-report session.md
+
+# Step 3: NanoDrop UV-Vis Purity assessment
+biolabcalc purity --a260 1.250 --a280 0.625 --a230 0.580 -t rna --log-report session.md
+
+# Step 4: In Vitro Transcription synthesis yield calculation
+biolabcalc ivt -s "GGGAGACCCAAGCUGGCC" -v "20 uL" -y "48 ug" --ntp-mm 5.0 --log-report session.md
+
+# Step 5: Universal unit & stoichiometry conversion
+biolabcalc convert -v "48 ug" -t "pmol" --mw 5966.62 --log-report session.md
+```
+
+### Cumulative Markdown Audit Report Output (`session.md`)
+
+Running the 5 commands above sequentially yields an accumulated, formatted Markdown report ready for inclusion in electronic laboratory notebooks (see [Electronic Lab Notebook (ELN)](Electronic-Lab-Notebook-(ELN))):
+
+````markdown
+# Laboratory Experiment Report
+
+- **Date:** 2026-11-12
+- **Experimenter:** Researcher
+- **Project:** General Molecular Workflow
+
+## Measurement Records
+
+| Sample ID | Parameter | Value | Unit | Target | Tolerance | Status | Timestamp | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Sample-1 | Amplicon Length | 1200.0 | bp | — | — | PASS | 2026-11-12 14:10:05 | PCR Kinetics |
+| Sample-1 | Template Input | 10.0 | ng | — | — | PASS | 2026-11-12 14:10:05 | PCR Kinetics |
+| Sample-1 | Amplicon Yield | 1850.4 | ng | — | — | PASS | 2026-11-12 14:10:05 | PCR Kinetics |
+| Sample-1 | PCR Efficiency | 95.0 | % | 100.0 | ±20.0% | PASS | 2026-11-12 14:10:05 | PCR Kinetics |
+| Sample-1 | DNA Mass | 2.0 | µg | — | — | PASS | 2026-11-12 14:10:12 | Digestion Setup |
+| Sample-1 | Incubation Temp | 37.0 | °C | — | — | PASS | 2026-11-12 14:10:12 | Digestion Setup |
+| Sample-1 | Incubation Time | 60.0 | min | — | — | PASS | 2026-11-12 14:10:12 | Digestion Setup |
+| Sample-1 | A260 | 1.25 | AU | — | — | PASS | 2026-11-12 14:10:18 | NanoDrop Purity |
+| Sample-1 | A260/A280 | 2.0 | ratio | 2.0 | ±15.0% | PASS | 2026-11-12 14:10:18 | NanoDrop Purity |
+| Sample-1 | A260/A230 | 2.16 | ratio | 2.0 | ±20.0% | PASS | 2026-11-12 14:10:18 | NanoDrop Purity |
+| Sample-1 | RNA Length | 18.0 | nt | — | — | PASS | 2026-11-12 14:10:25 | IVT Yield |
+| Sample-1 | RNA Yield | 48.0 | µg | — | — | PASS | 2026-11-12 14:10:25 | IVT Yield |
+| Sample-1 | Turnover Ratio | 240.0 | x | — | — | PASS | 2026-11-12 14:10:25 | IVT Yield |
+| Sample-1 | NTP Incorporation | 72.4 | % | 100.0 | ±30.0% | PASS | 2026-11-12 14:10:25 | IVT Yield |
+| Sample-1 | Converted Amount | 8044.72 | pmol | — | — | PASS | 2026-11-12 14:10:31 | Unit Conversion |
+````
+
+### Structured Machine-Readable JSON Accumulation (`session.json`)
+
+When targeting a `.json` file (`--log-report session.json`), each CLI execution loads the serialized `LabReport` JSON schema, appends new records, re-evaluates tolerance thresholds, and atomically writes the updated ledger back to disk.
+
+The resulting JSON file can be reloaded in Python using `LabReport.from_json("session.json")` or `LabReport.load_or_create("session.json")` (see [Python API Reference](Python-API-Reference)):
+
+```python
+from biolabcalc.lab_report import LabReport
+
+# Load accumulated multi-step CLI session
+report = LabReport.from_json("session.json")
+
+print(f"Loaded {len(report.records)} QC records from CLI session.")
+for record in report.records:
+    print(f"[{record.status}] {record.parameter}: {record.value} {record.unit} (Target: {record.target_or_expected})")
+
+# Export to Excel spreadsheet
+report.to_excel("multi_step_experiment.xlsx")
+```
+
+---
+
+## 🛠️ Laboratory Accessibility, Setup & Diagnostics Commands
+
+### 32. `setup` — Interactive Shared Network Drive Setup Wizard
+
+Initializes and configures BioLabCalc for multi-user shared laboratory drives or local workstations.
+
+```bash
+# Launch interactive terminal setup wizard
+python run.py setup
+
+# Automated non-interactive setup pointing to network share
+python run.py setup --shared-dir "Z:\BioLabCalc_Data" --role "Active Researcher" --host "127.0.0.1" --port 8080
+```
+
+#### Arguments:
+* `--shared-dir <PATH>`: Path to shared laboratory folder (UNC e.g. `\\server\share\data` or mapped drive `Z:\...`).
+* `--role <ROLE>`: Default user role (`Active Researcher`, `Principal Investigator`, `Lab Manager`).
+* `--host <HOST>`: Listening host interface (default: `127.0.0.1`).
+* `-p, --port <PORT>`: Web server port (default: `8080`).
+* `--non-interactive`: Execute automated setup without prompting.
+
+---
+
+### 33. `diagnostics` — Failure Logging & Troubleshooting
+
+Inspects the automated, git-ignored diagnostic failure ledger to explain system issues in plain English and provide actionable remediation steps.
+
+```bash
+# Inspect the last 10 system/network failure reports
+python run.py diagnostics
+
+# View raw structured JSON output
+python run.py diagnostics --json
+
+# Clear the diagnostic log
+python run.py diagnostics --clear
+```
+
+#### Arguments:
+* `--tail <N>`: Number of recent failure reports to display (default: `10`).
+* `--json`: Output machine-readable JSON array of failure records.
+* `--clear`: Clear recorded failure logs (`failures.log` and `failures.jsonl`).
+
+---
+
+### 34. `portable` — Portable Environment Status
+
+Inspects active storage mode, shared folder mount status, CAS blob directory, and lock acquisition settings.
+
+```bash
+python run.py portable
+```
+
+---
+
+## 🔗 Related Documentation
+* [Electronic Lab Notebook (ELN)](Electronic-Lab-Notebook-(ELN)) — Interactive web interface and cross-section reactive routing.
+* [Python API Reference](Python-API-Reference) — Python functions, workflows, and `auto_record` specification.
+* [GxP Compliance & Audit Trails](GxP-Compliance-&-Audit-Trails) — 21 CFR Part 11 electronic records and hash validation.

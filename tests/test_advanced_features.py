@@ -1,4 +1,12 @@
+import os
+import sys
 import unittest
+
+# Ensure src/ is in sys.path when running from source repository without package installation
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.cloning import calculate_golden_gate_assembly, get_restriction_enzyme
 from biolabcalc.primers import check_heterodimer, design_primers
 from biolabcalc.precipitation import calculate_precipitation, calculate_phenol_chloroform_extraction

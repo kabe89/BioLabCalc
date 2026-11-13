@@ -1,0 +1,52 @@
+# ==============================================================================
+# BioLabCalc - Python Requirements Specification
+# ==============================================================================
+# Multi-faceted Python library and Excel extension for daily molecular biology
+# research, PCR stoichiometry, IVT yields, protein quantification, primer
+# design, and Electronic Lab Notebook (ELN) / LIMS multi-modal web services.
+#
+# Python Compatibility: >= 3.8
+# Synchronized with: pyproject.toml
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Core Runtime Dependencies
+# ------------------------------------------------------------------------------
+# Essential libraries required for Excel (.xlsx) workbook generation,
+# gel electrophoresis lane analysis, densitometry, and image visualization.
+openpyxl>=3.0.0             # Excel workbook generator with live formulas and styling (excel_extension, lab_report)
+matplotlib>=3.5.0           # Gel electrophoresis lane profiling and standard curve fitting (gel_annotator)
+Pillow>=9.0.0               # Image processing, TIFF/SCN gel parsing, and OCR preprocessing (gel_annotator, biorad_parser, preview_generator)
+
+# ------------------------------------------------------------------------------
+# 2. ELN & Web Server Runtime Dependencies
+# ------------------------------------------------------------------------------
+# Required for running the Electronic Lab Notebook (ELN), REST API endpoints,
+# real-time WebSocket communication, and relational database persistence.
+uvicorn>=0.20.0             # High-performance ASGI server for local ELN web application (eln.server, configure)
+fastapi>=0.100.0            # RESTful API routing and OpenAPI documentation (eln.api.app, configure)
+sqlalchemy>=2.0.0           # Relational database ORM and SQLite/PostgreSQL connection pooling (eln.schema.database)
+PyYAML>=6.0                 # Configuration serialization and environment profile loading (eln.config, configure)
+
+# ------------------------------------------------------------------------------
+# 3. Optional Cloud & Object Storage Extensions
+# ------------------------------------------------------------------------------
+# Content-Addressed Storage (CAS) backend for AWS S3 and MinIO object storage.
+boto3>=1.26.0               # S3/MinIO cloud object storage client for ELN blob store (eln.storage.blob_store)
+
+# ------------------------------------------------------------------------------
+# 4. Optional Advanced Scientific & Data Analysis Stack
+# ------------------------------------------------------------------------------
+# Recommended libraries for advanced array operations, curve fitting,
+# tabular instrument data manipulation, and sequence bioinformatics.
+numpy>=1.21.0               # Vectorized array and matrix calculations (LEGAL.md, scientific calculators)
+scipy>=1.9.0                # Scientific optimization, curve fitting, and biophysical modeling
+pandas>=1.5.0               # Tabular instrument data analysis, CSV/TSV dataframes, and analytical export
+biopython>=1.80             # Advanced sequence analysis, file formats (FASTA/GenBank), and structural parsing
+
+# ------------------------------------------------------------------------------
+# 5. Optional Production Database Drivers
+# ------------------------------------------------------------------------------
+# PostgreSQL 16+ adapter for enterprise high-concurrency production deployments.
+# Uncomment if deploying with an external PostgreSQL database:
+# psycopg2-binary>=2.9.0    # PostgreSQL database adapter with pgvector compatibility

@@ -11,9 +11,14 @@ Architectural Role: Comprehensive end-to-end wet-lab integration test verifying 
 from __future__ import annotations
 
 import os
+import sys
 import unittest
 import urllib.request
 from datetime import datetime, timezone
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 from biolabcalc.eln.schema import (
     BaseModel,
@@ -207,6 +212,7 @@ class TestELNFullSystemIntegration(unittest.TestCase):
             db_url="sqlite:///:memory:",
             open_browser=False,
             blocking=False,
+            quiet=True,
         )
         self.assertTrue(server_url.startswith("http://127.0.0.1:"))
 
@@ -225,6 +231,23 @@ class TestELNFullSystemIntegration(unittest.TestCase):
             res = client.get("/health")
             self.assertEqual(res["status_code"], 200)
             self.assertEqual(res["json"]["status"], "healthy")
+
+    def test_10_launch_eln_server_quiet_mode(self):
+        """Verify quiet=True suppresses standard output banners."""
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            url = launch_eln_server(
+                host="127.0.0.1",
+                port=0,
+                db_url="sqlite:///:memory:",
+                open_browser=False,
+                blocking=False,
+                quiet=True,
+            )
+        self.assertEqual(buf.getvalue().strip(), "")
+        self.assertTrue(url.startswith("http://127.0.0.1:"))
 
 
 if __name__ == "__main__":

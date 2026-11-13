@@ -18,8 +18,9 @@ from .buffers import calculate_buffer_recipe, calculate_ntp_ph_adjustment, calcu
 from .precipitation import calculate_precipitation, calculate_phenol_chloroform_extraction
 from .spectroscopy import prepare_standard_solution, assess_nanodrop_purity
 from .ecoli_growth import calculate_ecoli_growth, calculate_inoculation_volume
-from .lab_report import new_lab_report, get_active_report, record_measurement, LabReport
+from .lab_report import new_lab_report, get_active_report, record_measurement, auto_record, LabReport
 from .western_blot import plan_western_blot, calculate_transfer_conditions, calculate_lysate_loading, calculate_antibody_dilution, troubleshoot_western_blot
+from .workflows import cloning_workflow as _cloning_workflow, ivt_workflow as _ivt_workflow, CloningWorkflowResult, IVTWorkflowResult
 
 
 def dilute(
@@ -268,24 +269,28 @@ def new_report(
 
 
 def record(
-    sample_id: str,
-    parameter: str,
-    value: float,
-    unit: str,
+    sample_id_or_result: Any,
+    parameter: Optional[str] = None,
+    value: Optional[float] = None,
+    unit: Optional[str] = None,
     target: Optional[float] = None,
     tolerance_pct: Optional[float] = None,
     notes: str = "",
+    report: Optional[LabReport] = None,
+    sample_id: str = "Sample-1",
 ) -> Any:
-    """Record an experimental measurement into the active lab report with optional target & QC evaluation."""
-    return record_measurement(
-        sample_id=sample_id,
-        parameter=parameter,
-        value=value,
-        unit=unit,
-        target=target,
-        tolerance_pct=tolerance_pct,
-        notes=notes,
-    )
+    """Record an experimental measurement or auto-record calculation results into the active lab report."""
+    if parameter is not None and value is not None and unit is not None:
+        return record_measurement(
+            sample_id=str(sample_id_or_result),
+            parameter=parameter,
+            value=value,
+            unit=unit,
+            target=target,
+            tolerance_pct=tolerance_pct,
+            notes=notes,
+        )
+    return auto_record(sample_id_or_result, report=report, sample_id=sample_id, notes=notes)
 
 
 def export_report(filepath: str, title: Optional[str] = None) -> str:
@@ -330,3 +335,322 @@ def buffer_builder(
 ) -> CustomBufferBuilder:
     """Instantiate a fluent CustomBufferBuilder for constructing custom buffer recipes."""
     return CustomBufferBuilder(name=name, ph=ph, storage=storage, safety=safety)
+
+
+def dna_mw(
+    sequence: str,
+    double_stranded: bool = True,
+    end_5: str = "hydroxyl",
+) -> Any:
+    """Calculate molecular weight, GC content, and base counts for single- or double-stranded DNA."""
+    return calculate_dna_mw(seq=sequence, double_stranded=double_stranded, end_5=end_5)
+
+
+def protein_mw(
+    sequence: str,
+    oxidized_cysteines: int = 0,
+) -> Any:
+    """Calculate average and monoisotopic molecular weight for a protein/peptide sequence."""
+    return calculate_protein_mw(seq=sequence, oxidized_cysteines=oxidized_cysteines)
+
+
+def pcr(
+    amplicon_bp: int,
+    template_ng: Union[str, float] = 5.0,
+    cycles: int = 30,
+    efficiency: float = 0.98,
+    volume: Union[str, float] = "50 uL",
+) -> Any:
+    """Calculate PCR amplification kinetics, amplicon yield, and dNTP exhaustion."""
+    tmpl_ng = UnitParser.parse_mass(template_ng, "ng")
+    vol_ul = UnitParser.parse_volume(volume, "ul")
+    return calculate_pcr_kinetics(
+        amplicon_len_bp=amplicon_bp,
+        template_ng=tmpl_ng,
+        cycles=cycles,
+        efficiency=efficiency,
+        reaction_volume_ul=vol_ul,
+    )
+
+
+def digest(
+    dna_mass_ug: Union[str, float] = 1.0,
+    enzyme_1: str = "EcoRI",
+    enzyme_2: Optional[str] = None,
+    dna_conc_ng_ul: Optional[Union[str, float]] = 200.0,
+    volume: Union[str, float] = "50 uL",
+) -> Any:
+    """Plan single or double restriction enzyme digestion setup with buffer compatibility."""
+    mass_ug = UnitParser.parse_mass(dna_mass_ug, "ug")
+    conc_ng_ul = UnitParser.parse_concentration(dna_conc_ng_ul, "ng/ul") if dna_conc_ng_ul else 200.0
+    vol_ul = UnitParser.parse_volume(volume, "ul")
+    return plan_restriction_digest(
+        dna_mass_ug=mass_ug,
+        reaction_volume_ul=vol_ul,
+        enzyme_1=enzyme_1,
+        enzyme_2=enzyme_2,
+        dna_conc_ng_ul=conc_ng_ul,
+    )
+
+
+def ligation(
+    vector_bp: int,
+    insert_bp: int,
+    vector_ng: Union[str, float] = "50 ng",
+    molar_ratio: float = 3.0,
+    volume: Union[str, float] = "20 uL",
+) -> Any:
+    """Calculate cohesive or blunt end T4 DNA ligation reaction stoichiometry."""
+    v_ng = UnitParser.parse_mass(vector_ng, "ng")
+    vol_ul = UnitParser.parse_volume(volume, "ul")
+    return calculate_ligation(
+        vector_length_bp=vector_bp,
+        insert_length_bp=insert_bp,
+        vector_mass_ng=v_ng,
+        molar_ratio=molar_ratio,
+        reaction_volume_ul=vol_ul,
+    )
+
+
+def gibson(
+    vector_bp: int,
+    insert_bps: Union[int, List[int]],
+    vector_ng: Union[str, float] = "100 ng",
+    molar_ratio: float = 2.0,
+    volume: Union[str, float] = "20 uL",
+) -> Any:
+    """Plan isothermal Gibson Assembly reaction stoichiometry."""
+    v_ng = UnitParser.parse_mass(vector_ng, "ng")
+    inserts = [insert_bps] if isinstance(insert_bps, int) else list(insert_bps)
+    vol_ul = UnitParser.parse_volume(volume, "ul")
+    return calculate_gibson_assembly(
+        vector_length_bp=vector_bp,
+        insert_lengths_bp=inserts,
+        vector_mass_ng=v_ng,
+        molar_ratio=molar_ratio,
+        reaction_volume_ul=vol_ul,
+    )
+
+
+def growth(
+    starter_od600: float = 3.0,
+    target_od600: float = 0.05,
+    target_volume_ml: Union[str, float] = "500 mL",
+) -> Dict[str, float]:
+    """Calculate bacterial culture inoculation volume and required fresh media."""
+    vol_ml = UnitParser.parse_volume(target_volume_ml, "ml")
+    return calculate_inoculation_volume(
+        starter_od600=starter_od600,
+        target_volume_ml=vol_ml,
+        target_od600=target_od600,
+    )
+
+
+def convert(
+    val: Union[str, float, int],
+    target_unit: str,
+    mw: Optional[float] = None,
+) -> float:
+    """Universal laboratory unit and stoichiometry converter.
+
+    Handles intra-domain conversions (volume, mass, moles, concentration)
+    and cross-domain stoichiometry (mass <-> moles, molar <-> mass concentration)
+    when molecular weight (mw) is provided.
+    """
+    num, unit = UnitParser._parse_raw(val)
+    if not unit:
+        raise ValueError(f"No unit specified on source value: '{val}'. Provide a string like '500 ng'.")
+    u_src = unit.lower().replace("µ", "u")
+    u_tgt = target_unit.lower().replace("µ", "u")
+
+    # 1. Volume to Volume
+    if u_src in UnitParser.VOLUME_FACTORS and u_tgt in UnitParser.VOLUME_FACTORS:
+        return UnitParser.parse_volume(val, target_unit=u_tgt)
+
+    # 2. Mass to Mass
+    if u_src in UnitParser.MASS_FACTORS and u_tgt in UnitParser.MASS_FACTORS:
+        return UnitParser.parse_mass(val, target_unit=u_tgt)
+
+    # 3. Moles to Moles
+    if u_src in UnitParser.MOLE_FACTORS and u_tgt in UnitParser.MOLE_FACTORS:
+        return UnitParser.parse_moles(val, target_unit=u_tgt)
+
+    # 4. Molar to Molar concentration
+    if u_src in UnitParser.CONC_FACTORS and u_tgt in UnitParser.CONC_FACTORS:
+        return UnitParser.parse_concentration(val, target_unit=u_tgt)
+
+    # 5. Mass concentration to Mass concentration
+    if u_src in UnitParser.MASS_CONC_FACTORS and u_tgt in UnitParser.MASS_CONC_FACTORS:
+        return UnitParser.parse_concentration(val, target_unit=u_tgt)
+
+    # Cross-domain conversions requiring MW
+    if not mw or mw <= 0:
+        raise ValueError(f"Cannot convert between '{unit}' and '{target_unit}' without molecular weight (mw).")
+
+    # Mass -> Moles
+    if u_src in UnitParser.MASS_FACTORS and u_tgt in UnitParser.MOLE_FACTORS:
+        val_g = UnitParser.parse_mass(val, target_unit="g")
+        moles = val_g / mw
+        tgt_factor = UnitParser.MOLE_FACTORS[u_tgt]
+        return round((moles * 1e9) / tgt_factor, 6)
+
+    # Moles -> Mass
+    if u_src in UnitParser.MOLE_FACTORS and u_tgt in UnitParser.MASS_FACTORS:
+        val_mol = UnitParser.parse_moles(val, target_unit="mol")
+        mass_g = val_mol * mw
+        tgt_factor = UnitParser.MASS_FACTORS[u_tgt]
+        return round((mass_g * 1e6) / tgt_factor, 6)
+
+    # Molar concentration -> Mass concentration (e.g. uM -> ng/uL or mg/mL)
+    if u_src in UnitParser.CONC_FACTORS and u_tgt in UnitParser.MASS_CONC_FACTORS:
+        val_m = UnitParser.parse_concentration(val, target_unit="m")
+        # 1 M = mw g/L = mw mg/mL
+        val_mg_ml = val_m * mw
+        tgt_factor = UnitParser.MASS_CONC_FACTORS[u_tgt]
+        return round(val_mg_ml / tgt_factor, 6)
+
+    # Mass concentration -> Molar concentration (e.g. ng/uL -> uM)
+    if u_src in UnitParser.MASS_CONC_FACTORS and u_tgt in UnitParser.CONC_FACTORS:
+        val_mg_ml = UnitParser.parse_concentration(val, target_unit="mg/ml")
+        val_m = val_mg_ml / mw
+        tgt_factor = UnitParser.CONC_FACTORS[u_tgt]
+        return round((val_m * 1e3) / tgt_factor, 6)
+
+    raise ValueError(f"Unsupported conversion between '{unit}' and '{target_unit}'.")
+
+
+def batch_csv(
+    input_path: str,
+    output_path: str,
+    delimiter: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Process batch sequence list from CSV or TSV, calculating MW, GC%, and extinction coefficients."""
+    from .batch_csv import process_batch_csv
+    return process_batch_csv(input_path=input_path, output_path=output_path, delimiter=delimiter)
+
+
+def rc(seq: str, seq_type: str = "dna") -> str:
+    """Convenience shortcut for reverse complement of a DNA or RNA sequence."""
+    from .seq_utils import reverse_complement
+    return reverse_complement(seq, seq_type=seq_type)
+
+
+def translate(seq: str, frame: int = 1, to_stop: bool = False) -> str:
+    """Convenience shortcut for translating a DNA or RNA sequence."""
+    from .seq_utils import translate_dna
+    return translate_dna(seq, frame=frame, to_stop=to_stop)
+
+
+def gc(seq: str) -> float:
+    """Convenience shortcut for calculating GC percentage (0.0 to 100.0)."""
+    from .seq_utils import calculate_gc_content
+    return calculate_gc_content(seq)
+
+
+def transcribe(seq: str) -> str:
+    """Convenience shortcut for transcribing DNA sequence to RNA."""
+    from .seq_utils import transcribe as _transcribe
+    return _transcribe(seq)
+
+
+def reverse_transcribe(seq: str) -> str:
+    """Convenience shortcut for reverse transcribing RNA sequence to cDNA/DNA."""
+    from .seq_utils import reverse_transcribe as _reverse_transcribe
+    return _reverse_transcribe(seq)
+
+
+def find_orfs(seq: str, min_aa: int = 30) -> List[Any]:
+    """Convenience shortcut for identifying open reading frames (ORFs)."""
+    from .seq_utils import find_orfs as _find_orfs
+    return _find_orfs(seq, min_length_aa=min_aa)
+
+
+def parse_fasta(text_or_path: str) -> List[Tuple[str, str]]:
+    """Convenience shortcut for parsing FASTA text or file."""
+    from .seq_utils import parse_fasta as _parse_fasta
+    return _parse_fasta(text_or_path)
+
+
+def format_fasta(header: str, seq: str, line_length: int = 60) -> str:
+    """Convenience shortcut for formatting sequence as FASTA."""
+    from .seq_utils import format_fasta as _format_fasta
+    return _format_fasta(header, seq, line_length=line_length)
+
+
+def record_result(
+    result: Any,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Sample-1",
+    notes: str = "",
+) -> List[Any]:
+    """Universal auto-record convenience helper: automatically logs any calculation result into a LabReport."""
+    return auto_record(result, report=report, sample_id=sample_id, notes=notes)
+
+
+def cloning_workflow(
+    primer_fwd: Optional[str] = None,
+    primer_rev: Optional[str] = None,
+    amplicon_len_bp: int = 1000,
+    template_ng: float = 10.0,
+    vector_length_bp: int = 3000,
+    insert_length_bp: Optional[int] = None,
+    enzyme_1: str = "EcoRI",
+    enzyme_2: Optional[str] = "BamHI",
+    dna_mass_ug: float = 1.0,
+    assembly_method: str = "ligation",
+    molar_ratio: float = 3.0,
+    target_od600: float = 0.6,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Clone-1",
+    notes: str = "Molecular cloning workflow",
+) -> CloningWorkflowResult:
+    """Convenience shortcut for executing an end-to-end molecular cloning workflow pipeline."""
+    return _cloning_workflow(
+        primer_fwd=primer_fwd,
+        primer_rev=primer_rev,
+        amplicon_len_bp=amplicon_len_bp,
+        template_ng=template_ng,
+        vector_length_bp=vector_length_bp,
+        insert_length_bp=insert_length_bp,
+        enzyme_1=enzyme_1,
+        enzyme_2=enzyme_2,
+        dna_mass_ug=dna_mass_ug,
+        assembly_method=assembly_method,
+        molar_ratio=molar_ratio,
+        target_od600=target_od600,
+        report=report,
+        sample_id=sample_id,
+        notes=notes,
+    )
+
+
+def ivt_workflow(
+    rna_seq: str,
+    reaction_volume_ul: float = 20.0,
+    target_yield_ug: Optional[float] = None,
+    template_dna_ng: Optional[float] = 1000.0,
+    buffer_type: str = "hepes",
+    target_buffer_volume_ml: float = 50.0,
+    precipitation_alcohol: str = "ethanol",
+    precipitation_salt: str = "naoac",
+    report: Optional[LabReport] = None,
+    sample_id: str = "IVT-Batch-1",
+    notes: str = "IVT synthesis workflow",
+) -> IVTWorkflowResult:
+    """Convenience shortcut for executing an end-to-end In Vitro Transcription synthesis workflow."""
+    return _ivt_workflow(
+        rna_seq=rna_seq,
+        reaction_volume_ul=reaction_volume_ul,
+        target_yield_ug=target_yield_ug,
+        template_dna_ng=template_dna_ng,
+        buffer_type=buffer_type,
+        target_buffer_volume_ml=target_buffer_volume_ml,
+        precipitation_alcohol=precipitation_alcohol,
+        precipitation_salt=precipitation_salt,
+        report=report,
+        sample_id=sample_id,
+        notes=notes,
+    )
+
+
+

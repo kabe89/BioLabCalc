@@ -1,5 +1,13 @@
 """BioLabCalc: A multifaceted Python library and Excel extension for daily molecular biology research."""
 
+import mimetypes
+try:
+    if hasattr(mimetypes, "_mimetypes_read_windows_registry"):
+        mimetypes._mimetypes_read_windows_registry = None
+    mimetypes.init()
+except Exception:
+    mimetypes.inited = True
+
 __version__ = "0.3.5"
 
 from .seq_utils import (
@@ -9,6 +17,19 @@ from .seq_utils import (
     calculate_gc_content,
     count_bases,
     translate_dna,
+    transcribe,
+    reverse_transcribe,
+    six_frame_translation,
+    ORF,
+    find_orfs,
+    parse_fasta,
+    format_fasta,
+)
+
+from .easy import (
+    rc,
+    translate,
+    gc,
 )
 
 from .molecular_weight import (
@@ -140,6 +161,14 @@ from .lab_report import (
     new_lab_report,
     get_active_report,
     record_measurement,
+    auto_record,
+)
+
+from .workflows import (
+    cloning_workflow,
+    ivt_workflow,
+    CloningWorkflowResult,
+    IVTWorkflowResult,
 )
 
 from .western_blot import (
@@ -171,6 +200,8 @@ from .interactive_gel import (
     launch_interactive_annotator,
 )
 
+from .batch_csv import process_batch_csv
+
 try:
     from .gel_annotator import (
         GelAnnotator,
@@ -184,12 +215,13 @@ try:
         generate_lab_notebook_template,
         export_analysis_to_excel,
     )
-except ImportError:
+except Exception:
     batch_process_excel = None
     generate_lab_notebook_template = None
     export_analysis_to_excel = None
 
 from . import eln
+from . import easy
 
 __all__ = [
     "clean_sequence",
@@ -198,6 +230,17 @@ __all__ = [
     "calculate_gc_content",
     "count_bases",
     "translate_dna",
+    "transcribe",
+    "reverse_transcribe",
+    "six_frame_translation",
+    "ORF",
+    "find_orfs",
+    "parse_fasta",
+    "format_fasta",
+    "rc",
+    "translate",
+    "gc",
+    "easy",
     "calculate_dna_mw",
     "calculate_rna_mw",
     "calculate_protein_mw",
@@ -289,5 +332,11 @@ __all__ = [
     "calculate_ladder_standard_curve",
     "estimate_band_mw",
     "launch_interactive_annotator",
+    "process_batch_csv",
     "eln",
+    "auto_record",
+    "cloning_workflow",
+    "ivt_workflow",
+    "CloningWorkflowResult",
+    "IVTWorkflowResult",
 ]

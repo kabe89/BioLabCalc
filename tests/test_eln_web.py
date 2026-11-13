@@ -20,7 +20,15 @@ class TestElnWebFrontend(unittest.TestCase):
     def setUpClass(cls):
         """Locates repository root and web static/templates directories."""
         cls.repo_root = Path(__file__).resolve().parent.parent
-        cls.web_dir = cls.repo_root / "src" / "biolabcalc" / "eln" / "web"
+        src_path = cls.repo_root / "src"
+        import sys
+        if str(src_path) not in sys.path:
+            sys.path.insert(0, str(src_path))
+        try:
+            from biolabcalc.eln.web import get_web_dir
+            cls.web_dir = Path(get_web_dir())
+        except Exception:
+            cls.web_dir = src_path / "biolabcalc" / "eln" / "web"
         cls.templates_dir = cls.web_dir / "templates"
         cls.static_dir = cls.web_dir / "static"
 
@@ -115,6 +123,108 @@ class TestElnWebFrontend(unittest.TestCase):
                 content,
                 f"Missing {class_signature} in {filename}"
             )
+
+    def test_xss_sanitization_patterns_in_frontend(self):
+        """Verifies that user inputs and messages are handled via safe DOM properties."""
+        app_js = (self.static_dir / "app.js").read_text(encoding="utf-8")
+        self.assertIn("_escapeHtml", app_js, "app.js missing _escapeHtml sanitizer")
+        self.assertIn("rag-no-results-query", app_js)
+        self.assertIn("span.textContent = message", app_js)
+
+        timer_js = (self.static_dir / "timer_widget.js").read_text(encoding="utf-8")
+        self.assertIn("badgeEl.textContent = this.options.stepName", timer_js)
+
+    def test_qol_ergonomics_in_frontend(self):
+        """Verifies QoL improvements: tab persistence, hotkeys, table exports, preset chips."""
+        app_js = (self.static_dir / "app.js").read_text(encoding="utf-8")
+        html = (self.templates_dir / "index.html").read_text(encoding="utf-8")
+
+        # Tab persistence
+        self.assertIn("localStorage.setItem('eln_active_tab'", app_js)
+        self.assertIn("localStorage.getItem('eln_active_tab'", app_js)
+
+        # Global hotkeys & modal closing
+        self.assertIn("closeAllModals()", app_js)
+        self.assertIn("e.key === 'Escape'", app_js)
+        self.assertIn("e.key === '/'", app_js)
+
+        # Table exports (CSV and Markdown)
+        self.assertIn("exportTableToCsv", app_js)
+        self.assertIn("exportTableToMarkdown", app_js)
+        self.assertIn("btn-export-timepoints-md", html)
+
+        # Quick-fill preset chips
+        self.assertIn("preset-chip", app_js)
+        self.assertIn("preset-chip", html)
+        self.assertIn("T7 20 µL IVT", html)
+
+        # Sequence workspace transformation and export controls
+        self.assertIn("btn-seq-rc", html)
+        self.assertIn("btn-seq-rc", app_js)
+        self.assertIn("btn-seq-translate", html)
+        self.assertIn("btn-seq-translate", app_js)
+        self.assertIn("btn-seq-copy", html)
+        self.assertIn("btn-seq-copy", app_js)
+
+        # Notebook note download control
+        self.assertIn("btn-download-note", html)
+        self.assertIn("btn-download-note", app_js)
+
+        # Freezer LIMS sample search filter
+        self.assertIn("freezer-sample-search", html)
+        self.assertIn("freezer-sample-search", app_js)
+
+    def test_cross_section_routing_elements(self):
+        """Verifies cross-section reactive routing buttons in index.html and handlers in app.js."""
+        html_file = self.templates_dir / "index.html"
+        html = html_file.read_text(encoding="utf-8")
+
+        required_buttons = [
+            "btn-seq-send-gel",
+            "btn-seq-send-nanodrop",
+            "btn-seq-append-notebook",
+            "btn-seq-store-freezer",
+            "btn-gel-log-notebook",
+            "btn-nanodrop-log-notebook",
+            "btn-nanodrop-sync-freezer",
+            "btn-timers-log-notebook",
+            "btn-finalize-ocr",
+        ]
+        for btn_id in required_buttons:
+            self.assertIn(btn_id, html, f"Missing required button ID in index.html: {btn_id}")
+
+        app_js = (self.static_dir / "app.js").read_text(encoding="utf-8")
+        required_methods = [
+            "_initEventListeners",
+            "_sendSequenceToGel",
+            "_sendSequenceToNanoDrop",
+            "_sendSequenceToNotebook",
+            "_sendSequenceToFreezer",
+            "_logGelBandToNotebook",
+            "_logNanoDropToNotebook",
+            "_syncNanoDropToFreezer",
+            "_logTimepointsToNotebook",
+            "_finalizeOcrToNotebook",
+        ]
+        for method_name in required_methods:
+            self.assertIn(method_name, app_js, f"Missing required method in app.js: {method_name}")
+
+        for btn_id in required_buttons:
+            self.assertIn(btn_id, app_js, f"Missing event listener binding for {btn_id} in app.js")
+
+    def test_get_web_dir_and_asset_loaders(self):
+        """Verifies get_web_dir, get_template_path, and get_static_path resolution."""
+        from biolabcalc.eln.web import get_web_dir, get_template_path, get_static_path, get_templates_dir, get_static_dir
+        web_dir = get_web_dir()
+        self.assertTrue(os.path.isdir(web_dir), f"Resolved web_dir does not exist: {web_dir}")
+        self.assertTrue(os.path.isdir(get_templates_dir()))
+        self.assertTrue(os.path.isdir(get_static_dir()))
+
+        index_path = get_template_path("index.html")
+        self.assertTrue(os.path.isfile(index_path), f"index.html not found: {index_path}")
+
+        styles_path = get_static_path("styles.css")
+        self.assertTrue(os.path.isfile(styles_path), f"styles.css not found: {styles_path}")
 
 
 if __name__ == "__main__":

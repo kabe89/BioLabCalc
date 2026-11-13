@@ -12,6 +12,12 @@ import datetime
 import hashlib
 import json
 import mimetypes
+try:
+    if hasattr(mimetypes, "_mimetypes_read_windows_registry"):
+        mimetypes._mimetypes_read_windows_registry = None
+    mimetypes.init()
+except Exception:
+    mimetypes.inited = True
 import os
 import shutil
 import tempfile
@@ -216,9 +222,16 @@ class LocalStorageBackend(StorageBackend):
         Args:
             base_dir (Union[str, Path]): Root directory for blob and metadata storage.
         """
-        self.base_dir = Path(base_dir).resolve()
+        env_dir = os.environ.get("BIOLABCALC_STORAGE_DIR")
+        if env_dir:
+            self.base_dir = (Path(env_dir) / "blobs").resolve()
+        else:
+            self.base_dir = Path(base_dir).resolve()
         try:
             self.base_dir.mkdir(parents=True, exist_ok=True)
+            test_file = self.base_dir / ".write_test"
+            test_file.touch()
+            test_file.unlink()
         except (PermissionError, OSError):
             self.base_dir = Path(tempfile.gettempdir()) / "biolabcalc_data" / "blobs"
             self.base_dir.mkdir(parents=True, exist_ok=True)
@@ -235,7 +248,12 @@ class LocalStorageBackend(StorageBackend):
         """
         shard = sha256[:2].lower()
         shard_path = self.base_dir / shard
-        shard_path.mkdir(parents=True, exist_ok=True)
+        try:
+            shard_path.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError):
+            self.base_dir = Path(tempfile.gettempdir()) / "biolabcalc_data" / "blobs"
+            shard_path = self.base_dir / shard
+            shard_path.mkdir(parents=True, exist_ok=True)
         return shard_path
 
     def _blob_file(self, sha256: str) -> Path:

@@ -9,9 +9,15 @@ RBAC authorizations, WebSockets, and REST API endpoints.
 
 from __future__ import annotations
 
+import os
+import sys
 import unittest
 from datetime import datetime, timezone
 from typing import Any, Dict, List
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 from biolabcalc.eln.api.app import TestClient, create_app
 from biolabcalc.eln.api.auth import (

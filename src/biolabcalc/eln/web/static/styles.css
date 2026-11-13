@@ -1627,3 +1627,207 @@ a:hover {
   from { opacity: 0; transform: translateX(100%); }
   to { opacity: 1; transform: translateX(0); }
 }
+
+/* ==========================================================================
+   Responsive & Adaptive Front-End Layouts
+   ========================================================================== */
+
+/* Large Tablets and Compact Desktops */
+@media (max-width: 1200px) {
+  .header-center {
+    max-width: 320px;
+    margin: 0 12px;
+  }
+  .campaign-select {
+    max-width: 260px;
+  }
+  /* 4-column stat grids collapse to 2 columns */
+  div[style*="grid-template-columns: repeat(4, 1fr)"],
+  div[style*="grid-template-columns:repeat(4, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Tablets and Narrow Views (Landscape / Portrait) */
+@media (max-width: 992px) {
+  .eln-header {
+    padding: 0 16px;
+  }
+  .header-center {
+    max-width: 240px;
+  }
+  .campaign-select {
+    max-width: 200px;
+  }
+  .tab-pane {
+    padding: 16px;
+  }
+
+  /* Multi-column scientific layouts collapse to stacked 1-column */
+  div[style*="grid-template-columns: 2fr 1fr"],
+  div[style*="grid-template-columns: 1fr 2fr"],
+  div[style*="grid-template-columns: 3fr 1.2fr"],
+  div[style*="grid-template-columns: 280px 1fr"],
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns: 3fr 1fr"],
+  div[style*="grid-template-columns: 1fr 3fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Scientific canvas wrappers allow horizontal scrolling if required */
+  .fplc-canvas-wrap,
+  .gel-canvas-wrap,
+  .spectrum-canvas-wrap,
+  .freezer-box-wrap,
+  .ocr-preview-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Slide-out drawer width adapts */
+  .tube-drawer {
+    width: min(450px, 90vw);
+  }
+}
+
+/* Mobile Devices (Smartphones & Handhelds) */
+@media (max-width: 768px) {
+  body {
+    overflow-y: auto;
+  }
+  .eln-header {
+    height: auto;
+    min-height: var(--header-height);
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .header-left {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .brand-title {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+  .campaign-selector-wrap {
+    flex: 1;
+    min-width: 120px;
+    margin-left: 4px;
+  }
+  .campaign-select {
+    width: 100%;
+    max-width: 100%;
+    font-size: 0.75rem;
+    padding: 4px 24px 4px 8px;
+  }
+  .header-center {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin: 4px 0 0 0;
+  }
+  .search-trigger-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  .header-right {
+    gap: 8px;
+  }
+  .user-name {
+    display: none;
+  }
+  .user-profile-badge {
+    padding: 2px 4px;
+  }
+  .ws-status-text {
+    display: none;
+  }
+
+  /* Navigation tab strip */
+  .eln-tabs-nav {
+    padding: 0 8px;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-tab-btn {
+    padding: 0 10px;
+    font-size: 0.8rem;
+    min-height: 44px;
+  }
+
+  /* Main container & cards */
+  .tab-pane {
+    padding: 10px 8px;
+  }
+  .eln-card {
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+  }
+  .card-header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .card-body {
+    padding: 12px 14px;
+  }
+
+  /* Stat cards and grids */
+  div[style*="grid-template-columns: repeat(4, 1fr)"],
+  div[style*="grid-template-columns:repeat(4, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modals */
+  .modal-dialog {
+    width: 95vw;
+    margin: 12px auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Drawer */
+  .tube-drawer {
+    width: 100vw;
+  }
+
+  /* Buttons & touch targets */
+  .btn {
+    min-height: 40px;
+  }
+}
+
+/* Small Smartphone Viewports (<480px) */
+@media (max-width: 480px) {
+  .brand-title span span {
+    display: none;
+  }
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+  .role-badge {
+    display: none;
+  }
+  .theme-toggle-btn {
+    padding: 4px 6px;
+    font-size: 0.85rem;
+  }
+  .tab-badge {
+    display: none;
+  }
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+}

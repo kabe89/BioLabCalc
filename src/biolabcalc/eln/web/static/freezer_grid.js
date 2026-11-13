@@ -75,6 +75,14 @@ export class FreezerGrid {
   }
 
   /**
+   * Returns the map of tubes stored in the active box.
+   * @type {Map<string, LimsTube>}
+   */
+  get tubes() {
+    return this.activeBox ? this.activeBox.tubes : new Map();
+  }
+
+  /**
    * Populates default aliquots from the T7 RNA Polymerase 5-Day Campaign.
    * @role Synthetic Inventory Population
    * @private

@@ -12,7 +12,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BioLabCalc ELN & Multi-Modal LIMS Pipeline</title>
-  <link rel="stylesheet" href="../static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧪</text></svg>">
 </head>
 <body>
@@ -104,6 +104,14 @@
     <button class="nav-tab-btn" data-tab="sequences">
       <span>🧬 Sequences & SOPs</span>
     </button>
+    <button class="nav-tab-btn" data-tab="custom-experiments">
+      <span>🧪 Custom Experiments</span>
+      <span class="tab-badge">No-Code</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="governance">
+      <span>🛡️ Peer Review & Approvals</span>
+      <span class="tab-badge">Seals</span>
+    </button>
   </nav>
 
   <!-- =========================================================================
@@ -184,6 +192,7 @@
             <span class="card-title">📝 Daily Laboratory Entry (Markdown)</span>
             <div class="card-actions">
               <span class="badge badge-pass" id="save-status-badge">Auto-Saved</span>
+              <button class="btn btn-outline btn-sm" id="btn-download-note">💾 Export Note (.md)</button>
               <button class="btn btn-outline btn-sm" id="btn-sign-entry">✍️ Sign & Lock Entry</button>
             </div>
           </div>
@@ -221,7 +230,9 @@
           <div class="card-header">
             <span class="card-title">⏱️ Kinetic Timepoint & Deviation Log</span>
             <div class="card-actions">
+              <button id="btn-timers-log-notebook" class="btn btn-outline btn-sm">📝 Log to Note</button>
               <button class="btn btn-outline btn-sm" id="btn-export-timepoints">Export CSV</button>
+              <button class="btn btn-outline btn-sm" id="btn-export-timepoints-md">Export MD</button>
             </div>
           </div>
           <div class="card-body data-table-wrap" style="padding:0;">
@@ -336,7 +347,10 @@
           <div class="eln-card">
             <div class="card-header">
               <span class="card-title">🔬 Selected Lane Analysis</span>
-              <span class="badge badge-pass">Purity > 98%</span>
+              <div class="card-actions">
+                <button id="btn-gel-log-notebook" class="btn btn-outline btn-sm">📝 Log Band to Note</button>
+                <span class="badge badge-pass">Purity > 98%</span>
+              </div>
             </div>
             <div class="card-body">
               <h4 id="gel-selected-lane-title" style="font-size:0.95rem; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
@@ -393,6 +407,10 @@
           <div class="eln-card" style="margin-bottom:0;">
             <div class="card-header">
               <span class="card-title">Sample Selection</span>
+              <div class="card-actions">
+                <button id="btn-nanodrop-log-notebook" class="btn btn-outline btn-sm">📝 Log QC to Note</button>
+                <button id="btn-nanodrop-sync-freezer" class="btn btn-outline btn-sm">❄️ Update Freezer Tube</button>
+              </div>
             </div>
             <div class="card-body">
               <select id="nanodrop-sample-select" class="campaign-select" style="width:100%;">
@@ -468,6 +486,10 @@
             </div>
           </div>
 
+          <div style="width:100%; margin:10px 0 6px 0;">
+            <input type="text" id="freezer-sample-search" class="input-control" placeholder="Filter tubes by ID, name, or construct..." style="width:100%; padding:6px 12px; border:1px solid var(--border-color); border-radius:4px; font-size:0.85rem; background:var(--bg-card); color:var(--text-primary);">
+          </div>
+
           <div id="freezer-grid-container">
             <!-- Populated by FreezerGrid -->
           </div>
@@ -517,7 +539,7 @@
 
           <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px;">
             <button class="btn btn-outline" id="btn-revert-ocr">Revert All</button>
-            <button class="btn btn-success" id="btn-finalize-ocr">Finalize & Sign Daily Entry</button>
+            <button id="btn-finalize-ocr" class="btn btn-primary btn-sm">Finalize & Log to Note</button>
           </div>
         </div>
       </div>
@@ -534,10 +556,30 @@
             <span class="badge badge-pass">pET-28a-T7RNAP</span>
           </div>
           <div class="card-body">
+            <div class="preset-chips-container" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
+              <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Quick Presets:</span>
+              <button type="button" class="btn btn-outline btn-sm preset-chip" data-seq="GGGAGACCCAAGCUGGCC">T7 20 µL IVT</button>
+              <button type="button" class="btn btn-outline btn-sm preset-chip" data-seq="TAATACGACTCACTATAGGGGAATTGTGAGCGGATAAC">Phusion PCR Fwd</button>
+              <button type="button" class="btn btn-outline btn-sm preset-chip" data-seq="GCGAATTCATGCGTACGTTAGCGGATCCTA">EcoRI/BamHI Double Digest</button>
+              <button type="button" class="btn btn-outline btn-sm preset-chip" data-seq="ATGAGCCATATTCAACGGGAAACGTCTTGCTCGAGGCCGCGATTAAATTCCAACATGGATGCTGATTTATATGGGTATAAATGGGCTCGCGATAATGTCGGGCAATCAGGTGCGACAATCTATCGA">pET-28a Marker</button>
+            </div>
             <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:6px;">
               Input Oligonucleotide / Primer Sequence (5' -> 3'):
             </label>
             <textarea id="primer-calc-input" class="entry-markdown-editor" style="min-height:100px; font-family:var(--font-mono); text-transform:uppercase;">TAATACGACTCACTATAGGGGAATTGTGAGCGGATAACAATTCCCCTCTAGAAATAATTTTGTTTAACTTTAAGAAGGAGATATACCATGGGCAGCAGCCATCATCATCATCATCACAGCAGCGGCCATATCGAAGGTCGTCATATG</textarea>
+
+            <div class="seq-transformation-toolbar" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; margin-bottom:8px;">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-seq-rc">🔄 Reverse Complement</button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-seq-translate">🔤 Translate (Frame +1)</button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-seq-copy">📋 Copy Sequence</button>
+            </div>
+            <div class="seq-routing-toolbar" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+              <button type="button" id="btn-seq-send-gel" class="btn btn-outline btn-sm">🧪 Send to Gel (Tab 4)</button>
+              <button type="button" id="btn-seq-send-nanodrop" class="btn btn-outline btn-sm">🔬 Send to NanoDrop (Tab 5)</button>
+              <button type="button" id="btn-seq-append-notebook" class="btn btn-outline btn-sm">📝 Append to Note (Tab 1)</button>
+              <button type="button" id="btn-seq-store-freezer" class="btn btn-outline btn-sm">❄️ Store in Freezer (Tab 6)</button>
+            </div>
+            <div id="seq-translation-readout" style="display:none; margin-bottom:12px; padding:8px 12px; background:var(--bg-secondary); border-radius:4px; font-size:0.85rem; border-left:3px solid var(--primary);"></div>
 
             <div class="physicochem-properties-grid">
               <div class="property-metric-card">
@@ -580,6 +622,134 @@
       </div>
     </div>
 
+    <!-- -----------------------------------------------------------------------
+         Tab 9: Custom Experiments (No-Code Dynamic Templates)
+         ----------------------------------------------------------------------- -->
+    <div id="tab-custom-experiments" class="tab-pane">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="card-title">🧪 No-Code Customizable Experiment Engine</span>
+          <div style="display:flex; gap:10px;">
+            <select id="custom-template-select" class="form-select" style="padding:6px 12px; border-radius:6px; border:1px solid var(--border); font-size:0.85rem;">
+              <option value="tpl_general" selected>General Lab Notebook Entry</option>
+              <option value="tpl_cloning">Molecular Cloning & Assembly</option>
+              <option value="tpl_protein">Protein Expression & Purification</option>
+              <option value="tpl_cell_culture">Cell Culture & Growth Kinetics</option>
+              <option value="tpl_ephys">Electrophysiology Patch-Clamp Recording</option>
+              <option value="tpl_blank">Custom Blank Canvas</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="btn-open-template-designer">➕ New Template Builder</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+            Design and execute experiments without writing code. Select a pre-configured scientific template or build your own with custom parameters, formulas, and checklist steps.
+          </p>
+
+          <form id="custom-experiment-form" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div style="grid-column:1 / -1;">
+              <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Experiment Title:</label>
+              <input type="text" id="cust-exp-title" class="form-input" placeholder="e.g. Pilot Expression in Rosetta 2(DE3) at 18°C" value="High-Yield T7 RNAP Pilot Expression & Recovery" style="width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px;">
+            </div>
+
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:12px; color:var(--accent);">Section 1: Operating Inputs</h4>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div>
+                  <label style="font-size:0.75rem; color:var(--text-muted); display:block;">Sample Volume (mL):</label>
+                  <input type="number" id="cust-inp-vol" value="50.0" step="0.1" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:4px;">
+                </div>
+                <div>
+                  <label style="font-size:0.75rem; color:var(--text-muted); display:block;">Protein Concentration (mg/mL):</label>
+                  <input type="number" id="cust-inp-conc" value="3.85" step="0.01" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:4px;">
+                </div>
+                <div>
+                  <label style="font-size:0.75rem; color:var(--text-muted); display:block;">Initial Load Mass (mg):</label>
+                  <input type="number" id="cust-inp-load" value="25.0" step="0.1" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:4px;">
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:12px; color:var(--pass);">Section 2: Live Computed Formulas (AST Evaluator)</h4>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="background:var(--card-bg); padding:10px; border-radius:6px; border:1px solid var(--border);">
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Formula: <code>total_yield_mg = conc * vol</code></div>
+                  <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);" id="cust-calc-yield">192.50 mg</div>
+                </div>
+                <div style="background:var(--card-bg); padding:10px; border-radius:6px; border:1px solid var(--border);">
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Formula: <code>recovery_pct = (yield / load) * 100</code></div>
+                  <div style="font-size:1.1rem; font-weight:700; color:var(--pass);" id="cust-calc-recovery">77.00%</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="grid-column:1 / -1; display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+              <button type="button" class="btn btn-outline" id="btn-export-template">Export Schema (JSON)</button>
+              <button type="button" class="btn btn-primary" id="btn-submit-cust-entry">💾 Record Custom Experiment Entry</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 10: Governance & Peer Review Approvals
+         ----------------------------------------------------------------------- -->
+    <div id="tab-governance" class="tab-pane">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="card-title">🛡️ Laboratory Governance & Peer-Review Sign-Off</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Approval Policy:</label>
+            <select id="governance-policy-select" style="padding:4px 8px; border-radius:6px; border:1px solid var(--border); font-size:0.85rem;">
+              <option value="peer_review" selected>Peer Review (Any Lab Member)</option>
+              <option value="open_collaboration">Open Collaboration (Auto-Approved)</option>
+              <option value="designated_reviewer">Designated Senior Reviewer</option>
+              <option value="pi_approval">Traditional PI Hierarchy</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:8px; color:var(--accent);">Current Campaign Sign-Off State</h4>
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                <span class="badge" id="gov-status-badge" style="background:#2ecc7122; color:#2ecc71; font-weight:700; padding:4px 10px; border-radius:4px;">APPROVED</span>
+                <span style="font-size:0.8rem; color:var(--text-muted);">Signed by Dr. Marcus Bell (Reviewer)</span>
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.6; word-break:break-all; font-family:monospace; background:var(--card-bg); padding:8px; border-radius:4px; border:1px solid var(--border);">
+                <strong>SHA-256 Digital Seal:</strong><br>
+                <span id="gov-seal-hash">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:8px; color:var(--text-primary);">Peer Review Reproducibility Checklist</h4>
+              <div style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Raw instrument data attached (ÄKTA FPLC .res & Bio-Rad Gel)
+                </label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Standard SOP parameters followed with zero unlogged deviations
+                </label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Sample aliquots indexed in Freezer LIMS (-80°C Box B-07)
+                </label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Final yields mathematically verified against calibration curve
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn btn-outline" id="btn-request-changes">Request Modifications</button>
+            <button class="btn btn-primary" id="btn-sign-approval">✍️ Sign & Affix Digital Seal</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- =========================================================================
@@ -655,6 +825,6 @@
   </div>
 
   <!-- Main ES6 Application Controller -->
-  <script type="module" src="../static/app.js"></script>
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>

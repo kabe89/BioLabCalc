@@ -139,6 +139,26 @@ By default:
 * Content-Addressed Storage (CAS) is allocated for uploaded instrument raw data and spectra.
 * Your default web browser will automatically open to `http://127.0.0.1:8080`.
 
+---
+
+## 🏢 Zero-Install Shared Lab Drive Quickstart (Multi-User)
+
+If your laboratory uses a shared network drive (UNC path `\\server\share\data` or mapped drive `Z:\...`), BioLabCalc can be run across multiple workstations without installation:
+
+1. **Launch the First-Run Setup Wizard**:
+   ```bash
+   python run.py setup --shared-dir "Z:\BioLabCalc_Data" --role "Active Researcher"
+   ```
+2. **Start the ELN on the Shared Drive**:
+   ```bash
+   python run.py eln
+   ```
+   Or double-click `run_lab.bat` (Windows) / `./run_lab.sh` (Linux/macOS) in the portable package directory.
+3. **Multi-User Collaboration**:
+   * All experimental campaigns, custom experiment templates, protocols, and bio-sequences are stored centrally on the shared drive.
+   * Cross-process advisory locking and optimistic concurrency control protect database records against race conditions.
+   * If any network error occurs, inspect plain-English troubleshooting advice with `python run.py diagnostics`.
+
 For full ELN deployment instructions, including multi-user setups and PostgreSQL configuration, see [ELN System Architecture](Electronic-Lab-Notebook-(ELN)).
 
 ---

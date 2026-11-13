@@ -2,10 +2,23 @@
 
 from __future__ import annotations
 import os
+import mimetypes
 from typing import Dict, List, Optional, Any
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
+
+if not getattr(mimetypes, "inited", False):
+    try:
+        mimetypes.init()
+    except (PermissionError, OSError):
+        mimetypes.inited = True
+
+try:
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+except Exception:
+    openpyxl = None
+    Font = PatternFill = Alignment = Border = Side = None  # type: ignore
+    get_column_letter = None  # type: ignore
 
 from .molecular_weight import calculate_dna_mw, calculate_rna_mw, calculate_protein_mw
 from .transcription import IVTResult, calculate_ivt_yield
@@ -14,31 +27,36 @@ from .protein import ProteinYieldResult, calculate_extinction_coefficient, quant
 from .primers import PrimerPair, PrimerAnalysis, design_primers
 
 # Typography and Styling Theme
-NAVY_HEADER = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
-BLUE_SUBHEADER = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
-ACCENT_FILL = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
-INPUT_FILL = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")  # Light yellow for inputs
-CALC_FILL = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")   # Light green for calculated
+if PatternFill is not None and Font is not None and Border is not None:
+    NAVY_HEADER = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    BLUE_SUBHEADER = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
+    ACCENT_FILL = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+    INPUT_FILL = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")  # Light yellow for inputs
+    CALC_FILL = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")   # Light green for calculated
 
-WHITE_BOLD_FONT = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-TITLE_FONT = Font(name="Calibri", size=16, bold=True, color="1F4E79")
-SECTION_FONT = Font(name="Calibri", size=12, bold=True, color="1F4E79")
-BOLD_FONT = Font(name="Calibri", size=11, bold=True)
-REGULAR_FONT = Font(name="Calibri", size=11)
-NOTE_FONT = Font(name="Calibri", size=9, italic=True, color="595959")
+    WHITE_BOLD_FONT = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    TITLE_FONT = Font(name="Calibri", size=16, bold=True, color="1F4E79")
+    SECTION_FONT = Font(name="Calibri", size=12, bold=True, color="1F4E79")
+    BOLD_FONT = Font(name="Calibri", size=11, bold=True)
+    REGULAR_FONT = Font(name="Calibri", size=11)
+    NOTE_FONT = Font(name="Calibri", size=9, italic=True, color="595959")
 
-THIN_BORDER = Border(
-    left=Side(style="thin", color="D9D9D9"),
-    right=Side(style="thin", color="D9D9D9"),
-    top=Side(style="thin", color="D9D9D9"),
-    bottom=Side(style="thin", color="D9D9D9"),
-)
-HEADER_BORDER = Border(
-    left=Side(style="thin", color="BFBFBF"),
-    right=Side(style="thin", color="BFBFBF"),
-    top=Side(style="medium", color="1F4E79"),
-    bottom=Side(style="medium", color="1F4E79"),
-)
+    THIN_BORDER = Border(
+        left=Side(style="thin", color="D9D9D9"),
+        right=Side(style="thin", color="D9D9D9"),
+        top=Side(style="thin", color="D9D9D9"),
+        bottom=Side(style="thin", color="D9D9D9"),
+    )
+    HEADER_BORDER = Border(
+        left=Side(style="thin", color="BFBFBF"),
+        right=Side(style="thin", color="BFBFBF"),
+        top=Side(style="medium", color="1F4E79"),
+        bottom=Side(style="medium", color="1F4E79"),
+    )
+else:
+    NAVY_HEADER = BLUE_SUBHEADER = ACCENT_FILL = INPUT_FILL = CALC_FILL = None
+    WHITE_BOLD_FONT = TITLE_FONT = SECTION_FONT = BOLD_FONT = REGULAR_FONT = NOTE_FONT = None
+    THIN_BORDER = HEADER_BORDER = None
 
 
 def _autofit_columns(ws, min_width=12, padding=3):

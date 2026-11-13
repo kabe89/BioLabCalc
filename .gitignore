@@ -32,6 +32,7 @@ ENV/
 # IDE and editors
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 
@@ -84,4 +85,41 @@ logs/
 .ollama/**
 .wiki_clone/
 .wiki_clone/**
+
+# ELN Server Configuration & Anonymization
+config.yaml
+*config.yaml
+*.config.yaml
+testing_config.yaml
+tests/testing_config.yaml
+!config.yaml.example
+sitecustomize.py
+scripts/patch_tests_syspath.py
+
+# Diagnostics & Failure Logs (Git-Ignored)
+failures.log
+*.failures.log
+diagnostics.log
+*.diagnostics.log
+failures.jsonl
+*.failures.jsonl
+.biolabcalc_failures.*
+
+# Security Credentials, Certificates, & Local Databases
+*.key
+*.pem
+*.cert
+*.crt
+*.pfx
+*.p12
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+.secrets*
+*.token
+*.credential*
+
+
+
 

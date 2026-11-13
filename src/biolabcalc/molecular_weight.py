@@ -11,6 +11,17 @@ DNA_RESIDUE_MW: Dict[str, float] = {
     "C": 289.18,
     "G": 329.21,
     "T": 304.20,
+    "R": 321.21,
+    "Y": 296.69,
+    "S": 309.20,
+    "W": 308.71,
+    "K": 316.71,
+    "M": 301.20,
+    "B": 307.53,
+    "D": 315.54,
+    "H": 302.20,
+    "V": 310.53,
+    "N": 308.95,
 }
 
 RNA_RESIDUE_MW: Dict[str, float] = {
@@ -18,6 +29,17 @@ RNA_RESIDUE_MW: Dict[str, float] = {
     "C": 305.18,
     "G": 345.21,
     "U": 306.17,
+    "R": 337.21,
+    "Y": 305.68,
+    "S": 325.20,
+    "W": 317.69,
+    "K": 325.69,
+    "M": 317.20,
+    "B": 318.85,
+    "D": 326.86,
+    "H": 313.52,
+    "V": 326.53,
+    "N": 321.44,
 }
 
 # Monoisotopic molecular weights for nucleotide residues (g/mol)
@@ -26,6 +48,17 @@ DNA_RESIDUE_MONOISOTOPIC: Dict[str, float] = {
     "C": 289.0464,
     "G": 329.0525,
     "T": 304.0460,
+    "R": 321.0551,
+    "Y": 296.5462,
+    "S": 309.0495,
+    "W": 308.5518,
+    "K": 316.5493,
+    "M": 301.0520,
+    "B": 307.3816,
+    "D": 315.3854,
+    "H": 302.0500,
+    "V": 310.3855,
+    "N": 308.8006,
 }
 
 RNA_RESIDUE_MONOISOTOPIC: Dict[str, float] = {
@@ -33,6 +66,17 @@ RNA_RESIDUE_MONOISOTOPIC: Dict[str, float] = {
     "C": 305.0413,
     "G": 345.0474,
     "U": 306.0253,
+    "R": 337.0500,
+    "Y": 305.5333,
+    "S": 325.0444,
+    "W": 317.5389,
+    "K": 325.5364,
+    "M": 317.0469,
+    "B": 318.7047,
+    "D": 326.7084,
+    "H": 313.3730,
+    "V": 326.3804,
+    "N": 321.2916,
 }
 
 # Protein standard amino acid residue weights (average g/mol)
@@ -42,6 +86,7 @@ AMINO_ACID_MW: Dict[str, float] = {
     "H": 137.14,  "I": 131.17,  "L": 131.17,  "K": 128.17,
     "M": 131.19,  "F": 147.18,  "P": 97.12,   "S": 87.08,
     "T": 101.11,  "W": 186.21,  "Y": 163.18,  "V": 99.13,
+    "U": 150.04,  "O": 237.30,
 }
 
 # Monoisotopic residue weights for amino acids (g/mol)
@@ -51,6 +96,7 @@ AMINO_ACID_MONOISOTOPIC: Dict[str, float] = {
     "H": 137.05891,  "I": 131.09463, "L": 131.09463, "K": 128.09496,
     "M": 131.04049,  "F": 147.06841, "P": 97.05276,  "S": 87.03203,
     "T": 101.04768,  "W": 186.07931, "Y": 163.06333, "V": 99.06841,
+    "U": 150.9536,   "O": 237.1477,
 }
 
 AVOGADRO: float = 6.02214076e23
@@ -124,13 +170,10 @@ def calculate_dna_mw(
         rc_result = calculate_dna_mw(rc_seq, double_stranded=False, end_5=end_5, circular=circular)
         total_avg = strand_avg + rc_result.average_mw
         total_mono = strand_mono + rc_result.monoisotopic_mw
-        all_counts = {
-            "A": counts.get("A", 0) + rc_result.base_counts.get("A", 0),
-            "C": counts.get("C", 0) + rc_result.base_counts.get("C", 0),
-            "G": counts.get("G", 0) + rc_result.base_counts.get("G", 0),
-            "T": counts.get("T", 0) + rc_result.base_counts.get("T", 0),
-        }
-        gc = round(((all_counts["G"] + all_counts["C"]) / (length * 2)) * 100.0, 2)
+        all_counts = {}
+        for b in set(counts.keys()) | set(rc_result.base_counts.keys()):
+            all_counts[b] = counts.get(b, 0) + rc_result.base_counts.get(b, 0)
+        gc = round(((all_counts.get("G", 0) + all_counts.get("C", 0)) / (length * 2)) * 100.0, 2)
         return MolecularWeightResult(clean_seq, "dsDNA", length, round(total_avg, 2), round(total_mono, 4), all_counts, gc, end_5=end_5)
 
     gc = round(((counts.get("G", 0) + counts.get("C", 0)) / length) * 100.0, 2)

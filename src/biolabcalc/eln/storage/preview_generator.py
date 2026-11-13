@@ -12,7 +12,12 @@ import math
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from PIL import Image, ImageDraw, ImageOps
+try:
+    from PIL import Image, ImageDraw, ImageOps
+except ImportError:
+    Image = None  # type: ignore
+    ImageDraw = None  # type: ignore
+    ImageOps = None  # type: ignore
 
 from biolabcalc.eln.storage.blob_store import BlobStore
 

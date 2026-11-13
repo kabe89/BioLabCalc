@@ -1,9 +1,14 @@
 """Unit tests for BioLabCalc CLI commands and wizard."""
 
 import io
+import os
 import sys
 import unittest
 from unittest.mock import patch
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 from biolabcalc.cli import main, run_wizard
 
@@ -222,10 +227,13 @@ class TestCLI(unittest.TestCase):
     def test_cli_annotate_gel_invert_flag(self):
         """Test annotate-gel invert_colors flag behavior (Issue 10)."""
         import os
+        import tempfile
+        out_temp = os.path.join(tempfile.gettempdir(), "test_annotator_out.png")
+        captured = io.StringIO()
         with patch("biolabcalc.cli.GelAnnotator") as mock_annotator:
             mock_inst = mock_annotator.synthetic.return_value
-            mock_inst.render.return_value = "out_test.png"
-            with patch.object(sys, "argv", ["biolabcalc", "annotate-gel", "--lanes", "L1,L2", "-o", "out_test.png"]):
+            mock_inst.render.return_value = out_temp
+            with patch.object(sys, "argv", ["biolabcalc", "annotate-gel", "--lanes", "L1,L2", "-o", out_temp]), patch("sys.stdout", captured):
                 main()
             mock_annotator.synthetic.assert_called_once()
             _, kwargs = mock_annotator.synthetic.call_args
@@ -233,15 +241,15 @@ class TestCLI(unittest.TestCase):
 
         with patch("biolabcalc.cli.GelAnnotator") as mock_annotator:
             mock_inst = mock_annotator.synthetic.return_value
-            mock_inst.render.return_value = "out_test.png"
-            with patch.object(sys, "argv", ["biolabcalc", "annotate-gel", "--lanes", "L1,L2", "--invert", "-o", "out_test.png"]):
+            mock_inst.render.return_value = out_temp
+            with patch.object(sys, "argv", ["biolabcalc", "annotate-gel", "--lanes", "L1,L2", "--invert", "-o", out_temp]), patch("sys.stdout", captured):
                 main()
             mock_annotator.synthetic.assert_called_once()
             _, kwargs = mock_annotator.synthetic.call_args
             self.assertTrue(kwargs.get("invert_colors"))
 
-        if os.path.exists("out_test.png"):
-            os.remove("out_test.png")
+        if os.path.exists(out_temp):
+            os.remove(out_temp)
 
 
 if __name__ == "__main__":

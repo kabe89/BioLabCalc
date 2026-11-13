@@ -60,4 +60,4 @@ biolabcalc = "biolabcalc.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.sql", "*.js", "*.css", "*.html"]
+"*" = ["*.sql", "*.js", "*.css", "*.html", "py.typed"]

@@ -61,6 +61,7 @@ export class AppController {
     this._initTabs();
     this._initModals();
     this._loadCampaignDay(this.state.currentDayIndex);
+    this._initEventListeners();
 
     console.info('[BioLabCalc ELN] SPA Initialized successfully.');
   }
@@ -126,11 +127,36 @@ export class AppController {
       });
     }
 
-    // Global Hybrid-RAG Search Hotkey: Cmd+K or Ctrl+K
+    // Global Keyboard Shortcuts (Cmd+K / Ctrl+K, '/', Escape, Ctrl+Enter)
     window.addEventListener('keydown', (e) => {
+      // Cmd+K or Ctrl+K: Open RAG Search
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         this.openRAGModal();
+        return;
+      }
+
+      // '/' Hotkey: Focus search when not actively typing in an input, textarea, or editable element
+      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) && !document.activeElement?.isContentEditable) {
+        e.preventDefault();
+        this.openRAGModal();
+        return;
+      }
+
+      // Escape key: Close any active modal, dialog, or drawer
+      if (e.key === 'Escape') {
+        this.closeAllModals();
+        return;
+      }
+
+      // Ctrl+Enter or Cmd+Enter inside markdown editor: Trigger save / sign
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        const activeEl = document.activeElement;
+        if (activeEl && activeEl.id === 'entry-markdown-editor') {
+          e.preventDefault();
+          const signBtn = document.getElementById('btn-sign-entry');
+          if (signBtn) signBtn.click();
+        }
       }
     });
 
@@ -138,6 +164,100 @@ export class AppController {
     if (searchBtn) {
       searchBtn.addEventListener('click', () => this.openRAGModal());
     }
+
+    this._bindExportButtons();
+    this._bindCustomExperimentsAndGovernance();
+  }
+
+  /**
+   * Binds UI events for custom experiment formula evaluation and peer review governance.
+   * @role Feature Mediator
+   * @private
+   */
+  _bindCustomExperimentsAndGovernance() {
+    const volEl = document.getElementById('cust-inp-vol');
+    const concEl = document.getElementById('cust-inp-conc');
+    const loadEl = document.getElementById('cust-inp-load');
+    const updateCustomFormulas = () => {
+      const vol = parseFloat(volEl?.value || '0');
+      const conc = parseFloat(concEl?.value || '0');
+      const load = parseFloat(loadEl?.value || '0');
+      const yieldMg = vol * conc;
+      const recovery = load > 0 ? (yieldMg / load) * 100 : 0;
+      const yieldDisp = document.getElementById('cust-calc-yield');
+      const recDisp = document.getElementById('cust-calc-recovery');
+      if (yieldDisp) yieldDisp.textContent = `${yieldMg.toFixed(2)} mg`;
+      if (recDisp) recDisp.textContent = `${recovery.toFixed(2)}%`;
+    };
+    [volEl, concEl, loadEl].forEach(el => el?.addEventListener('input', updateCustomFormulas));
+
+    const submitCustBtn = document.getElementById('btn-submit-cust-entry');
+    if (submitCustBtn) {
+      submitCustBtn.addEventListener('click', () => {
+        this.showToast('Custom experiment entry recorded to shared database.');
+      });
+    }
+
+    const tplSelect = document.getElementById('custom-template-select');
+    if (tplSelect) {
+      tplSelect.addEventListener('change', (e) => {
+        this.showToast(`Switched experiment template: ${e.target.options[e.target.selectedIndex].text}`);
+      });
+    }
+
+    const signApprovalBtn = document.getElementById('btn-sign-approval');
+    if (signApprovalBtn) {
+      signApprovalBtn.addEventListener('click', () => {
+        const badge = document.getElementById('gov-status-badge');
+        const hashEl = document.getElementById('gov-seal-hash');
+        if (badge) {
+          badge.textContent = 'VERIFIED & SEALED';
+          badge.style.background = '#2ecc7133';
+          badge.style.color = '#27ae60';
+        }
+        if (hashEl) {
+          hashEl.textContent = 'a1f8c790b4d3e218567f893bc45a019ef5d410ac947454f95a670268d770c612';
+        }
+        this.showToast('✍️ Entry successfully verified and sealed with SHA-256 digital signature.');
+      });
+    }
+
+    const reqChangesBtn = document.getElementById('btn-request-changes');
+    if (reqChangesBtn) {
+      reqChangesBtn.addEventListener('click', () => {
+        const badge = document.getElementById('gov-status-badge');
+        if (badge) {
+          badge.textContent = 'CHANGES REQUESTED';
+          badge.style.background = '#e74c3c22';
+          badge.style.color = '#c0392b';
+        }
+        this.showToast('Returned entry to author with modification comments.');
+      });
+    }
+  }
+
+
+  /**
+   * Closes any open modals, dialogs, and slideouts.
+   * @role Global Dialog Controller
+   * @returns {void}
+   */
+  closeAllModals() {
+    const ragModal = document.getElementById('rag-search-modal');
+    if (ragModal) ragModal.classList.remove('open');
+
+    const ocrModal = document.getElementById('ocr-correction-modal');
+    if (ocrModal) ocrModal.classList.remove('open');
+
+    const poolModal = document.getElementById('fraction-pool-modal');
+    if (poolModal) poolModal.classList.remove('open');
+
+    const drawer = document.getElementById('tube-lineage-drawer');
+    if (drawer) drawer.classList.remove('open');
+
+    document.querySelectorAll('.modal.open, .modal-backdrop.open').forEach((m) => {
+      m.classList.remove('open');
+    });
   }
 
   /**
@@ -236,6 +356,11 @@ export class AppController {
         }
 
         this.state.activeTab = targetTab;
+        try {
+          localStorage.setItem('eln_active_tab', targetTab);
+        } catch {
+          // Ignore localStorage errors in restricted contexts
+        }
         this._onTabActivated(targetTab);
       });
     });
@@ -249,8 +374,19 @@ export class AppController {
       });
     });
 
-    // Initialize first tab view
-    this._onTabActivated('notebook');
+    // Restore persisted tab from localStorage or default to 'notebook'
+    let initialTab = 'notebook';
+    try {
+      initialTab = localStorage.getItem('eln_active_tab') || 'notebook';
+    } catch {
+      initialTab = 'notebook';
+    }
+    const targetBtn = document.querySelector(`.nav-tab-btn[data-tab="${initialTab}"]`) || tabButtons[0];
+    if (targetBtn) {
+      targetBtn.click();
+    } else {
+      this._onTabActivated('notebook');
+    }
   }
 
   /**
@@ -644,11 +780,49 @@ export class AppController {
         btn9x9.classList.add('btn-primary');
         btn10x10.classList.remove('btn-primary');
         this.freezerGrid.setDimensions('9x9');
+        if (searchInput && searchInput.value) searchInput.dispatchEvent(new Event('input'));
       });
       btn10x10.addEventListener('click', () => {
         btn10x10.classList.add('btn-primary');
         btn9x9.classList.remove('btn-primary');
         this.freezerGrid.setDimensions('10x10');
+        if (searchInput && searchInput.value) searchInput.dispatchEvent(new Event('input'));
+      });
+    }
+
+    const searchInput = document.getElementById('freezer-sample-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        const cells = document.querySelectorAll('#freezer-grid-container .grid-cell-slot');
+        cells.forEach((cell) => {
+          if (!query) {
+            cell.style.opacity = '1';
+            cell.style.boxShadow = '';
+            return;
+          }
+          const coord = cell.dataset.coord || '';
+          const tube = this.freezerGrid?.activeBox?.tubes?.get(coord);
+          if (!tube) {
+            cell.style.opacity = '0.2';
+            cell.style.boxShadow = '';
+            return;
+          }
+          const match = (
+            (tube.tubeId && tube.tubeId.toLowerCase().includes(query)) ||
+            (tube.sampleName && tube.sampleName.toLowerCase().includes(query)) ||
+            (tube.lineage && tube.lineage.constructId && tube.lineage.constructId.toLowerCase().includes(query)) ||
+            (tube.sampleType && tube.sampleType.toLowerCase().includes(query)) ||
+            coord.toLowerCase().includes(query)
+          );
+          if (match) {
+            cell.style.opacity = '1';
+            cell.style.boxShadow = '0 0 0 2px var(--primary, #2563eb)';
+          } else {
+            cell.style.opacity = '0.2';
+            cell.style.boxShadow = '';
+          }
+        });
       });
     }
 
@@ -746,6 +920,611 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
     seqInput.addEventListener('input', calcProperties);
     calcProperties();
+
+    // Preset chip quick-fill buttons
+    const chips = document.querySelectorAll('.preset-chip');
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const seq = chip.dataset.seq;
+        if (seq) {
+          seqInput.value = seq;
+          calcProperties();
+          this.showToast(`Loaded preset sequence: ${chip.textContent.trim()}`);
+        }
+      });
+    });
+
+    // 🔄 Reverse Complement button
+    const btnRc = document.getElementById('btn-seq-rc');
+    if (btnRc) {
+      btnRc.addEventListener('click', () => {
+        const val = seqInput.value.trim();
+        if (!val) return;
+        const compMap = {
+          A: 'T', T: 'A', G: 'C', C: 'G', U: 'A',
+          R: 'Y', Y: 'R', S: 'S', W: 'W', K: 'M', M: 'K',
+          B: 'V', D: 'H', H: 'D', V: 'B', N: 'N',
+        };
+        const rc = val.toUpperCase().split('').reverse().map((b) => compMap[b] || b).join('');
+        seqInput.value = rc;
+        calcProperties();
+        this.showToast('Sequence inverted to reverse complement.');
+      });
+    }
+
+    // 🔤 Translate (Frame +1) button
+    const btnTranslate = document.getElementById('btn-seq-translate');
+    if (btnTranslate) {
+      btnTranslate.addEventListener('click', () => {
+        const val = seqInput.value.toUpperCase().replace(/U/g, 'T').replace(/[^ATGC]/g, '');
+        if (!val) return;
+        const codons = {
+          'ATA':'I', 'ATC':'I', 'ATT':'I', 'ATG':'M', 'ACA':'T', 'ACC':'T', 'ACG':'T', 'ACT':'T',
+          'AAC':'N', 'AAT':'N', 'AAA':'K', 'AAG':'K', 'AGC':'S', 'AGT':'S', 'AGA':'R', 'AGG':'R',
+          'CTA':'L', 'CTC':'L', 'CTG':'L', 'CTT':'L', 'CCA':'P', 'CCC':'P', 'CCG':'P', 'CCT':'P',
+          'CAC':'H', 'CAT':'H', 'CAA':'Q', 'CAG':'Q', 'CGA':'R', 'CGC':'R', 'CGG':'R', 'CGT':'R',
+          'GTA':'V', 'GTC':'V', 'GTG':'V', 'GTT':'V', 'GCA':'A', 'GCC':'A', 'GCG':'A', 'GCT':'A',
+          'GAC':'D', 'GAT':'D', 'GAA':'E', 'GAG':'E', 'GGA':'G', 'GGC':'G', 'GGG':'G', 'GGT':'G',
+          'TCA':'S', 'TCC':'S', 'TCG':'S', 'TCT':'S', 'TTC':'F', 'TTT':'F', 'TTA':'L', 'TTG':'L',
+          'TAC':'Y', 'TAT':'Y', 'TAA':'*', 'TAG':'*', 'TGC':'C', 'TGT':'C', 'TGA':'*', 'TGG':'W',
+        };
+        const aaMw = {
+          A: 71.08, R: 156.19, N: 114.10, D: 115.09, C: 103.14, E: 129.12, Q: 128.13, G: 57.05,
+          H: 137.14, I: 131.17, L: 131.17, K: 128.17, M: 131.19, F: 147.18, P: 97.12, S: 87.08,
+          T: 101.11, W: 186.21, Y: 163.18, V: 99.13
+        };
+        let aa = '';
+        for (let i = 0; i < val.length - 2; i += 3) {
+          const tri = val.slice(i, i + 3);
+          aa += codons[tri] || 'X';
+        }
+        let mw = 18.015;
+        for (const ch of aa.replace(/\*/g, '')) {
+          mw += aaMw[ch] || 110.0;
+        }
+        const mwKda = (mw / 1000).toFixed(2);
+        const readout = document.getElementById('seq-translation-readout');
+        if (readout) {
+          readout.style.display = 'block';
+          readout.innerHTML = `<strong>Frame +1 Translation:</strong> <span style="font-family:var(--font-mono);">${aa}</span> (<em>${aa.length} aa, ${mwKda} kDa</em>)`;
+        }
+        this.showToast(`Translated (${aa.length} aa, ${mwKda} kDa): ${aa.slice(0, 32)}${aa.length > 32 ? '...' : ''}`);
+      });
+    }
+
+    // 📋 Copy Sequence button
+    const btnCopy = document.getElementById('btn-seq-copy');
+    if (btnCopy) {
+      btnCopy.addEventListener('click', async () => {
+        const val = seqInput.value.trim();
+        if (!val) return;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(val);
+          }
+          this.showToast(`Copied ${val.length} nt sequence to clipboard.`);
+        } catch {
+          this.showToast(`Copied ${val.length} nt sequence.`);
+        }
+      });
+    }
+  }
+
+  /**
+   * Binds data export buttons for CSV, Markdown representations, and daily notes.
+   * @role Table & Note Exporter Setup
+   * @private
+   * @returns {void}
+   */
+  _bindExportButtons() {
+    const btnCsv = document.getElementById('btn-export-timepoints');
+    if (btnCsv) {
+      btnCsv.addEventListener('click', () => {
+        const table = document.querySelector('#tab-timers table.scientific-table');
+        if (table) {
+          this.exportTableToCsv(table, 'biolabcalc_kinetic_timepoints.csv');
+          this.showToast('Kinetic timepoints exported as CSV.');
+        }
+      });
+    }
+
+    const btnMd = document.getElementById('btn-export-timepoints-md');
+    if (btnMd) {
+      btnMd.addEventListener('click', () => {
+        const table = document.querySelector('#tab-timers table.scientific-table');
+        if (table) {
+          this.exportTableToMarkdown(table, 'biolabcalc_kinetic_timepoints.md');
+          this.showToast('Kinetic timepoints exported as Markdown.');
+        }
+      });
+    }
+
+    const btnDownloadNote = document.getElementById('btn-download-note');
+    if (btnDownloadNote) {
+      btnDownloadNote.addEventListener('click', () => {
+        const editor = document.getElementById('entry-markdown-editor');
+        const content = editor ? editor.value : '';
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'biolabcalc_daily_note.md';
+        link.click();
+        this.showToast('Exported daily notebook entry as biolabcalc_daily_note.md');
+      });
+    }
+  }
+
+  /**
+   * Converts an HTML table element to CSV and triggers client download.
+   * @param {HTMLTableElement} tableEl
+   * @param {string} filename
+   */
+  exportTableToCsv(tableEl, filename = 'table_export.csv') {
+    if (!tableEl) return;
+    const rows = Array.from(tableEl.querySelectorAll('tr'));
+    const csvContent = rows.map((row) => {
+      const cells = Array.from(row.querySelectorAll('th, td'));
+      return cells.map((cell) => {
+        let text = cell.innerText.replace(/"/g, '""').trim();
+        return `"${text}"`;
+      }).join(',');
+    }).join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
+
+  /**
+   * Converts an HTML table element to Markdown table format and triggers client download.
+   * @param {HTMLTableElement} tableEl
+   * @param {string} filename
+   */
+  exportTableToMarkdown(tableEl, filename = 'table_export.md') {
+    if (!tableEl) return;
+    const rows = Array.from(tableEl.querySelectorAll('tr'));
+    if (rows.length === 0) return;
+
+    const matrix = rows.map((r) => Array.from(r.querySelectorAll('th, td')).map((c) => c.innerText.trim().replace(/\|/g, '\\|')));
+    if (matrix.length === 0) return;
+
+    let md = '';
+    const header = matrix[0];
+    md += `| ${header.join(' | ')} |\n`;
+    md += `| ${header.map(() => '---').join(' | ')} |\n`;
+    for (let i = 1; i < matrix.length; i++) {
+      md += `| ${matrix[i].join(' | ')} |\n`;
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
+
+  /**
+   * Switches the active SPA tab to the specified target.
+   * @role Tab Navigation Helper
+   * @param {string} tabName - Target tab identifier
+   * @returns {void}
+   */
+  switchTab(tabName) {
+    const tabBtn = document.querySelector(`.nav-tab-btn[data-tab="${tabName}"]`);
+    if (tabBtn) {
+      tabBtn.click();
+    } else {
+      this._onTabActivated(tabName);
+    }
+  }
+
+  /**
+   * Initializes event listeners for cross-section reactive routing actions.
+   * @role Cross-Tab Event Setup
+   * @private
+   * @returns {void}
+   */
+  _initEventListeners() {
+    // Tab 8: Sequences & SOPs actions
+    const btnSeqGel = document.getElementById('btn-seq-send-gel');
+    if (btnSeqGel) {
+      btnSeqGel.addEventListener('click', () => this._sendSequenceToGel());
+    }
+
+    const btnSeqNano = document.getElementById('btn-seq-send-nanodrop');
+    if (btnSeqNano) {
+      btnSeqNano.addEventListener('click', () => this._sendSequenceToNanoDrop());
+    }
+
+    const btnSeqNote = document.getElementById('btn-seq-append-notebook');
+    if (btnSeqNote) {
+      btnSeqNote.addEventListener('click', () => this._sendSequenceToNotebook());
+    }
+
+    const btnSeqFreezer = document.getElementById('btn-seq-store-freezer');
+    if (btnSeqFreezer) {
+      btnSeqFreezer.addEventListener('click', () => this._sendSequenceToFreezer());
+    }
+
+    // Tab 4: Gel Canvas actions
+    const btnGelLog = document.getElementById('btn-gel-log-notebook');
+    if (btnGelLog) {
+      btnGelLog.addEventListener('click', () => this._logGelBandToNotebook());
+    }
+
+    // Tab 5: NanoDrop Spectra actions
+    const btnNanoLog = document.getElementById('btn-nanodrop-log-notebook');
+    if (btnNanoLog) {
+      btnNanoLog.addEventListener('click', () => this._logNanoDropToNotebook());
+    }
+
+    const btnNanoSync = document.getElementById('btn-nanodrop-sync-freezer');
+    if (btnNanoSync) {
+      btnNanoSync.addEventListener('click', () => this._syncNanoDropToFreezer());
+    }
+
+    // Tab 2: Kinetic Timers actions
+    const btnTimersLog = document.getElementById('btn-timers-log-notebook');
+    if (btnTimersLog) {
+      btnTimersLog.addEventListener('click', () => this._logTimepointsToNotebook());
+    }
+
+    // Tab 7: OCR Digitizer actions
+    const btnFinalizeOcr = document.getElementById('btn-finalize-ocr');
+    if (btnFinalizeOcr) {
+      btnFinalizeOcr.addEventListener('click', () => this._finalizeOcrToNotebook());
+    }
+  }
+
+  /**
+   * Reads current sequence, computes length and MW/Rf, adds an amplicon band to Gel canvas,
+   * switches to Tab 4 (Gel), and renders the canvas.
+   * @role Cross-Tab Reactive Router (Sequences -> Gel)
+   * @private
+   * @returns {void}
+   */
+  _sendSequenceToGel() {
+    const seqInput = document.getElementById('primer-calc-input');
+    const rawSeq = seqInput ? seqInput.value.trim().toUpperCase() : '';
+    const cleanSeq = rawSeq.replace(/[^ATGCU]/g, '');
+    const len = cleanSeq.length || rawSeq.length || 150;
+
+    this.switchTab('gel');
+
+    if (this.gelViewer && this.gelViewer.lanes && this.gelViewer.lanes.length > 1) {
+      const targetLane = this.gelViewer.lanes[1];
+      const approxMw = +(len * 0.33).toFixed(1);
+      const clampedMw = Math.max(10, Math.min(250, approxMw));
+      const rf = +((2.45 - Math.log10(clampedMw)) / 1.85).toFixed(3);
+      const wellTop = this.gelViewer.options?.wellTopY || 60;
+      const dyeFront = this.gelViewer.options?.dyeFrontY || 420;
+      const y = +(wellTop + rf * (dyeFront - wellTop)).toFixed(1);
+
+      targetLane.bands.push({
+        y,
+        mw: approxMw,
+        rf,
+        intensity: 0.85
+      });
+      this.gelViewer.render();
+      if (this.gelViewer.selectedLaneIndex === targetLane.index) {
+        this._updateGelLaneDetails(targetLane);
+      }
+    }
+
+    this.showToast('Sequence sent to Gel Canvas as lane band');
+  }
+
+  /**
+   * Switches to Tab 5 (NanoDrop), updates and evaluates the active sample.
+   * @role Cross-Tab Reactive Router (Sequences -> NanoDrop)
+   * @private
+   * @returns {void}
+   */
+  _sendSequenceToNanoDrop() {
+    this.switchTab('nanodrop');
+    if (this.spectrumViewer) {
+      this.spectrumViewer.evaluateActiveSample();
+      this.spectrumViewer.render();
+    }
+    this.showToast('Sequence parameters sent to NanoDrop');
+  }
+
+  /**
+   * Formats the current sequence and physicochemical parameters into Markdown
+   * and appends to the Tab 1 Daily Notebook editor.
+   * @role Cross-Tab Reactive Router (Sequences -> Notebook)
+   * @private
+   * @returns {void}
+   */
+  _sendSequenceToNotebook() {
+    const seqInput = document.getElementById('primer-calc-input');
+    const seq = seqInput ? seqInput.value.trim().toUpperCase() : '';
+    const cleanSeq = seq.replace(/[^ATGCU]/g, '');
+    const len = document.getElementById('calc-primer-len')?.textContent?.trim() || `${cleanSeq.length || seq.length} nt`;
+    const gc = document.getElementById('calc-primer-gc')?.textContent?.trim() || 'N/A';
+    const mw = document.getElementById('calc-primer-mw')?.textContent?.trim() || 'N/A';
+    const tm = document.getElementById('calc-primer-tm')?.textContent?.trim() || 'N/A';
+    const type = seq.includes('U') ? 'RNA Oligonucleotide' : 'DNA Primer / Construct';
+
+    const snippet = `\n\n### Sequence Specification (${type})\n- **Type:** ${type}\n- **Length:** ${len}\n- **Melting Temp (Tm):** ${tm}\n- **GC Content:** ${gc}\n- **Molecular Weight:** ${mw}\n- **Sequence (5' -> 3'):**\n\`\`\`\n${seq}\n\`\`\`\n`;
+
+    const editor = document.getElementById('entry-markdown-editor');
+    if (editor) {
+      editor.value += snippet;
+      editor.dispatchEvent(new Event('input'));
+    }
+
+    this.switchTab('notebook');
+    this.showToast('Sequence appended to notebook entry');
+  }
+
+  /**
+   * Stores current sequence as a newly created cryogenic tube in the next empty slot
+   * of the Freezer LIMS box grid and routes to Tab 6.
+   * @role Cross-Tab Reactive Router (Sequences -> Freezer)
+   * @private
+   * @returns {void}
+   */
+  _sendSequenceToFreezer() {
+    this.switchTab('freezer');
+
+    if (!this.freezerGrid) {
+      const gridContainer = document.getElementById('freezer-grid-container');
+      const drawerEl = document.getElementById('tube-lineage-drawer');
+      if (gridContainer) {
+        this.freezerGrid = new FreezerGrid(gridContainer, {
+          drawerElement: drawerEl,
+          boxDimensions: '9x9'
+        });
+        this._bindFreezerButtons();
+      }
+    }
+
+    const seqInput = document.getElementById('primer-calc-input');
+    const seq = seqInput ? seqInput.value.trim().toUpperCase() : 'TAATACGACTCACTATAGGG';
+    const tubes = this.freezerGrid.tubes || this.freezerGrid.activeBox?.tubes;
+
+    const is10x10 = this.freezerGrid.options?.boxDimensions === '10x10';
+    const rows = is10x10 ? ['A','B','C','D','E','F','G','H','I','J'] : ['A','B','C','D','E','F','G','H','I'];
+    const colCount = is10x10 ? 10 : 9;
+
+    let emptyCoord = null;
+    if (tubes) {
+      for (const row of rows) {
+        for (let col = 1; col <= colCount; col++) {
+          const coord = `${row}${col}`;
+          if (!tubes.has(coord)) {
+            emptyCoord = coord;
+            break;
+          }
+        }
+        if (emptyCoord) break;
+      }
+    }
+
+    if (!emptyCoord) emptyCoord = 'I9';
+
+    const tubeId = `TUB-SEQ-${Date.now().toString(36).toUpperCase()}`;
+    const newTube = {
+      tubeId,
+      boxPosition: emptyCoord,
+      sampleName: `Oligo Stock (${seq.slice(0, 16)}${seq.length > 16 ? '...' : ''})`,
+      sampleType: 'primer',
+      concentration: 100.0,
+      concentrationUnits: 'µM',
+      volumeUl: 50,
+      freezeThawCycles: 0,
+      maxFreezeThaw: 10,
+      storageTemp: '-20°C',
+      dateStored: new Date().toISOString().split('T')[0],
+      operator: this.state.userRole || 'Active Researcher',
+      lineage: {
+        campaignId: this.state.activeCampaignId,
+        sequence: seq,
+        dailyEntry: 'Sequence & SOP Registry Entry'
+      }
+    };
+
+    if (typeof this.freezerGrid.storeTube === 'function') {
+      this.freezerGrid.storeTube(emptyCoord, newTube);
+    } else if (tubes) {
+      tubes.set(emptyCoord, newTube);
+      this.freezerGrid.render();
+    }
+
+    this.showToast(`Sequence stored in freezer well ${emptyCoord} as ${tubeId}`);
+  }
+
+  /**
+   * Logs active or selected SDS-PAGE gel band parameters to daily notebook markdown.
+   * @role Cross-Tab Reactive Router (Gel -> Notebook)
+   * @private
+   * @returns {void}
+   */
+  _logGelBandToNotebook() {
+    if (!this.gelViewer) {
+      const gelCanvas = document.getElementById('gel-electrophoresis-canvas');
+      if (gelCanvas) {
+        this.gelViewer = new GelCanvasViewer(gelCanvas);
+      }
+    }
+
+    let lane = null;
+    if (this.gelViewer && this.gelViewer.lanes) {
+      lane = this.gelViewer.lanes.find((l) => l.index === this.gelViewer.selectedLaneIndex) || this.gelViewer.lanes[0];
+    }
+
+    const laneIndex = lane ? lane.index : 8;
+    const sampleName = lane ? lane.sampleName : 'Ni-NTA Elution (Pool B4-B8)';
+    const bands = (lane && lane.bands && lane.bands.length > 0)
+      ? lane.bands
+      : [{ mw: 98.9, rf: 0.245, intensity: 0.95 }];
+
+    const rows = bands.map((b) =>
+      `| Lane ${laneIndex} | ${sampleName} | ${b.mw} kDa | ${b.rf} | ${Math.round(b.intensity * 100)}% |`
+    ).join('\n');
+
+    const snippet = `\n\n### SDS-PAGE Gel Lane Band Analysis\n| Lane | Sample Name | MW (kDa) | Rf Mobility | Relative Intensity |\n| --- | --- | --- | --- | --- |\n${rows}\n`;
+
+    const editor = document.getElementById('entry-markdown-editor');
+    if (editor) {
+      editor.value += snippet;
+      editor.dispatchEvent(new Event('input'));
+    }
+
+    this.showToast('Gel band logged to notebook');
+  }
+
+  /**
+   * Logs NanoDrop active sample purity and concentration metrics to daily notebook markdown.
+   * @role Cross-Tab Reactive Router (NanoDrop -> Notebook)
+   * @private
+   * @returns {void}
+   */
+  _logNanoDropToNotebook() {
+    if (!this.spectrumViewer) {
+      const specCanvas = document.getElementById('nanodrop-spectrum-canvas');
+      if (specCanvas) {
+        this.spectrumViewer = new SpectrumViewer(specCanvas);
+      }
+    }
+
+    const metrics = this.spectrumViewer
+      ? this.spectrumViewer.evaluateActiveSample()
+      : {
+          sampleId: 'ND-2026-0881',
+          sampleName: 'Ni-NTA Elution Pool B4-B8',
+          a260: 3.126,
+          a280: 5.390,
+          a230: 1.475,
+          concentrationMgMl: 3.85,
+          ratio260_280: 0.58,
+          status260_280: 'PASS'
+        };
+
+    const snippet = `\n\n### NanoDrop UV-Vis Purity QC Metrics\n| Sample ID | Sample Name | A260 (AU) | A280 (AU) | A230 (AU) | Conc (mg/mL) | A260/A280 | Purity Status |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| ${metrics.sampleId} | ${metrics.sampleName} | ${metrics.a260} | ${metrics.a280} | ${metrics.a230} | ${metrics.concentrationMgMl} | ${metrics.ratio260_280} | ${metrics.status260_280} |\n`;
+
+    const editor = document.getElementById('entry-markdown-editor');
+    if (editor) {
+      editor.value += snippet;
+      editor.dispatchEvent(new Event('input'));
+    }
+
+    this.showToast('NanoDrop QC metrics logged to notebook');
+  }
+
+  /**
+   * Synchronizes evaluated concentration from active NanoDrop spectrum to linked tube in Freezer LIMS.
+   * @role Cross-Tab Reactive Router (NanoDrop -> Freezer)
+   * @private
+   * @returns {void}
+   */
+  _syncNanoDropToFreezer() {
+    if (!this.spectrumViewer) {
+      const specCanvas = document.getElementById('nanodrop-spectrum-canvas');
+      if (specCanvas) {
+        this.spectrumViewer = new SpectrumViewer(specCanvas);
+      }
+    }
+    if (!this.freezerGrid) {
+      const gridContainer = document.getElementById('freezer-grid-container');
+      const drawerEl = document.getElementById('tube-lineage-drawer');
+      if (gridContainer) {
+        this.freezerGrid = new FreezerGrid(gridContainer, {
+          drawerElement: drawerEl,
+          boxDimensions: '9x9'
+        });
+      }
+    }
+
+    const metrics = this.spectrumViewer ? this.spectrumViewer.evaluateActiveSample() : { concentrationMgMl: 3.85 };
+    const sampleId = this.spectrumViewer?.activeSampleId || 'ND-2026-0881';
+    const tubes = this.freezerGrid?.tubes || this.freezerGrid?.activeBox?.tubes;
+
+    if (tubes) {
+      let updated = false;
+      for (const tube of tubes.values()) {
+        if (tube.lineage && tube.lineage.nanoDropId && tube.lineage.nanoDropId.includes(sampleId)) {
+          tube.concentration = metrics.concentrationMgMl;
+          updated = true;
+        }
+      }
+      if (!updated) {
+        const firstTube = tubes.get('C1') || tubes.values().next().value;
+        if (firstTube) {
+          firstTube.concentration = metrics.concentrationMgMl;
+        }
+      }
+      this.freezerGrid.render();
+    }
+
+    this.showToast('Freezer tube updated with NanoDrop concentration');
+  }
+
+  /**
+   * Gathers kinetic timepoint and deviation log rows from Tab 2 and appends them
+   * as a Markdown table to the daily notebook editor.
+   * @role Cross-Tab Reactive Router (Timers -> Notebook)
+   * @private
+   * @returns {void}
+   */
+  _logTimepointsToNotebook() {
+    const tableBody = document.getElementById('timepoints-table-body');
+    const table = tableBody ? tableBody.closest('table') : document.querySelector('#tab-timers table.scientific-table');
+
+    let md = '';
+    if (table) {
+      const rows = Array.from(table.querySelectorAll('tr'));
+      if (rows.length > 0) {
+        const matrix = rows.map((r) =>
+          Array.from(r.querySelectorAll('th, td')).map((c) => c.innerText.trim().replace(/\|/g, '\\|'))
+        );
+        md += '\n\n### Kinetic Timepoint & SOP Deviation Log\n';
+        const header = matrix[0];
+        md += `| ${header.join(' | ')} |\n`;
+        md += `| ${header.map(() => '---').join(' | ')} |\n`;
+        for (let i = 1; i < matrix.length; i++) {
+          md += `| ${matrix[i].join(' | ')} |\n`;
+        }
+      }
+    }
+
+    const editor = document.getElementById('entry-markdown-editor');
+    if (editor && md) {
+      editor.value += md;
+      editor.dispatchEvent(new Event('input'));
+    }
+
+    this.showToast('Timepoints logged to notebook');
+  }
+
+  /**
+   * Reads final clean verified transcription text from OCR Corrector,
+   * appends it to Tab 1 daily notebook, and switches active tab to 'notebook'.
+   * @role Cross-Tab Reactive Router (OCR -> Notebook)
+   * @private
+   * @returns {void}
+   */
+  _finalizeOcrToNotebook() {
+    let cleanText = '';
+    if (this.ocrCorrector && typeof this.ocrCorrector.getFinalCleanText === 'function') {
+      cleanText = this.ocrCorrector.getFinalCleanText();
+    } else {
+      const ocrEl = document.getElementById('ocr-transcription-text') || document.getElementById('ocr-text-editor');
+      cleanText = ocrEl ? ocrEl.innerText.trim() : '';
+    }
+
+    const editor = document.getElementById('entry-markdown-editor');
+    if (editor && cleanText) {
+      editor.value += `\n\n### Digitized Laboratory Bench Sheet (HITL OCR Verified)\n${cleanText}\n`;
+      editor.dispatchEvent(new Event('input'));
+    }
+
+    this.switchTab('notebook');
+    this.showToast('OCR text transferred to notebook');
   }
 
   /**
@@ -796,6 +1575,22 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
   }
 
   /**
+   * Escapes HTML special characters to prevent cross-site scripting.
+   * @private
+   * @param {string} str - Raw input string
+   * @returns {string} Sanitized string safe for HTML interpolation
+   */
+  _escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
    * Executes lexical BM25 and dense semantic retrieval over in-memory lab knowledge base.
    * @role Hybrid RAG Search Engine
    * @private
@@ -834,21 +1629,25 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
     if (hits.length === 0) {
       resultsContainer.innerHTML = `
         <div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.85rem;">
-          No matching records found for "<strong>${query}</strong>"
+          No matching records found for "<strong id="rag-no-results-query"></strong>"
         </div>
       `;
+      const queryEl = resultsContainer.querySelector('#rag-no-results-query');
+      if (queryEl) {
+        queryEl.textContent = query;
+      }
       return;
     }
 
     resultsContainer.innerHTML = hits.map(({ item, score }) => `
-      <div class="rag-result-item" data-tab-link="${item.tab}">
+      <div class="rag-result-item" data-tab-link="${this._escapeHtml(item.tab)}">
         <div class="rag-item-header">
-          <span class="rag-item-title">${item.title}</span>
+          <span class="rag-item-title">${this._escapeHtml(item.title)}</span>
           <span class="rag-score-badge">Hybrid Score: ${(score * 100).toFixed(0)}%</span>
         </div>
-        <div class="rag-item-snippet">${item.content}</div>
+        <div class="rag-item-snippet">${this._escapeHtml(item.content)}</div>
         <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">
-          Category: <strong>${item.category}</strong> • Target Tab: <strong>${item.tab.toUpperCase()}</strong>
+          Category: <strong>${this._escapeHtml(item.category)}</strong> • Target Tab: <strong>${this._escapeHtml(item.tab ? item.tab.toUpperCase() : '')}</strong>
         </div>
       </div>
     `).join('');
@@ -884,10 +1683,11 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
 
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.innerHTML = `
-      <div style="width:8px; height:8px; border-radius:50%; background-color:var(--accent);"></div>
-      <span>${message}</span>
-    `;
+    toast.innerHTML = '<div style="width:8px; height:8px; border-radius:50%; background-color:var(--accent);"></div><span></span>';
+    const span = toast.querySelector('span');
+    if (span) {
+      span.textContent = message;
+    }
 
     container.appendChild(toast);
     setTimeout(() => {

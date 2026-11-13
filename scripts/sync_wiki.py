@@ -13,7 +13,8 @@ import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIKI_SRC = os.path.join(REPO_ROOT, "wiki")
-DEFAULT_REMOTE = "https://github.com/kabe89/BioLabCalc.wiki.git"
+DEFAULT_REPO_SLUG = os.environ.get("GITHUB_REPOSITORY", "kabe89/BioLabCalc")
+DEFAULT_REMOTE = f"https://github.com/{DEFAULT_REPO_SLUG}.wiki.git"
 CLONE_DIR = os.path.join(REPO_ROOT, ".wiki_clone")
 
 
@@ -105,8 +106,10 @@ def main():
         return
 
     # 5. Add, commit, and push
-    run_cmd(["git", "config", "user.name", "kabe89"], cwd=CLONE_DIR)
-    run_cmd(["git", "config", "user.email", "Kyle71lininger@gmail.com"], cwd=CLONE_DIR)
+    bot_name = os.environ.get("GIT_AUTHOR_NAME", "github-actions[bot]")
+    bot_email = os.environ.get("GIT_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
+    run_cmd(["git", "config", "user.name", bot_name], cwd=CLONE_DIR)
+    run_cmd(["git", "config", "user.email", bot_email], cwd=CLONE_DIR)
     run_cmd(["git", "add", "-A"], cwd=CLONE_DIR)
     ok, _, _ = run_cmd(["git", "commit", "-m", args.message], cwd=CLONE_DIR)
     if not ok:
@@ -120,7 +123,7 @@ def main():
         sys.exit(1)
 
     print("[+] Successfully pushed wiki documentation to GitHub Wiki!")
-    print(f"[+] View the live wiki at: https://github.com/kabe89/BioLabCalc/wiki")
+    print(f"[+] View the live wiki at: https://github.com/{DEFAULT_REPO_SLUG}/wiki")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,14 @@
-import unittest
 import os
-import urllib.request
-import urllib.error
+import sys
 import tempfile
+import unittest
+import urllib.error
+import urllib.request
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.interactive_gel import (
     get_interactive_html,
     save_interactive_app,

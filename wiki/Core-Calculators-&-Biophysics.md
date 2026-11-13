@@ -35,6 +35,24 @@ Standard single-stranded DNA (ssDNA) synthesized via solid-phase phosphoramidite
 | **G** | 2'-deoxyguanosine-5'-monophosphate | $329.21$ | $329.0525$ | $\text{C}_{10}\text{H}_{12}\text{N}_5\text{O}_6\text{P}$ |
 | **T** | 2'-deoxythymidine-5'-monophosphate | $304.20$ | $304.0460$ | $\text{C}_{10}\text{H}_{13}\text{N}_2\text{O}_7\text{P}$ |
 
+#### Degenerate IUPAC Deoxyribonucleotide Masses
+
+When degenerate primers or wobble positions are evaluated, BioLabCalc models IUPAC ambiguity codes as the arithmetic mean of constituent bases:
+
+| Code | Bases Represented | Average MW (g/mol) | Monoisotopic MW (g/mol) | Formulation Basis |
+| :---: | :--- | :---: | :---: | :--- |
+| **R** | A or G (Purine) | $321.21$ | $321.0551$ | $(MW_A + MW_G) / 2$ |
+| **Y** | C or T (Pyrimidine) | $296.69$ | $296.5462$ | $(MW_C + MW_T) / 2$ |
+| **S** | G or C (Strong) | $309.20$ | $309.0495$ | $(MW_G + MW_C) / 2$ |
+| **W** | A or T (Weak) | $308.71$ | $308.5518$ | $(MW_A + MW_T) / 2$ |
+| **K** | G or T (Keto) | $316.71$ | $316.5493$ | $(MW_G + MW_T) / 2$ |
+| **M** | A or C (Amino) | $301.20$ | $301.0520$ | $(MW_A + MW_C) / 2$ |
+| **B** | C, G, or T (not A) | $307.53$ | $307.3816$ | $(MW_C + MW_G + MW_T) / 3$ |
+| **D** | A, G, or T (not C) | $315.54$ | $315.3854$ | $(MW_A + MW_G + MW_T) / 3$ |
+| **H** | A, C, or T (not G) | $302.20$ | $302.0500$ | $(MW_A + MW_C + MW_T) / 3$ |
+| **V** | A, C, or G (not T) | $310.53$ | $310.3855$ | $(MW_A + MW_C + MW_G) / 3$ |
+| **N** | A, C, G, or T (Any) | $308.95$ | $308.8006$ | $(MW_A + MW_C + MW_G + MW_T) / 4$ |
+
 #### Terminal & Structural Adjustments ($\Delta MW$)
 
 | 5' Terminal Chemistry | $\Delta MW_{\text{avg}}$ (g/mol) | $\Delta MW_{\text{mono}}$ (g/mol) | Description |
@@ -66,6 +84,24 @@ Ribonucleic acid exhibits greater structural complexity at its termini and inter
 | **C** | Cytidine-5'-monophosphate | $305.18$ | $305.0413$ | $\text{C}_{9}\text{H}_{12}\text{N}_3\text{O}_7\text{P}$ |
 | **G** | Guanosine-5'-monophosphate | $345.21$ | $345.0474$ | $\text{C}_{10}\text{H}_{12}\text{N}_5\text{O}_7\text{P}$ |
 | **U** | Uridine-5'-monophosphate | $306.17$ | $306.0253$ | $\text{C}_{9}\text{H}_{11}\text{N}_2\text{O}_8\text{P}$ |
+
+#### Degenerate IUPAC Ribonucleotide Masses
+
+For RNA degenerate probes and combinatorial transcript libraries:
+
+| Code | Bases Represented | Average MW (g/mol) | Monoisotopic MW (g/mol) | Formulation Basis |
+| :---: | :--- | :---: | :---: | :--- |
+| **R** | A or G (Purine) | $337.21$ | $337.0500$ | $(MW_A + MW_G) / 2$ |
+| **Y** | C or U (Pyrimidine) | $305.68$ | $305.5333$ | $(MW_C + MW_U) / 2$ |
+| **S** | G or C (Strong) | $325.20$ | $325.0444$ | $(MW_G + MW_C) / 2$ |
+| **W** | A or U (Weak) | $317.69$ | $317.5389$ | $(MW_A + MW_U) / 2$ |
+| **K** | G or U (Keto) | $325.69$ | $325.5364$ | $(MW_G + MW_U) / 2$ |
+| **M** | A or C (Amino) | $317.20$ | $317.0469$ | $(MW_A + MW_C) / 2$ |
+| **B** | C, G, or U (not A) | $318.85$ | $318.7047$ | $(MW_C + MW_G + MW_U) / 3$ |
+| **D** | A, G, or U (not C) | $326.86$ | $326.7084$ | $(MW_A + MW_G + MW_U) / 3$ |
+| **H** | A, C, or U (not G) | $313.52$ | $313.3730$ | $(MW_A + MW_C + MW_U) / 3$ |
+| **V** | A, C, or G (not U) | $326.53$ | $326.3804$ | $(MW_A + MW_C + MW_G) / 3$ |
+| **N** | A, C, G, or U (Any) | $321.44$ | $321.2916$ | $(MW_A + MW_C + MW_G + MW_U) / 4$ |
 
 #### RNA Terminal Chemistries
 
@@ -122,6 +158,20 @@ where $MW_{\text{terminal H}_2\text{O}} = 18.015\text{ g/mol}$ (monoisotopic: $1
 | **Trp** | W | Tryptophan | $186.21$ | $186.07931$ | Non-polar, aromatic indole |
 | **Tyr** | Y | Tyrosine | $163.18$ | $163.06333$ | Polar, aromatic phenol |
 | **Val** | V | Valine | $99.13$ | $99.06841$ | Non-polar, branched aliphatic |
+| **Sec** | U | Selenocysteine | $150.04$ | $150.9536$ | Polar, catalytic selenium thiol analog ($\text{C}_3\text{H}_5\text{NOSe}$), 21st amino acid |
+| **Pyl** | O | Pyrrolysine | $237.30$ | $237.1477$ | Basic, pyrroline-linked lysine derivative ($\text{C}_{12}\text{H}_{19}\text{N}_3\text{O}_2$), 22nd amino acid |
+
+#### Non-Canonical Amino Acid Physics
+
+BioLabCalc natively incorporates the 21st and 22nd genetically encoded amino acids into polypeptide stoichiometry:
+
+1. **Selenocysteine (Sec, U):**
+   - Encoded by the UGA stop codon in the presence of a downstream selenocysteine insertion sequence (SECIS) stem-loop element.
+   - Replaces the sulfur atom in cysteine with selenium ($\text{Se}$, atomic mass $78.96\text{ Da}$), resulting in an in-chain chemical formula of $\text{C}_3\text{H}_5\text{NOSe}$ with average residue MW $150.04\text{ g/mol}$ and monoisotopic residue MW $150.9536\text{ g/mol}$.
+
+2. **Pyrrolysine (Pyl, O):**
+   - Encoded by the UAG stop codon in specific methanogenic archaea and methylotrophic bacteria via a specialized pyrrolysyl-tRNA synthetase.
+   - Consists of a 4-methyl-pyrroline-5-carboxylate linked to the $\epsilon$-amine of lysine ($\text{C}_{12}\text{H}_{19}\text{N}_3\text{O}_2$) with average residue MW $237.30\text{ g/mol}$ and monoisotopic residue MW $237.1477\text{ g/mol}$.
 
 #### Disulfide Bond Accounting
 

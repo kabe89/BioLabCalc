@@ -1,7 +1,13 @@
-import unittest
-import os
 import json
+import os
+import sys
 import tempfile
+import unittest
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.lab_report import LabReport, MeasurementRecord, new_lab_report, record_measurement
 from biolabcalc.easy import new_report, record, export_report
 from biolabcalc.transcription import calculate_ivt_yield

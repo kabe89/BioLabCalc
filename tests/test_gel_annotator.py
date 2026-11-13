@@ -1,17 +1,23 @@
-import unittest
 import os
+import sys
 import tempfile
-from PIL import Image
+import unittest
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 try:
+    from PIL import Image
     import openpyxl
     import matplotlib
     from biolabcalc.gel_annotator import GelAnnotator
     HAS_DEPS = True
 except ImportError:
     HAS_DEPS = False
+    Image = None
 
-@unittest.skipUnless(HAS_DEPS, "openpyxl and matplotlib required for GelAnnotator tests")
+@unittest.skipUnless(HAS_DEPS, "PIL, openpyxl and matplotlib required for GelAnnotator tests")
 class TestGelAnnotator(unittest.TestCase):
     def setUp(self):
         self.output_png = os.path.join(tempfile.gettempdir(), "test_annotator_out.png")

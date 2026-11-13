@@ -1,4 +1,11 @@
+import os
+import sys
 import unittest
+
+_src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 from biolabcalc.protein import calculate_extinction_coefficient, quantify_protein_a280, fit_standard_curve
 
 class TestProtein(unittest.TestCase):

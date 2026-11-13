@@ -802,14 +802,30 @@ class Engine:
 
         conn = getattr(self._local, "conn", None)
         if conn is None:
+            # Check if path represents a network share (UNC path or designated network share mode)
+            is_network = (
+                self.db_path.startswith(("\\\\", "//"))
+                or (len(self.db_path) >= 2 and self.db_path[1] == ":" and self.db_path[0].upper() in "DEFGHIJKLMNOPQRSTUVWXYZ")
+                or os.environ.get("BIOLABCALC_STORAGE_MODE") == "network_share"
+            )
+            effective_timeout = 60.0 if is_network else 30.0
             conn = sqlite3.connect(
                 self.db_path,
-                timeout=30.0,
+                timeout=effective_timeout,
                 check_same_thread=False,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
             )
             conn.execute("PRAGMA foreign_keys = ON;")
-            conn.execute("PRAGMA journal_mode = WAL;")
+            if is_network:
+                # Network-safe pragmas: DELETE journal mode avoids SMB/NFS shared-memory (-shm) failures
+                try:
+                    conn.execute("PRAGMA journal_mode = DELETE;")
+                    conn.execute("PRAGMA busy_timeout = 60000;")
+                    conn.execute("PRAGMA locking_mode = NORMAL;")
+                except Exception:
+                    pass
+            else:
+                conn.execute("PRAGMA journal_mode = WAL;")
             conn.create_function("COSINE_SIMILARITY", 2, _sqlite_cosine_similarity)
             self._local.conn = conn
         return conn

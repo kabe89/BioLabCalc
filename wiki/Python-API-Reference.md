@@ -216,7 +216,7 @@ def wb_troubleshoot(symptom: str) -> WesternTroubleshootingResult
 
 ### `easy.new_report`, `easy.record`, and `easy.export_report`
 
-Session-based laboratory notebook and QC measurement logging:
+Session-based laboratory notebook and QC measurement logging with universal result mapping:
 
 ```python
 def new_report(
@@ -227,23 +227,142 @@ def new_report(
 ) -> LabReport
 
 def record(
-    sample_id: str,
-    parameter: str,
-    value: float,
-    unit: str,
-    target: Optional[float] = None,
-    tolerance_pct: Optional[float] = None,
+    result: Any,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Sample-1",
     notes: str = "",
-) -> MeasurementRecord
+) -> List[MeasurementRecord]
 
 def export_report(filepath: str, title: Optional[str] = None) -> str
+```
+
+- **`easy.record`**: Universal auto-recording helper that wraps `auto_record`. When passed any BioLabCalc calculation result (such as `PCRResult`, `IVTYieldResult`, `DigestSetupResult`, etc.), it inspects the object, extracts key quantitative parameters, targets, and tolerances, and logs them into the active `LabReport`. For backwards compatibility or scalar entries, manual measurements can also be logged via `record_measurement(sample_id, parameter, value, unit, target, tolerance_pct, notes)`.
+
+### `easy.cloning_workflow`
+
+Executes an end-to-end molecular cloning workflow pipeline combining primer analysis, PCR kinetics, gel migration, restriction digestion, molecular assembly, and bacterial growth modeling into a consolidated outcome.
+
+```python
+def cloning_workflow(
+    primer_fwd: Optional[str] = None,
+    primer_rev: Optional[str] = None,
+    amplicon_len_bp: int = 1000,
+    template_ng: float = 10.0,
+    vector_length_bp: int = 3000,
+    insert_length_bp: Optional[int] = None,
+    enzyme_1: str = "EcoRI",
+    enzyme_2: Optional[str] = "BamHI",
+    dna_mass_ug: float = 1.0,
+    assembly_method: str = "ligation",
+    molar_ratio: float = 3.0,
+    target_od600: float = 0.6,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Clone-1",
+    notes: str = "Molecular cloning workflow",
+) -> CloningWorkflowResult
+```
+
+- **Returns**: `CloningWorkflowResult` containing all intermediate dataclass results, populated `LabReport`, and human-readable `.summary()`.
+
+### `easy.ivt_workflow`
+
+Executes an end-to-end *in vitro* transcription mRNA synthesis workflow chaining transcript biophysical assessment, yield kinetics, incubation duration optimization, HEPES reaction buffer formulation, and alcohol precipitation clean-up.
+
+```python
+def ivt_workflow(
+    rna_seq: str,
+    reaction_volume_ul: float = 20.0,
+    target_yield_ug: Optional[float] = None,
+    template_dna_ng: Optional[float] = 1000.0,
+    buffer_type: str = "hepes",
+    target_buffer_volume_ml: float = 50.0,
+    precipitation_alcohol: str = "ethanol",
+    precipitation_salt: str = "naoac",
+    report: Optional[LabReport] = None,
+    sample_id: str = "IVT-Batch-1",
+    notes: str = "IVT synthesis workflow",
+) -> IVTWorkflowResult
+```
+
+- **Returns**: `IVTWorkflowResult` containing all intermediate dataclass results, populated `LabReport`, and human-readable `.summary()`.
+
+### `easy.rc`
+
+Returns the $5' \rightarrow 3'$ reverse complement of a DNA or RNA sequence. Automatically handles IUPAC degenerate nucleotide codes.
+
+```python
+def rc(seq: str, seq_type: str = "dna") -> str
+```
+
+### `easy.translate`
+
+Translates a nucleotide sequence into amino acids in the specified reading frame.
+
+```python
+def translate(seq: str, frame: int = 1, to_stop: bool = False) -> str
+```
+
+- **Parameters**:
+  - `seq`: Nucleotide sequence (DNA or RNA).
+  - `frame`: Reading frame (`1, 2, 3` for forward; `-1, -2, -3` for reverse complement).
+  - `to_stop`: If `True`, terminates translation at the first stop codon (`*`).
+
+### `easy.gc`
+
+Calculates the GC content percentage of a DNA or RNA sequence.
+
+```python
+def gc(seq: str) -> float
+```
+
+- **Returns**: GC percentage rounded to 2 decimal places ($0.0 - 100.0\%$).
+
+### `easy.transcribe` & `easy.reverse_transcribe`
+
+Converts between DNA coding sequences and RNA transcripts.
+
+```python
+def transcribe(seq: str) -> str
+def reverse_transcribe(seq: str) -> str
+```
+
+- `transcribe`: Substitutes thymine ($\text{T}$) with uracil ($\text{U}$).
+- `reverse_transcribe`: Substitutes uracil ($\text{U}$) with thymine ($\text{T}$).
+
+### `easy.find_orfs`
+
+Scans all six reading frames for open reading frames starting at $\text{ATG}$ and ending at an in-frame stop codon.
+
+```python
+def find_orfs(seq: str, min_aa: int = 30) -> List[ORF]
+```
+
+- **Parameters**:
+  - `seq`: Nucleotide sequence.
+  - `min_aa`: Minimum peptide length in amino acids (excluding stop codon) to report. Default: `30`.
+- **Returns**: List of `ORF` records containing `frame`, `start_nt`, `end_nt`, `length_nt`, `length_aa`, `dna_sequence`, and `protein_sequence`.
+
+### `easy.convert`
+
+Universal converter across laboratory mass, volume, molarity, and substance amount.
+
+```python
+def convert(val: Union[str, float], to_unit: str, mw: Optional[float] = None) -> float
+```
+
+### `easy.batch_csv`
+
+High-throughput batch processing of sequence tables from CSV or TSV files.
+
+```python
+def batch_csv(input_path: str, output_path: str, delimiter: Optional[str] = None) -> Dict[str, Any]
 ```
 
 ---
 
 ## 2. Top-Level Core Functions (`biolabcalc`)
 
-### Sequence Utilities (`biolabcalc.seq_utils`)
+### Sequence Utilities (`biolabcalc.seq_utils` & `biolabcalc`)
 
 ```python
 clean_sequence(seq: str) -> str
@@ -251,7 +370,29 @@ validate_sequence(seq: str, seq_type: str = "dna") -> bool
 reverse_complement(seq: str, seq_type: str = "dna") -> str
 calculate_gc_content(seq: str) -> float
 count_bases(seq: str) -> Dict[str, int]
-translate_dna(seq: str, reading_frame: int = 1) -> str
+translate_dna(seq: str, frame: int = 1, to_stop: bool = False) -> str
+six_frame_translation(seq: str, to_stop: bool = False) -> Dict[int, str]
+transcribe(dna_seq: str) -> str
+reverse_transcribe(rna_seq: str) -> str
+find_orfs(seq: str, min_length_aa: int = 30) -> List[ORF]
+parse_fasta(text_or_path: str) -> List[Tuple[str, str]]
+format_fasta(header: str, seq: str, line_length: int = 60) -> str
+```
+
+#### `parse_fasta`
+
+Parses a FASTA-formatted string or file into a list of `(header, sequence)` tuples.
+
+```python
+def parse_fasta(text_or_path: str) -> List[Tuple[str, str]]
+```
+
+#### `format_fasta`
+
+Formats a sequence and header into standard multi-line FASTA format with wrapped lines.
+
+```python
+def format_fasta(header: str, seq: str, line_length: int = 60) -> str
 ```
 
 ### Molecular Weight & Conversions (`biolabcalc.molecular_weight`)
@@ -550,6 +691,118 @@ calculate_phenol_chloroform_extraction(
     phenol_ph: Optional[float] = None
 ) -> PhenolChloroformProtocol
 ```
+
+### Laboratory Reporting & Dynamic QC Mapping (`biolabcalc.lab_report`)
+
+The `biolabcalc.lab_report` module manages structured laboratory notebook sessions, automated measurement extraction, compliance audits, and multi-format exports (Markdown, Excel `.xlsx`, CSV, and JSON).
+
+```python
+auto_record(
+    result: Any,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Sample-1",
+    notes: str = "",
+) -> List[MeasurementRecord]
+```
+
+- **Dynamic Parameter Extraction**: Automatically inspects dataclass fields or dictionary keys and maps quantitative parameters into structured `MeasurementRecord` entries:
+  1. **`PCRResult` & `PCROptimizationResult`**: Amplicon Length (`bp`), Template Input (`ng`), Amplicon Yield (`ng` and `pmol`), PCR Efficiency (`%`, target 100%, tolerance 20%), dNTP Initial / Consumed (`nmol`), Annealing Temp (`°C`), Extension Time (`s`), GC Content (`%`).
+  2. **`IVTYieldResult` & `IVTResult`**: RNA Length (`nt`), RNA Molecular Weight (`Da`), RNA Yield (`µg` and `pmol`), Transcript Turnover Ratio (`x`), NTP Incorporation (`%`, target 100%, tolerance 30%), Overall Efficiency (`%`), Pyrophosphate Released (`µg`), Optimal Incubation Time (`h`).
+  3. **`DigestSetupResult`**: DNA Mass (`µg`), Reaction Volume (`µL`), Incubation Temperature (`°C`), Incubation Time (`min`).
+  4. **`ProteinYieldResult` & `ProteinAnalysis`**: Protein Concentration (`mg/mL`), Total Protein Yield (`mg`), Molarity (`µM`), Molecular Weight (`Da`), Extinction Coefficient (reduced, `M⁻¹cm⁻¹`).
+  5. **`NanoDropPurityResult`**: $A_{260}$, $A_{280}$, $A_{230}$ (`AU`), $A_{260}/A_{280}$ ratio (target 1.8 for DNA or 2.0 for RNA, tolerance 15%), $A_{260}/A_{230}$ ratio (target 2.0, tolerance 20%), Corrected Concentration (`ng/µL`).
+  6. **`SolutionRecipeResult`**: Target Molarity (`µM`), Required Mass (`µg`), Actual Concentration (`ng/µL`), Sequence-Specific Expected $A_{260}$ (`AU`).
+  7. **`LigationSetupResult`**: Vector Mass (`ng`), Insert Mass (`ng`), Insert:Vector Molar Ratio, Vector pmol, Insert pmol.
+  8. **`GibsonAssemblyResult`**: Vector Mass (`ng`), Total DNA pmol, Individual Insert Masses (`ng`).
+  9. **`GoldenGateResult`**: Vector Mass (`ng`), Total DNA Mass (`ng`), Insert:Vector Molar Ratio.
+  10. **`BufferRecipeResult` & `HepesIVTBufferResult`**: Buffer Volume (`mL`), Target pH.
+  11. **`EcoliGrowthResult` & `PlasmidYieldResult`**: Doubling Time (`min`), Time to Target $OD_{600}$ (`h`), Target Cells/mL, Culture Volume (`mL`), Plasmid Yield (`µg`).
+  12. **`MolecularWeightResult`**: Sequence Length (`nt` or `aa`), Average MW (`Da`), GC Content (`%`).
+
+#### `LabReport` Session Management & Serialization
+
+```python
+class LabReport:
+    @classmethod
+    def load_or_create(cls, filepath: str, title: str = "Laboratory Experiment Report") -> LabReport:
+        """Load an existing report from file if present, or create a new empty report session."""
+
+    @classmethod
+    def from_json(cls, json_str_or_path: str) -> LabReport:
+        """Load a LabReport and its records from a JSON string or file path."""
+
+    def add_record(self, sample_id: str, parameter: str, value: float, unit: str, target: Optional[float] = None, tolerance_pct: Optional[float] = None, notes: str = "") -> MeasurementRecord: ...
+    def to_markdown(self, filepath: Optional[str] = None) -> str: ...
+    def to_excel(self, filepath: str) -> str: ...
+    def to_csv(self, filepath: str) -> str: ...
+    def to_json(self, filepath: Optional[str] = None) -> str: ...
+```
+
+- **`LabReport.load_or_create(filepath, title=...)`**: Reads an existing `.json` report file if present on disk, deserializing its full history and measurements via `from_json`. If the file does not exist, instantiates a fresh `LabReport` session with the specified title. This facilitates multi-step CLI executions and iterative workflows where measurements accumulate into a continuous audit ledger.
+- **`LabReport.from_json(json_str_or_path)`**: Reconstructs an identical `LabReport` instance from a JSON string or filesystem path, restoring title, experimenter, project metadata, conclusion statements, and all `MeasurementRecord` entries including timestamps, evaluated tolerance bounds, and `PASS`/`WARN` compliance statuses.
+
+---
+
+### End-to-End Orchestrated Workflows (`biolabcalc.workflows`)
+
+The `biolabcalc.workflows` module provides high-level automated execution pipelines for complex multi-step laboratory protocols. Each workflow automatically links consecutive calculators and logs all intermediate metrics into a `LabReport`.
+
+#### `cloning_workflow`
+
+```python
+def cloning_workflow(
+    primer_fwd: Optional[str] = None,
+    primer_rev: Optional[str] = None,
+    amplicon_len_bp: int = 1000,
+    template_ng: float = 10.0,
+    vector_length_bp: int = 3000,
+    insert_length_bp: Optional[int] = None,
+    enzyme_1: str = "EcoRI",
+    enzyme_2: Optional[str] = "BamHI",
+    dna_mass_ug: float = 1.0,
+    assembly_method: str = "ligation",
+    molar_ratio: float = 3.0,
+    target_od600: float = 0.6,
+    report: Optional[LabReport] = None,
+    sample_id: str = "Clone-1",
+    notes: str = "Molecular cloning workflow",
+) -> CloningWorkflowResult
+```
+
+Chains 6 discrete molecular biology operations into a unified pipeline:
+1. **Primer Thermodynamics & Cycling Optimization**: Computes $T_m$, GC%, and dimer/hairpin risks for forward and reverse primers; determines optimal annealing temperature ($T_a$) and extension time.
+2. **PCR Kinetics Simulation**: Simulates exponential amplification, amplicon yield ($\text{ng}$ and $\text{pmol}$), and dNTP exhaustion across 30 cycles.
+3. **Agarose Gel Electrophoresis Simulation**: Predicts band migration distances against a 1 kb DNA ladder for both amplicon and vector fragments.
+4. **Restriction Enzyme Digestion**: Formulates single or double digest setups with buffer compatibility recommendations and incubation parameters.
+5. **Molecular Assembly Stoichiometry**: Calculates component masses and molar excess for standard T4 DNA ligation, isothermal Gibson Assembly, or Type IIS Golden Gate assembly.
+6. **Bacterial Transformation & Growth**: Models *E. coli* post-transformation recovery, doubling time, and incubation duration required to achieve target harvest density ($OD_{600}$).
+7. **Automated Audit Logging**: Registers all critical parameters into the returned `CloningWorkflowResult.report`.
+
+#### `ivt_workflow`
+
+```python
+def ivt_workflow(
+    rna_seq: str,
+    reaction_volume_ul: float = 20.0,
+    target_yield_ug: Optional[float] = None,
+    template_dna_ng: Optional[float] = 1000.0,
+    buffer_type: str = "hepes",
+    target_buffer_volume_ml: float = 50.0,
+    precipitation_alcohol: str = "ethanol",
+    precipitation_salt: str = "naoac",
+    report: Optional[LabReport] = None,
+    sample_id: str = "IVT-Batch-1",
+    notes: str = "IVT synthesis workflow",
+) -> IVTWorkflowResult
+```
+
+Chains 5 discrete *in vitro* transcription operations into an mRNA synthesis pipeline:
+1. **Transcript Molecular Weight & Sequence Assessment**: Calculates average molecular weight, GC content, and sequence-specific extinction coefficient.
+2. **IVT Yield Kinetics & Substrate Turnover**: Predicts microgram RNA yield, transcript turnover ratio per template DNA, NTP consumption, and byproduct pyrophosphate ($\text{PPi}$) release.
+3. **Incubation Duration Optimization**: Recommends optimal transcription incubation time based on transcript length and target yield to prevent premature degradation.
+4. **Reaction Buffer Formulation**: Generates 10X/5X HEPES-KOH IVT buffer recipe with physiological temperature compensation ($\Delta\text{pH}/\Delta T = -0.014/\text{°C}$).
+5. **Nucleic Acid Precipitation Protocol**: Formulates downstream alcohol precipitation (ethanol or isopropanol) and salt conditions for clean transcript recovery.
+6. **Automated Audit Logging**: Registers all synthesis metrics into the returned `IVTWorkflowResult.report`.
 
 ---
 
@@ -1066,3 +1319,37 @@ Returned by `assess_nanodrop_purity`.
 | `corrected_a260` | `float` | Absorbance at 260 nm after subtracting baseline background |
 | `corrected_concentration_ng_ul`| `float` | Adjusted concentration in $\text{ng/}\mu\text{L}$ |
 | `diagnostic_feedback` | `List[str]` | Prioritized diagnostic notes and clean-up recommendations |
+
+---
+
+### 27. `CloningWorkflowResult`
+Returned by `cloning_workflow` and `easy.cloning_workflow`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `primer_analysis` | `Optional[Dict[str, Any]]` | Thermodynamic parameters for forward and reverse primers ($T_m$, GC%, hairpin/dimer risks) |
+| `pcr_protocol` | `Optional[PCROptimizationResult]` | Optimal cycling protocol including recommended annealing temperature and extension time |
+| `pcr_kinetics` | `PCRResult` | Amplification kinetics, amplicon yield in $\text{ng}$/$\text{pmol}$, and dNTP consumption |
+| `gel_simulation` | `GelLaneSimulation` | Simulated migration bands against molecular weight ladder |
+| `digest_plan` | `DigestSetupResult` | Restriction enzyme digestion formulation and buffer compatibility |
+| `assembly_plan` | `Union[LigationSetupResult, GibsonAssemblyResult, GoldenGateResult]` | Stoichiometric reaction setup for ligation, Gibson, or Golden Gate assembly |
+| `inoculation_plan` | `EcoliGrowthResult` | Post-transformation *E. coli* growth kinetics and time to target $OD_{600}$ |
+| `report` | `LabReport` | Complete audit report session containing all logged QC measurements |
+
+- **`summary()`**: Returns a formatted multi-line summary string summarizing amplicon yield, simulated bands, digest setup, assembly type, growth time, and total logged records.
+
+---
+
+### 28. `IVTWorkflowResult`
+Returned by `ivt_workflow` and `easy.ivt_workflow`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `template_analysis` | `MolecularWeightResult` | Biophysical characterization of the transcript (molecular weight, length, GC content) |
+| `ivt_yield` | `IVTResult` | Quantitative transcription yield, transcript turnover ratio, and $\text{PPi}$ release |
+| `incubation_time` | `Any` | Optimal reaction incubation duration based on transcript length and kinetics |
+| `precipitation_recipe` | `PrecipitationProtocol` | Alcohol and salt volumes for transcript recovery and resuspension instructions |
+| `hepes_buffer` | `HepesIVTBufferResult` | 10X/5X HEPES-KOH reaction buffer formulation with temperature compensation |
+| `report` | `LabReport` | Complete audit report session containing all logged QC measurements |
+
+- **`summary()`**: Returns a formatted multi-line summary string summarizing transcript length, predicted yield, turnover, optimal incubation hours, precipitation volume, buffer recipe, and logged records.

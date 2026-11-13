@@ -51,8 +51,8 @@ def verify_wiki():
             if matches:
                 errors.append(f"Forbidden pattern '{pattern}' found in {f} ({len(matches)} occurrences)")
 
-        # Link validation: find [label](Page-Name) with balanced parentheses
-        standard_links = re.findall(r"\[([^\]]+)\]\(((?:[^()#]+|\([^()#]*\))+)(?:#[^)]+)?\)", content)
+        # Link validation: find [label](Page-Name) with balanced parentheses without catastrophic backtracking
+        standard_links = re.findall(r"\[([^\]]+)\]\(([^()#\s]+(?:\([^()#\s]*\)[^()#\s]*)*)(?:#[^)\s]+)?\)", content)
         for label, target in standard_links:
             # Skip external links
             if target.startswith("http://") or target.startswith("https://") or target.startswith("mailto:"):

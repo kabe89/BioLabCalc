@@ -17,7 +17,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from PIL import Image, ImageOps
+try:
+    from PIL import Image, ImageOps
+except ImportError:
+    Image = None  # type: ignore
+    ImageOps = None  # type: ignore
 
 from biolabcalc.eln.storage.blob_store import BlobStore
 

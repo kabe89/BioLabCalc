@@ -1,0 +1,27 @@
+# ==============================================================================
+# BioLabCalc - Development, Testing & Quality Assurance Dependencies
+# ==============================================================================
+# Testing frameworks, static analysis linters, and package distribution tools.
+#
+# Install with:
+#   pip install -r requirements-dev.txt
+# ==============================================================================
+
+-r requirements.txt
+
+# ------------------------------------------------------------------------------
+# Test Runner & Fixture Framework
+# ------------------------------------------------------------------------------
+pytest>=7.0.0               # Modern test runner, test discovery, and assertions (pyproject.toml [project.optional-dependencies.dev])
+
+# ------------------------------------------------------------------------------
+# Code Quality, Linting & Style Enforcement
+# ------------------------------------------------------------------------------
+flake8>=5.0.0               # PEP 8 style guide enforcement and syntax checker (pyproject.toml [project.optional-dependencies.dev])
+
+# ------------------------------------------------------------------------------
+# Packaging, Build System & Release Tooling
+# ------------------------------------------------------------------------------
+setuptools>=61.0            # Build backend and package distribution metadata (pyproject.toml [build-system])
+wheel>=0.38.0               # Binary wheel distribution format builder (pyproject.toml [build-system], scripts/release.py)
+twine>=4.0.0                # PyPI distribution validation and secure uploading utility (scripts/release.py)

@@ -40,6 +40,7 @@ from .sequence_service import (
     get_sequence_service,
 )
 from .sop_service import MasterSOP, SOPFork, SOPService, SOPStep, StepExecution, get_sop_service
+from .ephys_service import EphysService, get_ephys_service
 from .timepoint_service import (
     LiveTimer,
     Timepoint,
@@ -99,4 +100,7 @@ __all__ = [
     "Tube",
     "InventoryService",
     "get_inventory_service",
+    # Ephys Service
+    "EphysService",
+    "get_ephys_service",
 ]
