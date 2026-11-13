@@ -1656,7 +1656,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="biolabcalc",
         description="BioLabCalc: Multifaceted molecular biology stoichiometry, PCR, IVT, protein yield, fluorophore mods, gel ladders, and E. coli growth.",
     )
-    parser.add_argument("-V", "--version", action="version", version="biolabcalc 0.3.5")
+    parser.add_argument("-V", "--version", action="version", version="biolabcalc 0.4.0")
     parser.add_argument("-q", "--quiet", action="store_true", default=False, help="Suppress header banners and decorative bars")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

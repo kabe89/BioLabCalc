@@ -17,7 +17,7 @@ biolabcalc <subcommand> --help
 
 | Flag | Parameter | Description |
 | :--- | :--- | :--- |
-| `-V` | `--version` | Display BioLabCalc package version (`biolabcalc 0.3.5`) and exit |
+| `-V` | `--version` | Display BioLabCalc package version (`biolabcalc 0.4.0`) and exit |
 | `-q` | `--quiet` | Quiet mode: suppress startup banners, decorative ASCII borders, and header bars |
 | `-h` | `--help` | Show command-line options and usage summary |
 

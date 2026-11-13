@@ -42,11 +42,11 @@ class TestCliDispatch(unittest.TestCase):
         """Test biolabcalc --version and -V output."""
         out, err, code = self._run_cli(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("biolabcalc 0.3.5", out)
+        self.assertIn("biolabcalc 0.4.0", out)
 
         out_v, err_v, code_v = self._run_cli(["-V"])
         self.assertEqual(code_v, 0)
-        self.assertIn("biolabcalc 0.3.5", out_v)
+        self.assertIn("biolabcalc 0.4.0", out_v)
 
     def test_cli_rc_dna_json(self):
         """Test biolabcalc rc -s ATGCGTACGTTAGC --json."""

@@ -8,6 +8,7 @@ to the remote 'BioLabCalc.wiki.git' repository.
 import argparse
 import os
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -19,8 +20,11 @@ CLONE_DIR = os.path.join(REPO_ROOT, ".wiki_clone")
 
 
 def run_cmd(cmd, cwd=None):
+    clean_env = os.environ.copy()
+    clean_env.pop("GIT_DIR", None)
+    clean_env.pop("GIT_WORK_TREE", None)
     print(f"--> Running: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
-    res = subprocess.run(cmd, cwd=cwd, shell=isinstance(cmd, str), capture_output=True, text=True)
+    res = subprocess.run(cmd, cwd=cwd, env=clean_env, shell=isinstance(cmd, str), capture_output=True, text=True)
     if res.returncode != 0:
         print(f"[!] Error: command failed with code {res.returncode}")
         if res.stdout:
@@ -29,6 +33,26 @@ def run_cmd(cmd, cwd=None):
             print(res.stderr)
         return False, res.stdout, res.stderr
     return True, res.stdout, res.stderr
+
+
+def safe_remove(path):
+    try:
+        os.chmod(path, stat.S_IWRITE)
+    except Exception:
+        pass
+    if os.path.isdir(path):
+        def _on_error(func, p, exc_info):
+            try:
+                os.chmod(p, stat.S_IWRITE)
+                func(p)
+            except Exception:
+                pass
+        shutil.rmtree(path, onerror=_on_error)
+    else:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
 
 
 def main():
@@ -63,20 +87,18 @@ def main():
             sys.exit(1)
     else:
         print(f"[*] Updating existing clone in {CLONE_DIR}...")
-        ok, _, err = run_cmd(["git", "pull", "origin", "master"], cwd=CLONE_DIR)
-        if not ok:
-            print("[!] Warning: failed to pull latest changes; proceeding with local clone.")
+        ok, _, err = run_cmd(["git", "fetch", "origin", "master"], cwd=CLONE_DIR)
+        if ok:
+            run_cmd(["git", "reset", "--hard", "origin/master"], cwd=CLONE_DIR)
+        else:
+            print("[!] Warning: failed to fetch latest changes; proceeding with local clone.")
 
     # 3. Synchronize files from wiki/ to clone
     # Remove existing non-hidden files in clone directory
     for item in os.listdir(CLONE_DIR):
         if item == ".git":
             continue
-        item_path = os.path.join(CLONE_DIR, item)
-        if os.path.isdir(item_path):
-            shutil.rmtree(item_path)
-        else:
-            os.remove(item_path)
+        safe_remove(os.path.join(CLONE_DIR, item))
 
     # Copy files from wiki/ into clone directory
     copied_count = 0
@@ -92,25 +114,25 @@ def main():
 
     print(f"[+] Synchronized {copied_count} files into wiki repository working tree.")
 
-    # 4. Check for git status differences
+    # 4. Check for staged differences
+    run_cmd(["git", "add", "-A"], cwd=CLONE_DIR)
     ok, status_out, _ = run_cmd(["git", "status", "--porcelain"], cwd=CLONE_DIR)
     if not status_out.strip():
         print("[+] Remote wiki repository is already up to date. No changes to push.")
         return
 
-    print("[*] Detected changes:")
+    print("[*] Detected changes to push:")
     print(status_out)
 
     if args.dry_run:
         print("[*] Dry run mode enabled. Changes staged locally in .wiki_clone, skipping push.")
         return
 
-    # 5. Add, commit, and push
+    # 5. Commit and push
     bot_name = os.environ.get("GIT_AUTHOR_NAME", "github-actions[bot]")
     bot_email = os.environ.get("GIT_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
     run_cmd(["git", "config", "user.name", bot_name], cwd=CLONE_DIR)
     run_cmd(["git", "config", "user.email", bot_email], cwd=CLONE_DIR)
-    run_cmd(["git", "add", "-A"], cwd=CLONE_DIR)
     ok, _, _ = run_cmd(["git", "commit", "-m", args.message], cwd=CLONE_DIR)
     if not ok:
         print("[!] Commit failed.")

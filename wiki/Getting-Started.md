@@ -68,7 +68,7 @@ biolabcalc --version
 
 Output:
 ```text
-BioLabCalc 0.3.5
+BioLabCalc 0.4.0
 ```
 
 Run a quick test calculation:
