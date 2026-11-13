@@ -18,6 +18,18 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
+# Ensure stdout and stderr handle arbitrary encodings without crashing on Windows cp1252
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Allowed email domains in code, tests, and documentation
@@ -222,10 +234,10 @@ def main() -> None:
         print("======================================================================")
         sys.exit(1)
 
-    print("[✓] Git Configuration: Privacy-preserving noreply email confirmed.")
-    print("[✓] Unpushed Commits: Clean author & committer metadata (zero personal PII).")
-    print("[✓] Tracked Files: Zero personal emails, real usernames, or local machine paths.")
-    print("[✓] Secrets Scan: Zero private keys, access tokens, or credentials detected.")
+    print("[OK] Git Configuration: Privacy-preserving noreply email confirmed.")
+    print("[OK] Unpushed Commits: Clean author & committer metadata (zero personal PII).")
+    print("[OK] Tracked Files: Zero personal emails, real usernames, or local machine paths.")
+    print("[OK] Secrets Scan: Zero private keys, access tokens, or credentials detected.")
     print("======================================================================")
     print("[PASSED] ALL GIT SECURITY & PII CHECKS PASSED WITH ZERO VIOLATIONS.")
     print("======================================================================")

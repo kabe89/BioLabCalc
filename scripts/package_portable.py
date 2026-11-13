@@ -492,7 +492,7 @@ def main() -> int:
         print(f"[*] Assets Packaged:  {result.get('file_count', 0)} files")
         if not args.dry_run:
             val = result.get("validation", {})
-            print(f"[*] Validation:       {'PASSED [✓]' if val.get('valid') else 'FAILED [!]'}")
+            print(f"[*] Validation:       {'PASSED [OK]' if val.get('valid') else 'FAILED [!]'}")
             print(f"[*] Templates:        {'Verified' if val.get('templates_verified') else 'Missing'}")
             print(f"[*] Static Assets:    {'Verified' if val.get('static_verified') else 'Missing'}")
             print(f"[*] Packages:         {'Verified' if val.get('packages_verified') else 'Missing'}")

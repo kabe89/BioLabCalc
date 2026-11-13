@@ -106,6 +106,7 @@ failures.jsonl
 .biolabcalc_failures.*
 
 # Security Credentials, Certificates, & Local Databases
+bk/
 *.key
 *.pem
 *.cert

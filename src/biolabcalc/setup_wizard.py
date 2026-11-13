@@ -642,7 +642,7 @@ def run_setup_wizard(
 
     if not non_interactive:
         print("\n" + "=" * 78)
-        print("[✓] BIOLABCALC SETUP COMPLETED SUCCESSFULLY!")
+        print("[OK] BIOLABCALC SETUP COMPLETED SUCCESSFULLY!")
         print("=" * 78)
         print(f"[*] Deployment Role:     {effective_role.upper()}")
         print(f"[*] Path Architecture:   {path_info['details']}")

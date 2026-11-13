@@ -159,7 +159,7 @@ def configure_environment(
         print(f"  - YAML Serialization:   {'PyYAML 6+' if caps['pyyaml'] else 'Zero-Dependency Simple YAML Engine'}")
         print(f"  - Scientific Imaging:   {'Pillow Engine Active' if caps['pillow'] else 'Vector SVG Engine Active'}")
         print("=" * 72)
-        print("[✓] Environment successfully configured. Start ELN using:")
+        print("[OK] Environment successfully configured. Start ELN using:")
         print("    biolabcalc eln")
         print("=" * 72)
 
@@ -224,7 +224,7 @@ def main() -> int:
 
     if args.check_only:
         caps = detect_environment_capabilities()
-        print(f"[✓] Python 3.8+ compliant: {check_python_version()}")
+        print(f"[OK] Python 3.8+ compliant: {check_python_version()}")
         print(f"[*] Engine capabilities: {caps}")
         return 0
 

@@ -890,7 +890,7 @@ def handle_buffer(args: argparse.Namespace) -> None:
         save_q = input("\nSave this custom buffer to disk for future sessions? [y/n]: ").strip().lower()
         if save_q == "y":
             builder.save()
-            print(f"[✓] Saved custom buffer '{b_name}' to disk storage!")
+            print(f"[OK] Saved custom buffer '{b_name}' to disk storage!")
 
     elif args.buffer:
         res = calculate_buffer_recipe(args.buffer, args.volume_ml)
@@ -1340,7 +1340,7 @@ def handle_report(args: argparse.Namespace) -> None:
             out_path = rep.to_json(args.output)
         else:
             out_path = rep.to_markdown(args.output)
-        print(f"[✓] Lab report successfully exported to: {args.output}")
+        print(f"[OK] Lab report successfully exported to: {args.output}")
 
 
 def handle_eln(args: argparse.Namespace) -> None:
@@ -1349,7 +1349,7 @@ def handle_eln(args: argparse.Namespace) -> None:
         out_path = "config.yaml"
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(dump_simple_yaml(DEFAULT_CONFIG))
-        print(f"[✓] Default ELN configuration generated: {out_path}")
+        print(f"[OK] Default ELN configuration generated: {out_path}")
         return
 
     from .eln.server import launch_eln_server
@@ -1374,7 +1374,7 @@ def handle_diagnostics(args: argparse.Namespace) -> None:
 
     if getattr(args, "clear", False):
         clear_failures()
-        print("[✓] Diagnostic failure logs successfully cleared.")
+        print("[OK] Diagnostic failure logs successfully cleared.")
         return
 
     limit = getattr(args, "tail", 10) or 10
@@ -1388,7 +1388,7 @@ def handle_diagnostics(args: argparse.Namespace) -> None:
         print("=" * 70)
         print("  BIOLABCALC SYSTEM DIAGNOSTICS: NO FAILURES RECORDED")
         print("=" * 70)
-        print("[✓] All network connections, databases, and parsers operating normally.")
+        print("[OK] All network connections, databases, and parsers operating normally.")
         print("=" * 70)
         return
 
