@@ -10,6 +10,7 @@ database schema on shared network storage, and generating tailored config.yaml f
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import re
 import secrets
@@ -448,7 +449,12 @@ def generate_tailored_config(
 
     # Write config file if output_path specified or default
     target_config = Path(output_path or "config.yaml").resolve()
-    yaml_text = dump_simple_yaml(config_dict)
+    # Mask secrets in disk representation to prevent clear-text credential storage
+    disk_config = copy.deepcopy(config_dict)
+    if "security" in disk_config:
+        disk_config["security"]["token_secret"] = None
+
+    yaml_text = dump_simple_yaml(disk_config)
     header = (
         "# ============================================================================\n"
         "# BioLabCalc ELN & Multi-Modal LIMS Configuration [SHARED LAB DEPLOYMENT]\n"
@@ -458,13 +464,25 @@ def generate_tailored_config(
         "# ============================================================================\n\n"
     )
 
+    def _write_file_secure(path_to_write: Path, file_body: str) -> None:
+        path_to_write.parent.mkdir(parents=True, exist_ok=True)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(str(path_to_write), flags, 0o600)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(file_body)
+        except Exception:
+            os.close(fd)
+            raise
+
     try:
-        target_config.parent.mkdir(parents=True, exist_ok=True)
-        target_config.write_text(header + yaml_text, encoding="utf-8")
+        _write_file_secure(target_config, header + yaml_text)
     except (PermissionError, OSError):
         import tempfile
         fallback = Path(tempfile.gettempdir()) / target_config.name
-        fallback.write_text(header + yaml_text, encoding="utf-8")
+        _write_file_secure(fallback, header + yaml_text)
         target_config = fallback
 
     config_dict["_config_path"] = str(target_config)

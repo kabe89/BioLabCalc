@@ -115,7 +115,8 @@ def check_and_shore_up_git_config(auto_fix: bool = True) -> Tuple[List[str], Lis
     rcode, remote_url = run_git(["config", "--get", "remote.origin.url"])
     if rcode == 0 and remote_url:
         if "@" in remote_url and ("http://" in remote_url or "https://" in remote_url):
-            errors.append(f"Remote URL contains embedded authentication credentials: '{remote_url}'")
+            safe_url = re.sub(r"(https?://)[^@]+@", r"\1[REDACTED_CREDENTIALS]@", remote_url)
+            errors.append(f"Remote URL contains embedded authentication credentials: '{safe_url}'")
 
     return errors, actions
 
@@ -187,7 +188,7 @@ def check_tracked_files() -> List[str]:
         for pattern, desc in SECRET_PATTERNS:
             for match in re.finditer(pattern, content, re.IGNORECASE):
                 line_no = content[: match.start()].count("\n") + 1
-                errors.append(f"{rel_path}:{line_no}: {desc} detected: '{match.group(0)[:20]}...'")
+                errors.append(f"{rel_path}:{line_no}: {desc} detected (value redacted for security)")
 
     return errors
 

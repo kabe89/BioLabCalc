@@ -8,6 +8,7 @@ HTTP/REST server fallback for zero-dependency bench environments.
 
 from __future__ import annotations
 import os
+import re
 import sys
 import json
 import logging
@@ -220,7 +221,7 @@ def _launch_fallback_server(
                         self.wfile.write(f.read())
                     return
 
-            # Check static files (e.g. /static/styles.css, /../static/styles.css, or /styles.css)
+            # Check static files (e.g. /static/styles.css, /styles.css)
             clean_rel = parsed_path
             if clean_rel.startswith("/static/"):
                 clean_rel = clean_rel[len("/static/"):]
@@ -230,19 +231,37 @@ def _launch_fallback_server(
                 clean_rel = clean_rel.lstrip("/")
 
             filename = os.path.basename(clean_rel)
+            # Strict regex whitelist to prevent directory traversal and injection
+            if not re.match(r"^[a-zA-Z0-9_\-][a-zA-Z0-9_\-\.]*\.[a-zA-Z0-9]+$", filename) or ".." in filename:
+                self.send_response(400)
+                self.end_headers()
+                return
+
+            ALLOWED_EXTENSIONS = {".css", ".js", ".mjs", ".svg", ".png", ".ico", ".html"}
+            ext = os.path.splitext(filename)[1].lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                self.send_response(403)
+                self.end_headers()
+                return
+
             real_static = os.path.realpath(static_dir)
             target = os.path.realpath(os.path.join(real_static, filename))
-            if os.path.commonpath([real_static, target]) == real_static and os.path.isfile(target):
+            try:
+                is_safe_path = os.path.commonpath([real_static, target]) == real_static
+            except ValueError:
+                is_safe_path = False
+
+            if is_safe_path and os.path.isfile(target):
                 self.send_response(200)
-                if target.endswith(".css"):
+                if ext == ".css":
                     self.send_header("Content-Type", "text/css; charset=utf-8")
-                elif target.endswith(".js") or target.endswith(".mjs"):
+                elif ext in (".js", ".mjs"):
                     self.send_header("Content-Type", "application/javascript; charset=utf-8")
-                elif target.endswith(".svg"):
+                elif ext == ".svg":
                     self.send_header("Content-Type", "image/svg+xml")
-                elif target.endswith(".png"):
+                elif ext == ".png":
                     self.send_header("Content-Type", "image/png")
-                elif target.endswith(".ico"):
+                elif ext == ".ico":
                     self.send_header("Content-Type", "image/x-icon")
                 else:
                     self.send_header("Content-Type", "application/octet-stream")

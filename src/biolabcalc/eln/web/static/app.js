@@ -1078,6 +1078,21 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
   }
 
   /**
+   * Sanitizes text content for safe inclusion in a Markdown table cell.
+   * Completely escapes backslashes, pipes, and normalizes line breaks.
+   * @param {string} text
+   * @returns {string}
+   */
+  _escapeMarkdownCell(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+      .trim()
+      .replace(/\\/g, '\\\\')
+      .replace(/\|/g, '\\|')
+      .replace(/[\r\n]+/g, ' ');
+  }
+
+  /**
    * Converts an HTML table element to Markdown table format and triggers client download.
    * @param {HTMLTableElement} tableEl
    * @param {string} filename
@@ -1087,7 +1102,9 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
     const rows = Array.from(tableEl.querySelectorAll('tr'));
     if (rows.length === 0) return;
 
-    const matrix = rows.map((r) => Array.from(r.querySelectorAll('th, td')).map((c) => c.innerText.trim().replace(/\|/g, '\\|')));
+    const matrix = rows.map((r) =>
+      Array.from(r.querySelectorAll('th, td')).map((c) => this._escapeMarkdownCell(c.innerText))
+    );
     if (matrix.length === 0) return;
 
     let md = '';
@@ -1480,7 +1497,7 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
       const rows = Array.from(table.querySelectorAll('tr'));
       if (rows.length > 0) {
         const matrix = rows.map((r) =>
-          Array.from(r.querySelectorAll('th, td')).map((c) => c.innerText.trim().replace(/\|/g, '\\|'))
+          Array.from(r.querySelectorAll('th, td')).map((c) => this._escapeMarkdownCell(c.innerText))
         );
         md += '\n\n### Kinetic Timepoint & SOP Deviation Log\n';
         const header = matrix[0];
