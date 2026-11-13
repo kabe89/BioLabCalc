@@ -48,19 +48,84 @@ SECRET_PATTERNS = [
 ]
 
 
+DEFAULT_NOREPLY_EMAIL = "68080930+kabe89@users.noreply.github.com"
+DEFAULT_USER_NAME = "kabe89"
+
+
 def run_git(args: List[str]) -> Tuple[int, str]:
-    res = subprocess.run(["git"] + args, cwd=REPO_ROOT, capture_output=True, text=True)
-    return res.returncode, res.stdout.strip()
+    try:
+        res = subprocess.run(["git"] + args, cwd=REPO_ROOT, capture_output=True, text=True)
+        return res.returncode, res.stdout.strip()
+    except Exception as e:
+        return 1, str(e)
 
 
-def check_git_config() -> List[str]:
-    """Verify local Git user configuration uses a privacy-preserving noreply email."""
-    errors = []
+def check_and_shore_up_git_config(auto_fix: bool = True) -> Tuple[List[str], List[str]]:
+    """
+    Verify and shore up Git user configuration.
+    Ensures privacy-preserving GitHub noreply email is configured.
+    """
+    errors: List[str] = []
+    actions: List[str] = []
+
     code, email = run_git(["config", "user.email"])
-    if code != 0 or not email:
-        errors.append("Git user.email is not configured.")
-    elif not any(email.lower().endswith(d) for d in ALLOWED_EMAIL_DOMAINS):
-        errors.append(f"Git user.email '{email}' is a personal email. Use GitHub noreply email.")
+    email_clean = email.strip() if code == 0 else ""
+
+    is_valid = bool(email_clean and any(email_clean.lower().endswith(d) for d in ALLOWED_EMAIL_DOMAINS))
+
+    if not is_valid:
+        if auto_fix:
+            # Automatically shore up local repository git config
+            c1, _ = run_git(["config", "--local", "user.email", DEFAULT_NOREPLY_EMAIL])
+            c2, _ = run_git(["config", "--local", "user.name", DEFAULT_USER_NAME])
+            if c1 == 0 and c2 == 0:
+                actions.append(
+                    f"Automatically shored up local git config: user.email set to '{DEFAULT_NOREPLY_EMAIL}'"
+                )
+            else:
+                errors.append(
+                    f"Git user.email is not configured and auto-configuration failed. Run: "
+                    f"git config --local user.email {DEFAULT_NOREPLY_EMAIL}"
+                )
+        else:
+            if not email_clean:
+                errors.append(
+                    f"Git user.email is not configured. Run: "
+                    f"git config --local user.email {DEFAULT_NOREPLY_EMAIL}"
+                )
+            else:
+                errors.append(
+                    f"Git user.email '{email_clean}' is a personal email. Run: "
+                    f"git config --local user.email {DEFAULT_NOREPLY_EMAIL}"
+                )
+
+    # Check remote URL for exposed tokens in URL (e.g. https://token@host/repo)
+    rcode, remote_url = run_git(["config", "--get", "remote.origin.url"])
+    if rcode == 0 and remote_url:
+        if "@" in remote_url and ("http://" in remote_url or "https://" in remote_url):
+            errors.append(f"Remote URL contains embedded authentication credentials: '{remote_url}'")
+
+    return errors, actions
+
+
+def check_unpushed_commits() -> List[str]:
+    """Verify that unpushed commits do not contain personal emails in author or committer headers."""
+    errors = []
+    # Check unpushed commits relative to origin/main or origin/master if remote exists
+    for target in ("origin/main..HEAD", "origin/master..HEAD", "HEAD~1..HEAD"):
+        code, log_out = run_git(["log", target, "--format=%h|%an|%ae|%cn|%ce"])
+        if code == 0 and log_out:
+            for line in log_out.splitlines():
+                parts = line.strip().split("|")
+                if len(parts) >= 5:
+                    commit_sha, author_name, author_email, committer_name, committer_email = parts[:5]
+                    for role, em in [("Author", author_email), ("Committer", committer_email)]:
+                        if em and not any(em.lower().endswith(d) for d in ALLOWED_EMAIL_DOMAINS):
+                            errors.append(
+                                f"Unpushed commit {commit_sha} has disallowed personal email for {role}: '{em}'. "
+                                f"Run: git commit --amend --reset-author --no-edit"
+                            )
+            break
 
     return errors
 
@@ -116,24 +181,40 @@ def check_tracked_files() -> List[str]:
 
 
 def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser(description="Git Security & PII Compliance Auditor")
+    parser.add_argument("--strict", action="store_true", help="Fail without auto-configuring git privacy email")
+    args = parser.parse_args()
+
     print("======================================================================")
     print("  BIOLABCALC GIT SECURITY & PII COMPLIANCE AUDIT")
     print("======================================================================")
 
-    config_errors = check_git_config()
+    config_errors, actions = check_and_shore_up_git_config(auto_fix=not args.strict)
+    unpushed_errors = check_unpushed_commits()
     tracked_errors = check_tracked_files()
 
-    all_errors = config_errors + tracked_errors
+    if actions:
+        print("[*] Security Hardening Actions Applied:")
+        for act in actions:
+            print(f"    [+] {act}")
 
     if config_errors:
         print("[!] Git Configuration Issues:")
         for err in config_errors:
             print(f"    - {err}")
 
+    if unpushed_errors:
+        print("[!] Unpushed Commit Header Issues:")
+        for err in unpushed_errors:
+            print(f"    - {err}")
+
     if tracked_errors:
         print("[!] Tracked File Violations:")
         for err in tracked_errors:
             print(f"    - {err}")
+
+    all_errors = config_errors + unpushed_errors + tracked_errors
 
     if all_errors:
         print("======================================================================")
@@ -142,6 +223,7 @@ def main() -> None:
         sys.exit(1)
 
     print("[✓] Git Configuration: Privacy-preserving noreply email confirmed.")
+    print("[✓] Unpushed Commits: Clean author & committer metadata (zero personal PII).")
     print("[✓] Tracked Files: Zero personal emails, real usernames, or local machine paths.")
     print("[✓] Secrets Scan: Zero private keys, access tokens, or credentials detected.")
     print("======================================================================")
