@@ -124,7 +124,8 @@ bk/
 # Scratch debug scripts
 check_ids.py
 
-
-
+# AI & LLM Developer Internal Reference (Git-Ignored)
+.ai_docs/
+ai_docs/
 
 
