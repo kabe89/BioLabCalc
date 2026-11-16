@@ -3,6 +3,13 @@ import os
 import sys
 import tempfile
 import unittest
+import mimetypes
+
+if not getattr(mimetypes, "inited", False):
+    try:
+        mimetypes.init()
+    except (PermissionError, OSError):
+        mimetypes.inited = True
 
 _src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _src_dir not in sys.path:
@@ -74,49 +81,58 @@ class TestLabReport(unittest.TestCase):
         rep.add_record("A1", "Yield", 43.0, "ug", target=40.0)
         rep.add_conclusion("Experiment completed successfully with high yield.")
 
-        tmp_dir = tempfile.gettempdir()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Markdown
+            md_file = os.path.join(tmp_dir, "test_report_out.md")
+            rep.to_markdown(md_file)
+            self.assertTrue(os.path.exists(md_file))
+            with open(md_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                self.assertIn("Full Export Test", content)
+                self.assertIn("Replicate Statistics", content)
 
-        # Markdown
-        md_file = os.path.join(tmp_dir, "test_report_out.md")
-        rep.to_markdown(md_file)
-        self.assertTrue(os.path.exists(md_file))
-        with open(md_file, "r", encoding="utf-8") as f:
-            content = f.read()
-            self.assertIn("Full Export Test", content)
-            self.assertIn("Replicate Statistics", content)
+            # CSV
+            csv_file = os.path.join(tmp_dir, "test_report_out.csv")
+            rep.to_csv(csv_file)
+            self.assertTrue(os.path.exists(csv_file))
 
-        # CSV
-        csv_file = os.path.join(tmp_dir, "test_report_out.csv")
-        rep.to_csv(csv_file)
-        self.assertTrue(os.path.exists(csv_file))
+            # JSON
+            json_file = os.path.join(tmp_dir, "test_report_out.json")
+            rep.to_json(json_file)
+            self.assertTrue(os.path.exists(json_file))
+            with open(json_file, "r") as f:
+                data = json.load(f)
+                self.assertEqual(data["title"], "Full Export Test")
+                self.assertEqual(len(data["records"]), 2)
 
-        # JSON
-        json_file = os.path.join(tmp_dir, "test_report_out.json")
-        rep.to_json(json_file)
-        self.assertTrue(os.path.exists(json_file))
-        with open(json_file, "r") as f:
-            data = json.load(f)
-            self.assertEqual(data["title"], "Full Export Test")
-            self.assertEqual(len(data["records"]), 2)
+            # Nested directory automatic creation test
+            nested_csv = os.path.join(tmp_dir, "nested", "sub", "report.csv")
+            rep.to_csv(nested_csv)
+            self.assertTrue(os.path.exists(nested_csv))
 
-        # Excel (optional dependency)
-        try:
-            import openpyxl
-            xl_file = os.path.join(tmp_dir, "test_report_out.xlsx")
-            rep.to_excel(xl_file)
-            self.assertTrue(os.path.exists(xl_file))
-            self.assertGreater(os.path.getsize(xl_file), 4000)
-        except ImportError:
-            pass
+            nested_md = os.path.join(tmp_dir, "nested", "sub", "report.md")
+            rep.to_markdown(nested_md)
+            self.assertTrue(os.path.exists(nested_md))
+
+            # Excel (optional dependency)
+            try:
+                import openpyxl
+                xl_file = os.path.join(tmp_dir, "test_report_out.xlsx")
+                rep.to_excel(xl_file)
+                self.assertTrue(os.path.exists(xl_file))
+                self.assertGreater(os.path.getsize(xl_file), 4000)
+            except (ImportError, Exception):
+                pass
 
     def test_easy_report_api(self):
         r = new_report("Easy Report", experimenter="Bob")
         rec = record("Sample-Easy", "Concentration", 125.0, "ng/uL", target=120.0)
         self.assertEqual(rec.sample_id, "Sample-Easy")
 
-        easy_file = os.path.join(tempfile.gettempdir(), "easy_report.md")
-        out = export_report(easy_file)
-        self.assertTrue(os.path.exists(easy_file))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            easy_file = os.path.join(tmp_dir, "easy_report.md")
+            out = export_report(easy_file)
+            self.assertTrue(os.path.exists(easy_file))
 
 if __name__ == '__main__':
     unittest.main()

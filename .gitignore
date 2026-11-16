@@ -121,6 +121,10 @@ bk/
 *.token
 *.credential*
 
+# Scratch debug scripts
+check_ids.py
+
+
 
 
 

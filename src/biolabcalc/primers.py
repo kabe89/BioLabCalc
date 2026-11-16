@@ -59,19 +59,42 @@ class PrimerPair:
 
 
 def check_self_dimer(seq: str) -> int:
-    """Score potential 3' self-dimerization by checking complementarity of 3' terminal bases."""
-    clean = clean_sequence(seq)
-    rc = reverse_complement(clean)
-    tail_len = min(6, len(clean))
-    tail_3p = clean[-tail_len:]
+    """Score potential self-dimerization by assessing contiguous self-complementarity across all sliding alignments with its reverse complement."""
+    clean = clean_sequence(seq).replace("U", "T")
+    len_s = len(clean)
+    if len_s < 2:
+        return 0
+    rc = reverse_complement(clean, seq_type="dna")
+
     max_matches = 0
-    # Slide tail along reverse complement
-    for i in range(len(rc) - tail_len + 1):
-        window = rc[i:i + tail_len]
-        matches = sum(1 for a, b in zip(tail_3p, window) if a == b)
-        if matches > max_matches:
-            max_matches = matches
-    return max_matches
+    three_p_matches = 0
+
+    # Slide across all possible alignments between primer and its reverse complement
+    for shift in range(-len_s + 1, len_s):
+        consec = 0
+        for i in range(len_s):
+            j = i - shift
+            if 0 <= j < len_s:
+                if clean[i] == rc[j]:
+                    consec += 1
+                    if consec > max_matches:
+                        max_matches = consec
+                    if i == len_s - 1 or j == 0:
+                        if consec > three_p_matches:
+                            three_p_matches = consec
+                else:
+                    consec = 0
+
+    # Assess 3' terminal tail self-complementarity specifically
+    tail_len = min(6, len_s)
+    tail = clean[-tail_len:]
+    rc_tail = reverse_complement(tail, seq_type="dna")
+    for k in range(2, tail_len + 1):
+        sub = tail[-k:]
+        if sub in rc_tail:
+            three_p_matches = max(three_p_matches, k)
+
+    return max(max_matches, three_p_matches)
 
 
 def check_hairpin(seq: str) -> int:
@@ -101,9 +124,26 @@ def calculate_tm_santalucia(
 ) -> Tuple[float, float, float, float]:
     """Calculate melting temperature (Tm) using SantaLucia (1998, PNAS 95:1460-1465) unified nearest-neighbor parameters.
 
+    Parameters
+    ----------
+    seq : str
+        Oligonucleotide primer sequence (5' -> 3').
+    primer_conc_nm : float
+        Primer concentration in nM (default 400.0 nM).
+    na_conc_mm : float
+        Monovalent sodium/potassium ion concentration in mM (default 50.0 mM).
+    mg_conc_mm : float
+        Divalent magnesium ion concentration in mM (default 1.5 mM).
+    dntp_conc_mm : float
+        Total dNTP concentration in mM (default 0.8 mM).
+    is_excess_primer : bool
+        True if primer is in vast excess over template (standard PCR, x=1.0),
+        False for equimolar hybridization (x=4.0).
+
     Returns
     -------
-    (tm_celsius, dH_kcal, dS_cal, dG_37_kcal)
+    Tuple[float, float, float, float]
+        (tm_celsius, dH_kcal, dS_cal, dG_37_kcal)
     """
     if primer_conc_nm <= 0:
         raise ValueError(f"Primer concentration must be strictly positive (got {primer_conc_nm} nM).")
@@ -164,8 +204,26 @@ def calculate_tm_santalucia(
     return round(tm_celsius, 2), round(dh_total, 2), round(ds_salt_corrected, 2), round(dg_37, 2)
 
 
-# Alias retaining previous spelling
-calculate_tm_santaluicia = calculate_tm_santalucia
+def calculate_tm_santaluicia(
+    seq: str,
+    primer_conc_nm: float = 400.0,
+    na_conc_mm: float = 50.0,
+    mg_conc_mm: float = 1.5,
+    dntp_conc_mm: float = 0.8,
+    is_excess_primer: bool = True,
+) -> Tuple[float, float, float, float]:
+    """Calculate melting temperature (Tm) using SantaLucia (1998) parameters.
+
+    Deprecated alias for calculate_tm_santalucia (retained for backward compatibility).
+    """
+    return calculate_tm_santalucia(
+        seq=seq,
+        primer_conc_nm=primer_conc_nm,
+        na_conc_mm=na_conc_mm,
+        mg_conc_mm=mg_conc_mm,
+        dntp_conc_mm=dntp_conc_mm,
+        is_excess_primer=is_excess_primer,
+    )
 
 
 def analyze_primer(

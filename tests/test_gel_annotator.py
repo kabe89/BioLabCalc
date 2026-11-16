@@ -2,6 +2,13 @@ import os
 import sys
 import tempfile
 import unittest
+import mimetypes
+
+if not getattr(mimetypes, "inited", False):
+    try:
+        mimetypes.init()
+    except (PermissionError, OSError):
+        mimetypes.inited = True
 
 _src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _src_dir not in sys.path:
@@ -13,28 +20,25 @@ try:
     import matplotlib
     from biolabcalc.gel_annotator import GelAnnotator
     HAS_DEPS = True
-except ImportError:
+except (ImportError, Exception):
     HAS_DEPS = False
     Image = None
 
 @unittest.skipUnless(HAS_DEPS, "PIL, openpyxl and matplotlib required for GelAnnotator tests")
 class TestGelAnnotator(unittest.TestCase):
     def setUp(self):
-        self.output_png = os.path.join(tempfile.gettempdir(), "test_annotator_out.png")
-        self.output_xlsx = os.path.join(tempfile.gettempdir(), "test_annotator_out.xlsx")
-        self.test_raw_img = os.path.join(tempfile.gettempdir(), "test_raw_gel.png")
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.output_png = os.path.join(self.temp_dir.name, "test_annotator_out.png")
+        self.output_xlsx = os.path.join(self.temp_dir.name, "test_annotator_out.xlsx")
+        self.test_raw_img = os.path.join(self.temp_dir.name, "test_raw_gel.png")
 
         # Create dummy raw gel image
         img = Image.new("L", (400, 300), color=50)
         img.save(self.test_raw_img)
 
     def tearDown(self):
-        for p in (self.output_png, self.output_xlsx, self.test_raw_img):
-            if os.path.exists(p):
-                try:
-                    os.remove(p)
-                except Exception:
-                    pass
+        if hasattr(self, "temp_dir"):
+            self.temp_dir.cleanup()
 
     def test_synthetic_annotator_render(self):
         ann = GelAnnotator.synthetic(
@@ -74,13 +78,16 @@ class TestGelAnnotator(unittest.TestCase):
         res_xl = ann.embed_in_excel(self.output_xlsx, sheet_name="Annotated_Gel")
         self.assertTrue(os.path.exists(res_xl))
         wb = openpyxl.load_workbook(res_xl)
-        self.assertIn("Annotated_Gel", wb.sheetnames)
-        ws = wb["Annotated_Gel"]
-        # Check lane headers written in table
-        self.assertEqual(ws.cell(row=6, column=2).value, "Ladder")
-        self.assertEqual(ws.cell(row=7, column=2).value, "A")
-        # Check image was added
-        self.assertGreater(len(ws._images), 0)
+        try:
+            self.assertIn("Annotated_Gel", wb.sheetnames)
+            ws = wb["Annotated_Gel"]
+            # Check lane headers written in table
+            self.assertEqual(ws.cell(row=6, column=2).value, "Ladder")
+            self.assertEqual(ws.cell(row=7, column=2).value, "A")
+            # Check image was added
+            self.assertGreater(len(ws._images), 0)
+        finally:
+            wb.close()
 
 if __name__ == '__main__':
     unittest.main()

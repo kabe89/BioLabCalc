@@ -3,6 +3,7 @@
 from __future__ import annotations
 import math
 import os
+import tempfile
 from typing import Dict, List, Optional, Tuple, Any
 from PIL import Image, ImageOps, ImageEnhance
 import matplotlib
@@ -348,14 +349,25 @@ class GelAnnotator:
                 cell.alignment = Alignment(horizontal="center" if c_idx in (1, 3) else "left")
 
         # Render image to temporary file and embed
-        temp_img = os.path.join(os.path.dirname(os.path.abspath(excel_path)), "temp_gel_render.png")
-        self.render(temp_img, dpi=180)
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        temp_img = tmp_file.name
+        tmp_file.close()
 
-        img_obj = OpenpyxlImage(temp_img)
-        # Position image below table
-        img_start_row = 8 + len(self.lanes)
-        ws.cell(row=img_start_row - 1, column=1, value="Electrophoresis Gel Figure").font = Font(name="Calibri", size=12, bold=True, color="1F4E79")
-        ws.add_image(img_obj, f"A{img_start_row}")
+        try:
+            self.render(temp_img, dpi=180)
 
-        wb.save(excel_path)
+            img_obj = OpenpyxlImage(temp_img)
+            # Position image below table
+            img_start_row = 8 + len(self.lanes)
+            ws.cell(row=img_start_row - 1, column=1, value="Electrophoresis Gel Figure").font = Font(name="Calibri", size=12, bold=True, color="1F4E79")
+            ws.add_image(img_obj, f"A{img_start_row}")
+
+            wb.save(excel_path)
+        finally:
+            if os.path.exists(temp_img):
+                try:
+                    os.remove(temp_img)
+                except OSError:
+                    pass
+
         return excel_path

@@ -211,6 +211,10 @@ def _launch_fallback_server(
         def do_GET(self):
             raw_path = self.path.split("?")[0]
             parsed_path = posixpath.normpath(raw_path)
+            if parsed_path.startswith("/api/"):
+                self._handle_api("GET")
+                return
+
             if parsed_path in ("/", "/index.html", "."):
                 index_path = os.path.join(templates_dir, "index.html")
                 if os.path.exists(index_path):
@@ -268,10 +272,6 @@ def _launch_fallback_server(
                 self.end_headers()
                 with open(target, "rb") as f:
                     self.wfile.write(f.read())
-                return
-
-            if parsed_path.startswith("/api/"):
-                self._handle_api("GET")
                 return
 
             self.send_response(404)

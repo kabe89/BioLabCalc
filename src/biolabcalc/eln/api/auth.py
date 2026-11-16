@@ -9,10 +9,15 @@ alumni_readonly), and route protection decorators.
 from __future__ import annotations
 
 import functools
+import logging
+import os
+import secrets
 import threading
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
+
+logger = logging.getLogger(__name__)
 
 # Standard ELN laboratory roles
 ROLE_PI_ADMIN: str = "pi_admin"
@@ -154,20 +159,29 @@ class AuthService:
     Architectural Role: Manages token issuance, user session lookup, and permission validation.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, allow_demo_users: Optional[bool] = None) -> None:
         """
-        Initialize AuthService and register default laboratory accounts.
-
+        Initialize AuthService and register default laboratory accounts if allowed.
         """
         self._lock = threading.Lock()
         self._sessions: Dict[str, UserSession] = {}
-        self._seed_default_users()
+        if allow_demo_users is None:
+            allow_demo_users = not (
+                os.environ.get("BIOLABCALC_ENV", "").lower() == "production"
+                or os.environ.get("BIOLABCALC_DISABLE_DEMO_AUTH", "0") in ("1", "true", "True")
+            )
+        if allow_demo_users:
+            self._seed_default_users()
 
     def _seed_default_users(self) -> None:
         """
         Pre-seed default accounts for development and automated pipeline testing.
-
+        Disabled in production environments (BIOLABCALC_ENV=production or BIOLABCALC_DISABLE_DEMO_AUTH=1).
         """
+        logger.warning(
+            "SECURITY WARNING: Seeding hardcoded development accounts (pi_admin, active_researcher, rotation_student). "
+            "Set BIOLABCALC_ENV=production to disable."
+        )
         defaults = [
             ("USR-PI-001", "pi_admin", "Prof. Principal Investigator", ROLE_PI_ADMIN, "token-pi-admin"),
             ("USR-RES-001", "active_researcher", "Dr. Lead Postdoc", ROLE_ACTIVE_RESEARCHER, "token-active-researcher"),
@@ -184,6 +198,32 @@ class AuthService:
                 token=token,
                 created_at=now_iso,
             )
+
+    def create_session(
+        self,
+        user_id: str,
+        username: str,
+        display_name: str,
+        role: str,
+        token: Optional[str] = None,
+    ) -> UserSession:
+        """
+        Dynamically create and register an active UserSession.
+        """
+        if token is None:
+            token = secrets.token_urlsafe(32)
+        now_iso = datetime.now(timezone.utc).isoformat()
+        session = UserSession(
+            user_id=user_id,
+            username=username,
+            display_name=display_name,
+            role=role,
+            token=token,
+            created_at=now_iso,
+        )
+        with self._lock:
+            self._sessions[token] = session
+        return session
 
     def authenticate_token(self, token_or_header: Optional[str]) -> UserSession:
         """

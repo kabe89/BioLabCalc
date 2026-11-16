@@ -128,15 +128,18 @@ class TestELNFunctionalServer(unittest.TestCase):
         cls.test_cfg = repo_root / "testing_config.yaml"
 
         # Launch server using designated testing_config.yaml
-        cls.server_url = launch_eln_server(
-            host=cls.test_host,
-            port=cls.test_port,
-            blocking=False,
-            open_browser=False,
-            quiet=True,
-            config_path=str(cls.test_cfg) if cls.test_cfg.is_file() else None,
-            anonymize=True,
-        )
+        try:
+            cls.server_url = launch_eln_server(
+                host=cls.test_host,
+                port=cls.test_port,
+                blocking=False,
+                open_browser=False,
+                quiet=True,
+                config_path=str(cls.test_cfg) if cls.test_cfg.is_file() else None,
+                anonymize=True,
+            )
+        except OSError:
+            cls.server_url = f"http://{cls.test_host}:{cls.test_port}"
         time.sleep(0.5)
 
     def _fetch(self, path: str):

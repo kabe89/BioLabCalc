@@ -12,7 +12,7 @@ import json
 import math
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Tuple, Any, Union
 
 
 @dataclass
@@ -284,6 +284,9 @@ class LabReport:
         md_text = "\n".join(lines)
 
         if filepath:
+            dir_name = os.path.dirname(os.path.abspath(filepath))
+            if dir_name and not os.path.exists(dir_name):
+                os.makedirs(dir_name, exist_ok=True)
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(md_text)
 
@@ -438,11 +441,17 @@ class LabReport:
                     max_len = max(max_len, len(val))
             ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
 
+        dir_name = os.path.dirname(os.path.abspath(filepath))
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
         wb.save(filepath)
         return filepath
 
     def to_csv(self, filepath: str) -> str:
         """Export raw measurement records to CSV."""
+        dir_name = os.path.dirname(os.path.abspath(filepath))
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
         with open(filepath, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["Sample_ID", "Parameter", "Value", "Unit", "Target", "Deviation_Percent", "QC_Status", "Timestamp", "Notes"])
@@ -474,6 +483,9 @@ class LabReport:
         }
         json_str = json.dumps(data, indent=2)
         if filepath:
+            dir_name = os.path.dirname(os.path.abspath(filepath))
+            if dir_name and not os.path.exists(dir_name):
+                os.makedirs(dir_name, exist_ok=True)
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(json_str)
         return json_str

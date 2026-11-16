@@ -9,7 +9,10 @@ NanoDrop samples, Timepoints).
 
 from __future__ import annotations
 
+import json
 import math
+import os
+import tempfile
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -154,14 +157,82 @@ class GelService:
     sizing, and relational database linkage across multi-modal analytical records.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, storage_path: Optional[str] = None) -> None:
         """
-        Initialize GelService in-memory repository and audit ledger.
-
+        Initialize GelService in-memory repository and audit ledger, optionally loading persisted gels.
         """
         self._lock = threading.RLock()
         self._gels: Dict[str, GelRecord] = {}
         self._audit_service = get_audit_service()
+        self._storage_path = storage_path or os.environ.get("BIOLABCALC_GEL_STORE")
+        if self._storage_path and os.path.exists(self._storage_path):
+            self.load_state(self._storage_path)
+
+    def _auto_save(self) -> None:
+        if self._storage_path:
+            self.save_state(self._storage_path)
+
+    def export_state_dict(self) -> Dict[str, Any]:
+        with self._lock:
+            return {"gels": [g.to_dict() for g in self._gels.values()]}
+
+    def import_state_dict(self, state: Dict[str, Any]) -> None:
+        with self._lock:
+            for g_data in state.get("gels", []):
+                calib = None
+                if g_data.get("calibration"):
+                    calib = LadderCalibrationResult(**g_data["calibration"])
+                lanes = []
+                for l_data in g_data.get("lanes", []):
+                    bands = [BandAnnotation(**b) for b in l_data.get("bands", [])]
+                    l_copy = dict(l_data)
+                    l_copy["bands"] = bands
+                    lanes.append(GelLane(**l_copy))
+                self._gels[g_data["gel_id"]] = GelRecord(
+                    gel_id=g_data["gel_id"],
+                    title=g_data.get("title", ""),
+                    gel_type=g_data.get("gel_type", "sds_page"),
+                    percentage=float(g_data.get("percentage", 12.0)),
+                    calibration=calib,
+                    lanes=lanes,
+                    image_uri=g_data.get("image_uri"),
+                    created_by=g_data.get("created_by", "unknown"),
+                    created_at=g_data.get("created_at", ""),
+                )
+
+    def save_state(self, filepath: Optional[str] = None) -> str:
+        """Persist gel records atomically to disk."""
+        target_path = filepath or self._storage_path or os.path.expanduser("~/.biolabcalc/gels.json")
+        dir_name = os.path.dirname(os.path.abspath(target_path))
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+        data = self.export_state_dict()
+        temp_fd, temp_file = tempfile.mkstemp(dir=dir_name, prefix=".tmp_gels_", suffix=".json")
+        try:
+            with open(temp_fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            os.replace(temp_file, target_path)
+        except Exception:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            raise
+        return target_path
+
+    def load_state(self, filepath: Optional[str] = None) -> bool:
+        """Load gel records from disk."""
+        target_path = filepath or self._storage_path or os.path.expanduser("~/.biolabcalc/gels.json")
+        if not os.path.exists(target_path) or os.path.getsize(target_path) == 0:
+            return False
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.import_state_dict(data)
+            return True
+        except Exception:
+            return False
 
     def calibrate_ladder(
         self,
@@ -306,6 +377,7 @@ class GelService:
                 new_state=gel.to_dict(),
                 metadata={"gel_type": gel_type, "percentage": percentage},
             )
+            self._auto_save()
             return gel
 
     def tag_lane(
@@ -403,6 +475,7 @@ class GelService:
                     "fplc_fraction_id": fplc_fraction_id,
                 },
             )
+            self._auto_save()
             return lane
 
     def get_gel(self, gel_id: str) -> Optional[GelRecord]:

@@ -8,7 +8,10 @@ tube relocation with immutable audit logging, and graph-based upstream sample li
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import tempfile
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -135,10 +138,10 @@ class InventoryService:
     slot occupancy collision checks, audited tube movements, and graph-based lineage resolution.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, storage_path: Optional[str] = None) -> None:
         """
-        Initialize inventory service repositories and seed baseline spatial infrastructure.
-
+        Initialize inventory service repositories, seed baseline spatial infrastructure,
+        and optionally restore persisted state.
         """
         self._lock = threading.RLock()
         self._rooms: Dict[str, Room] = {}
@@ -150,7 +153,74 @@ class InventoryService:
         self._campaign_service = get_campaign_service()
         self._fplc_service = get_fplc_service()
         self._sequence_service = get_sequence_service()
-        self._seed_standard_freezer_infrastructure()
+        self._storage_path = storage_path or os.environ.get("BIOLABCALC_INVENTORY_STORE")
+
+        loaded = False
+        if self._storage_path and os.path.exists(self._storage_path):
+            loaded = self.load_state(self._storage_path)
+        if not loaded:
+            self._seed_standard_freezer_infrastructure()
+
+    def _auto_save(self) -> None:
+        if self._storage_path:
+            self.save_state(self._storage_path)
+
+    def export_state_dict(self) -> Dict[str, Any]:
+        with self._lock:
+            return {
+                "rooms": [r.to_dict() for r in self._rooms.values()],
+                "units": [u.to_dict() for u in self._units.values()],
+                "racks": [rk.to_dict() for rk in self._racks.values()],
+                "boxes": [b.to_dict() for b in self._boxes.values()],
+                "tubes": [t.to_dict() for t in self._tubes.values()],
+            }
+
+    def import_state_dict(self, state: Dict[str, Any]) -> None:
+        with self._lock:
+            for r_data in state.get("rooms", []):
+                self._rooms[r_data["room_id"]] = Room(**r_data)
+            for u_data in state.get("units", []):
+                self._units[u_data["unit_id"]] = StorageUnit(**u_data)
+            for rk_data in state.get("racks", []):
+                self._racks[rk_data["rack_id"]] = Rack(**rk_data)
+            for b_data in state.get("boxes", []):
+                self._boxes[b_data["box_id"]] = Box(**b_data)
+            for t_data in state.get("tubes", []):
+                self._tubes[t_data["tube_id"]] = Tube(**t_data)
+
+    def save_state(self, filepath: Optional[str] = None) -> str:
+        """Persist inventory state atomically to disk."""
+        target_path = filepath or self._storage_path or os.path.expanduser("~/.biolabcalc/inventory.json")
+        dir_name = os.path.dirname(os.path.abspath(target_path))
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+        data = self.export_state_dict()
+        temp_fd, temp_file = tempfile.mkstemp(dir=dir_name, prefix=".tmp_inv_", suffix=".json")
+        try:
+            with open(temp_fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            os.replace(temp_file, target_path)
+        except Exception:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            raise
+        return target_path
+
+    def load_state(self, filepath: Optional[str] = None) -> bool:
+        """Load inventory state from disk."""
+        target_path = filepath or self._storage_path or os.path.expanduser("~/.biolabcalc/inventory.json")
+        if not os.path.exists(target_path) or os.path.getsize(target_path) == 0:
+            return False
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.import_state_dict(data)
+            return True
+        except Exception:
+            return False
 
     def _seed_standard_freezer_infrastructure(self) -> None:
         """
@@ -214,6 +284,7 @@ class InventoryService:
             room_id = f"ROOM-{uuid.uuid4().hex[:6].upper()}"
             room = Room(room_id=room_id, name=name, building=building, floor=floor)
             self._rooms[room_id] = room
+            self._auto_save()
             return room
 
     def create_storage_unit(self, room_id: str, name: str, unit_type: str, model_number: str = "") -> StorageUnit:
@@ -224,6 +295,7 @@ class InventoryService:
             unit_id = f"UNIT-{uuid.uuid4().hex[:6].upper()}"
             unit = StorageUnit(unit_id=unit_id, room_id=room_id, name=name, unit_type=unit_type, model_number=model_number)
             self._units[unit_id] = unit
+            self._auto_save()
             return unit
 
     def create_rack(self, unit_id: str, name: str, shelf_level: int = 1) -> Rack:
@@ -234,6 +306,7 @@ class InventoryService:
             rack_id = f"RACK-{uuid.uuid4().hex[:6].upper()}"
             rack = Rack(rack_id=rack_id, unit_id=unit_id, name=name, shelf_level=shelf_level)
             self._racks[rack_id] = rack
+            self._auto_save()
             return rack
 
     def create_box(
@@ -269,6 +342,7 @@ class InventoryService:
                 temperature_target=temperature_target,
             )
             self._boxes[box_id] = box
+            self._auto_save()
             return box
 
     def get_full_hierarchy(self) -> List[Dict[str, Any]]:
@@ -464,6 +538,7 @@ class InventoryService:
                 new_state=tube.to_dict(),
                 metadata={"box_id": box_id, "slot": norm_slot, "barcode": bc},
             )
+            self._auto_save()
             return tube
 
     def move_tube(
@@ -529,6 +604,7 @@ class InventoryService:
                 },
             )
 
+            self._auto_save()
             return {
                 "tube_id": tube_id,
                 "from_box": old_box_id,

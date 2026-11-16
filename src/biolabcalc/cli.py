@@ -34,17 +34,68 @@ from .buffers import calculate_buffer_recipe, calculate_hepes_ivt_buffer, calcul
 from .precipitation import calculate_precipitation, calculate_phenol_chloroform_extraction
 from .interactive_gel import save_interactive_app, launch_interactive_annotator
 from .batch_csv import process_batch_csv
-from .seq_utils import reverse_complement, translate_dna
+from .seq_utils import clean_sequence, reverse_complement, translate_dna
+from .sequence_store import (
+    SequenceRecord,
+    save_sequence,
+    get_sequence,
+    list_sequences,
+    delete_sequence,
+    import_fasta,
+    export_fasta,
+    DEFAULT_SEQUENCE_CATALOG,
+)
+from .plasmid import (
+    PlasmidRecord,
+    PlasmidFeature,
+    extract_subsequence,
+    auto_annotate_plasmid,
+    parse_genbank,
+    export_genbank,
+    get_plasmid,
+    list_plasmids,
+    delete_plasmid,
+    STANDARD_PLASMID_CATALOG,
+)
+from .restriction_engine import (
+    RestrictionCutSite,
+    DigestedFragment,
+    RestrictionDigestPrediction,
+    predict_restriction_digest,
+)
+from .plasmid_engineering import (
+    EngineeredPlasmidResult,
+    engineer_plasmid,
+)
+from .interactive_plasmid import (
+    save_plasmid_workbench_html,
+    launch_plasmid_workbench,
+)
+from .easy import load_plasmid
 
 LADDER_CHOICES = [
     "1kb_dna",
     "100bp_dna",
     "low_range_ssdna",
+    "low_mw_dna",
+    "high_mw_dna",
     "protein_broad_range",
+    "ssdna_ladder",
     "ssrna_ladder",
+    "rna_millennium",
     "low_range_rna",
+    "low_range_ssrna",
     "microrna_ladder",
 ]
+
+LADDER_ALIAS_MAP: Dict[str, str] = {
+    "low_mw_dna": "100bp_dna",
+    "high_mw_dna": "1kb_dna",
+    "ssdna_ladder": "low_range_ssdna",
+    "rna_millennium": "ssrna_ladder",
+    "low_range_ssrna": "low_range_rna",
+}
+
 
 
 def _resolve_sequence(args: argparse.Namespace, seq_attr: str = "sequence", file_attr: str = "file") -> str:
@@ -322,12 +373,15 @@ def handle_mw(args: argparse.Namespace) -> None:
     if not raw_seq:
         print("Error: biolabcalc mw requires sequence via -s/--sequence, -f/--file, or stdin (-s -).", file=sys.stderr)
         sys.exit(1)
+    is_circ = getattr(args, "circular", False)
     if args.type == "dna":
-        res = calculate_dna_mw(raw_seq, double_stranded=args.ds, end_5=args.end_5)
+        is_ds = args.ds or is_circ
+        res = calculate_dna_mw(raw_seq, double_stranded=is_ds, end_5=args.end_5, circular=is_circ)
     elif args.type == "rna":
         res = calculate_rna_mw(raw_seq, end_5=args.end_5, end_3=args.end_3, backbone=args.backbone)
     else:
         res = calculate_protein_mw(raw_seq)
+
     _maybe_log_report(res, args)
     if getattr(args, "json", False):
         _dump_json(res, getattr(args, "compact", False))
@@ -463,8 +517,10 @@ def handle_fluo(args: argparse.Namespace) -> None:
 
 
 def handle_gel(args: argparse.Namespace) -> None:
-    sim = simulate_gel(sample_sizes=args.sizes, ladder_key=args.ladder)
+    lad_choice = LADDER_ALIAS_MAP.get(args.ladder, args.ladder)
+    sim = simulate_gel(sample_sizes=args.sizes, ladder_key=lad_choice)
     print(sim.ascii_visualization)
+
 
 
 def handle_ivt(args: argparse.Namespace) -> None:
@@ -532,12 +588,21 @@ def handle_ivt(args: argparse.Namespace) -> None:
 def handle_pcr(args: argparse.Namespace) -> None:
     vol = UnitParser.parse_volume(getattr(args, "volume", 50.0), "ul")
     tmpl = UnitParser.parse_mass(args.template_ng, "ng")
+    amp_len = args.length
+    if amp_len is None:
+        raw_seq = _resolve_sequence(args)
+        if raw_seq:
+            amp_len = len(clean_sequence(raw_seq))
+        else:
+            print("Error: biolabcalc pcr requires -l/--length or -s/--sequence.", file=sys.stderr)
+            sys.exit(1)
     res = calculate_pcr_kinetics(
-        amplicon_len_bp=args.length,
+        amplicon_len_bp=amp_len,
         template_ng=tmpl,
         cycles=args.cycles,
         reaction_volume_ul=vol,
     )
+
     _maybe_log_report(res, args)
     if getattr(args, "json", False):
         _dump_json(res, getattr(args, "compact", False))
@@ -690,7 +755,9 @@ def handle_annotate_gel(args: argparse.Namespace) -> None:
         ann = GelAnnotator.synthetic(num_lanes=len(lane_list), title=args.title, gel_info=args.info, invert_colors=args.invert)
         ann.set_lanes(lane_list)
 
-    ann.add_ladder(lane_index=args.ladder_lane, ladder_type=args.ladder, side=args.ladder_side)
+    lad_choice = LADDER_ALIAS_MAP.get(args.ladder, args.ladder)
+    ann.add_ladder(lane_index=args.ladder_lane, ladder_type=lad_choice, side=args.ladder_side)
+
 
     if args.bands:
         band_items = args.bands.split(",")
@@ -729,13 +796,71 @@ def handle_batch_excel(args: argparse.Namespace) -> None:
 
 
 def handle_digest(args: argparse.Namespace) -> None:
+    seq_val = getattr(args, "sequence", None)
+    plasmid_val = getattr(args, "plasmid", None)
+
+    if seq_val or plasmid_val:
+        if plasmid_val:
+            target = load_plasmid(plasmid_val)
+        else:
+            target = clean_sequence(seq_val)
+
+        enzymes = [args.enzyme_1]
+        if args.enzyme_2:
+            enzymes.append(args.enzyme_2)
+
+        mass_ug = args.dna_ug if args.dna_ug is not None else 1.0
+        vol_ul = args.volume if args.volume is not None else 50.0
+
+        pred = predict_restriction_digest(
+            seq_or_plasmid=target,
+            enzymes=enzymes,
+            dna_mass_ug=mass_ug,
+            reaction_volume_ul=vol_ul,
+        )
+        _maybe_log_report(pred, args)
+        if getattr(args, "json", False):
+            _dump_json(pred, getattr(args, "compact", False))
+            return
+
+        if not getattr(args, "quiet", False):
+            print("=" * 65)
+            print(f"IN-SILICO RESTRICTION DIGEST PREDICTION: {pred.plasmid_name}")
+            print("=" * 65)
+        print(f"Substrate:            {pred.plasmid_name} ({pred.total_length_bp:,} bp, {pred.topology})")
+        print(f"Restriction Enzymes:  {', '.join(pred.enzymes)}")
+        print(f"Cut Sites Found:      {len(pred.cut_sites)}")
+        print(f"Fragments Generated:  {pred.fragment_count}")
+        if not getattr(args, "quiet", False):
+            print("-" * 65)
+            print("Fragment Analysis & Stoichiometry:")
+            print(f"  {'#':2s} {'Length (bp)':12s} {'MW (Da)':12s} {'Mass (ng)':10s} {'Flanking Sites':25s}")
+            print(f"  {'-'*2} {'-'*12} {'-'*12} {'-'*10} {'-'*25}")
+        for frag in pred.fragments:
+            flank = f"{frag.left_enzyme} / {frag.right_enzyme}"
+            print(f"  {frag.fragment_id:2d} {frag.length_bp:10d} bp {frag.molecular_weight_da:10.1f} Da {frag.mass_ng:8.2f} ng {flank:25s}")
+
+        if getattr(args, "simulate_gel", False):
+            if not getattr(args, "quiet", False):
+                print("-" * 65)
+                print("Virtual Agarose Gel Migration:")
+            frag_sizes = [float(f.length_bp) for f in pred.fragments]
+            sim = simulate_gel(frag_sizes, ladder_key="1kb_dna")
+            print(sim.ascii_visualization)
+
+        if not getattr(args, "quiet", False):
+            print("=" * 65)
+        return
+
+    mass_ug = args.dna_ug if args.dna_ug is not None else 1.0
     res = plan_restriction_digest(
-        dna_mass_ug=args.dna_ug,
+        dna_mass_ug=mass_ug,
         reaction_volume_ul=args.volume,
         enzyme_1=args.enzyme_1,
         enzyme_2=args.enzyme_2,
         dna_conc_ng_ul=args.dna_conc,
     )
+
     _maybe_log_report(res, args)
     if getattr(args, "json", False):
         _dump_json(res, getattr(args, "compact", False))
@@ -1604,6 +1729,276 @@ def handle_translate(args: argparse.Namespace) -> None:
         print("=" * 60)
 
 
+def handle_seq(args: argparse.Namespace) -> None:
+    action = getattr(args, "seq_action", None)
+    if action == "save":
+        seq_text = _resolve_sequence(args)
+        if not seq_text:
+            print("Error: biolabcalc seq save requires sequence via -s/--sequence, -f/--file, or stdin.", file=sys.stderr)
+            sys.exit(1)
+        name = args.name or f"seq_{len(seq_text)}bp"
+        rec = SequenceRecord(
+            id=name,
+            name=name,
+            sequence=seq_text,
+            seq_type=getattr(args, "type", "dna"),
+            description=getattr(args, "desc", ""),
+        )
+        try:
+            seq_id = save_sequence(rec, filepath=getattr(args, "file_path", None))
+        except (PermissionError, OSError):
+            import tempfile
+            fallback = os.path.join(tempfile.gettempdir(), ".biolabcalc", "sequences.json")
+            seq_id = save_sequence(rec, filepath=fallback)
+        if not getattr(args, "quiet", False):
+            print(f"Saved sequence '{seq_id}' ({rec.length} bp, {rec.seq_type.upper()}, MW: {rec.molecular_weight_da:,.1f} Da)")
+        else:
+            print(seq_id)
+
+    elif action == "list":
+        try:
+            seqs = list_sequences(filepath=getattr(args, "file_path", None))
+        except Exception:
+            seqs = list(DEFAULT_SEQUENCE_CATALOG.values())
+        if getattr(args, "json", False):
+            _dump_json(seqs, getattr(args, "compact", False))
+            return
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+            print("SEQUENCE STORE & CATALOG")
+            print("=" * 70)
+            print(f"{'ID':20s} {'Type':8s} {'Length (bp/nt)':16s} {'GC %':8s} {'Description'}")
+            print(f"{'-'*20} {'-'*8} {'-'*16} {'-'*8} {'-'*15}")
+        for s in seqs:
+            print(f"{s.id:20s} {s.seq_type.upper():8s} {s.length:<16d} {s.gc_percent:<8.1f} {s.description}")
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+
+    elif action == "get":
+        target_id = getattr(args, "id", None) or getattr(args, "name", None)
+        if not target_id:
+            print("Error: biolabcalc seq get requires sequence identifier via -n/--name or -i/--id.", file=sys.stderr)
+            sys.exit(1)
+        try:
+            rec = get_sequence(target_id, filepath=getattr(args, "file_path", None))
+        except Exception:
+            import tempfile
+            fallback = os.path.join(tempfile.gettempdir(), ".biolabcalc", "sequences.json")
+            rec = get_sequence(target_id, filepath=fallback)
+        if getattr(args, "json", False):
+            _dump_json(rec, getattr(args, "compact", False))
+            return
+        if not getattr(args, "quiet", False):
+            print("=" * 60)
+            print(f"SEQUENCE RECORD: {rec.id}")
+            print("=" * 60)
+        print(f"ID:          {rec.id}")
+        print(f"Name:        {rec.name}")
+        print(f"Type:        {rec.seq_type.upper()}")
+        print(f"Length:      {rec.length} bp/nt")
+        print(f"GC Content:  {rec.gc_percent:.1f}%")
+        print(f"MW:          {rec.molecular_weight_da:,.1f} Da")
+        print(f"Sequence:    {rec.sequence}")
+        if not getattr(args, "quiet", False):
+            print("=" * 60)
+
+    elif action == "delete":
+        target_id = getattr(args, "id", None) or getattr(args, "name", None)
+        if not target_id:
+            print("Error: biolabcalc seq delete requires sequence identifier via -n/--name or -i/--id.", file=sys.stderr)
+            sys.exit(1)
+        try:
+            ok = delete_sequence(target_id, filepath=getattr(args, "file_path", None))
+        except Exception:
+            import tempfile
+            fallback = os.path.join(tempfile.gettempdir(), ".biolabcalc", "sequences.json")
+            ok = delete_sequence(target_id, filepath=fallback)
+        if ok:
+            print(f"Deleted sequence '{target_id}' successfully.")
+        else:
+            print(f"Sequence '{target_id}' not found.")
+
+    elif action == "import":
+        if not args.file:
+            print("Error: biolabcalc seq import requires fasta file path via -f/--file.", file=sys.stderr)
+            sys.exit(1)
+        imported = import_fasta(args.file, filepath=getattr(args, "file_path", None))
+        print(f"Successfully imported {len(imported)} sequence(s) from '{args.file}'.")
+
+    elif action == "export":
+        out_path = getattr(args, "output", None) or "exported_sequences.fasta"
+        export_fasta(filepath=getattr(args, "file_path", None), output_path=out_path)
+        print(f"Successfully exported sequences to '{out_path}'.")
+
+    else:
+        print("Usage: biolabcalc seq {save,list,get,delete,import,export} [options]")
+
+
+def handle_plasmid(args: argparse.Namespace) -> None:
+    action = getattr(args, "plasmid_action", None)
+    plasmid_arg = getattr(args, "plasmid", None)
+
+    if action == "inspect":
+        if not plasmid_arg:
+            print("Error: biolabcalc plasmid inspect requires -p/--plasmid.", file=sys.stderr)
+            sys.exit(1)
+        rec = load_plasmid(plasmid_arg)
+        if getattr(args, "json", False):
+            _dump_json(rec, getattr(args, "compact", False))
+            return
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+            print(f"PLASMID CONSTRUCT INSPECTOR: {rec.name}")
+            print("=" * 70)
+        print(f"Name:             {rec.name}")
+        print(f"Length:           {rec.length:,} bp")
+        print(f"Topology:         {rec.topology.capitalize()}")
+        print(f"GC Content:       {rec.gc_percent:.1f}%")
+        print(f"Molecular Weight: {rec.molecular_weight_da / 1e6:.3f} MDa")
+        print(f"Checksum:         {rec.checksum}")
+        print(f"Features:         {len(rec.features)} annotated")
+        if rec.features and not getattr(args, "quiet", False):
+            print("-" * 70)
+            print(f"  {'Feature Name':20s} {'Type':14s} {'Start':8s} {'End':8s} {'Strand':8s} {'Length'}")
+            print(f"  {'-'*20} {'-'*14} {'-'*8} {'-'*8} {'-'*8} {'-'*8}")
+            for f in rec.features:
+                flen = f.get_length(rec.length)
+                str_sign = "+1" if f.strand == 1 else "-1"
+                print(f"  {f.name:20s} {f.feature_type:14s} {f.start:<8d} {f.end:<8d} {str_sign:8s} {flen} bp")
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+
+    elif action == "annotate":
+        if not plasmid_arg:
+            print("Error: biolabcalc plasmid annotate requires -p/--plasmid.", file=sys.stderr)
+            sys.exit(1)
+        rec = load_plasmid(plasmid_arg) if isinstance(plasmid_arg, str) else plasmid_arg
+        seq = getattr(rec, "sequence", str(rec))
+        name = getattr(rec, "name", "Annotated_Plasmid")
+        topology = getattr(rec, "topology", "circular")
+        annotated = auto_annotate_plasmid(seq, name=name, topology=topology)
+        if getattr(args, "json", False):
+            _dump_json(annotated, getattr(args, "compact", False))
+            return
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+            print(f"AUTOMATED PLASMID ANNOTATION: {annotated.name}")
+            print("=" * 70)
+        print(f"Substrate:        {annotated.name} ({annotated.length:,} bp)")
+        print(f"Features Found:   {len(annotated.features)}")
+        for f in annotated.features:
+            print(f"  * [{f.feature_type.upper()}] {f.name:18s} {f.start:6d}..{f.end:<6d} ({f.get_length(annotated.length)} bp) - {f.notes}")
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+
+
+    elif action == "digest":
+        if not plasmid_arg:
+            print("Error: biolabcalc plasmid digest requires -p/--plasmid.", file=sys.stderr)
+            sys.exit(1)
+        rec = load_plasmid(plasmid_arg)
+        enz_raw = getattr(args, "enzymes", "EcoRI")
+        enz_list = [e.strip() for e in enz_raw.replace(",", " ").split() if e.strip()]
+        ladder_choice = LADDER_ALIAS_MAP.get(getattr(args, "ladder", "1kb_dna"), getattr(args, "ladder", "1kb_dna"))
+        pred = predict_restriction_digest(rec, enz_list, ladder_key=ladder_choice)
+        if getattr(args, "json", False):
+            _dump_json(pred, getattr(args, "compact", False))
+            return
+        if not getattr(args, "quiet", False):
+            print("=" * 65)
+            print(f"PLASMID DIGESTION PREDICTION: {rec.name}")
+            print("=" * 65)
+        print(f"Plasmid:          {rec.name} ({rec.length:,} bp)")
+        print(f"Enzymes:          {', '.join(pred.enzymes)}")
+        print(f"Fragment Count:   {pred.fragment_count}")
+        for frag in pred.fragments:
+            print(f"  Frag #{frag.fragment_id:2d}: {frag.length_bp:6d} bp | {frag.molecular_weight_da:9.1f} Da | {frag.mass_ng:5.1f} ng | Flanked: {frag.left_enzyme}/{frag.right_enzyme}")
+        if not getattr(args, "quiet", False):
+            print("=" * 65)
+
+    elif action == "export":
+        if not plasmid_arg:
+            print("Error: biolabcalc plasmid export requires -p/--plasmid.", file=sys.stderr)
+            sys.exit(1)
+        rec = load_plasmid(plasmid_arg)
+        out_path = getattr(args, "output", None) or f"{rec.name}.gb"
+        export_genbank(rec, out_path)
+        print(f"Exported plasmid '{rec.name}' to GenBank file '{out_path}'.")
+
+    else:
+        print("Usage: biolabcalc plasmid {inspect,annotate,digest,export} [options]")
+
+
+def handle_clone_gene(args: argparse.Namespace) -> None:
+    vec = getattr(args, "vector", "pET-28a(+)")
+    insert = getattr(args, "insert", None)
+    if not insert:
+        print("Error: biolabcalc clone-gene requires -i/--insert sequence.", file=sys.stderr)
+        sys.exit(1)
+    if os.path.exists(insert):
+        with open(insert, "r", encoding="utf-8") as f:
+            insert = f.read()
+
+    res = engineer_plasmid(
+        vector=vec,
+        insert_seq=insert,
+        gene_name=getattr(args, "gene_name", "Target"),
+        mode=getattr(args, "mode", "restriction_ligation"),
+        enzyme_5prime=getattr(args, "enzyme5", "BamHI"),
+        enzyme_3prime=getattr(args, "enzyme3", "XhoI"),
+        host=getattr(args, "host", "ecoli"),
+    )
+    _maybe_log_report(res, args)
+    if getattr(args, "json", False):
+        _dump_json(res, getattr(args, "compact", False))
+        return
+
+    if not getattr(args, "quiet", False):
+        print("=" * 70)
+        print(f"AUTOMATED GENE EXPRESSION CLONING: {res.target_gene_name}")
+        print("=" * 70)
+    print(f"Vector:                {res.assembled_plasmid.name} ({res.assembled_plasmid.length:,} bp)")
+    print(f"Insert Gene:           {res.target_gene_name}")
+    print(f"Assembly Mode:         {res.mode}")
+    print(f"Frame Synchronization: {'SYNCHRONIZED (IN-FRAME)' if res.in_frame else 'FRAME-SHIFT DETECTED'}")
+    print(f"Expressed Protein:     {len(res.expressed_protein_seq)} aa (MW: {res.protein_mw_da:,.1f} Da)")
+    print(f"Predicted Yield:       {res.predicted_expression_yield_mg_l:.1f} mg/L")
+    if not getattr(args, "quiet", False):
+        print("-" * 70)
+        print("7-Point Validation Checklist:")
+        print(f"  [{'PASS' if res.in_frame else 'FAIL'}] Reading Frame Continuity")
+        print(f"  [{'PASS' if res.has_start_codon else 'FAIL'}] Valid Canonical Start Codon (ATG)")
+        print(f"  [{'PASS' if res.has_stop_codon else 'FAIL'}] Valid Termination Stop Codon")
+        print(f"  [{'PASS' if res.premature_stops == 0 else 'FAIL'}] Absence of Premature Internal Stop Codons")
+        print(f"  [{'PASS' if res.rbs_or_kozak_ok else 'FAIL'}] Functional Ribosome Binding Site (RBS/Kozak)")
+        print(f"  [{'PASS' if res.ori_intact else 'FAIL'}] Intact Origin of Replication")
+        print(f"  [{'PASS' if res.marker_intact else 'FAIL'}] Preserved Antibiotic Selection Marker")
+        if res.notes:
+            print("Notes & Junctions:")
+            for note in res.notes:
+                print(f"  * {note}")
+        print("=" * 70)
+
+    out_gb = getattr(args, "output_gb", None)
+    if out_gb:
+        export_genbank(res.assembled_plasmid, out_gb)
+        print(f"Saved recombinant construct to GenBank file: '{out_gb}'")
+
+
+def handle_interactive_plasmid(args: argparse.Namespace) -> None:
+    export_path = getattr(args, "export_html", None)
+    if export_path:
+        saved_path = save_plasmid_workbench_html(export_path)
+        print(f"Exported interactive plasmid workbench to: '{saved_path}'")
+        return
+
+    port = getattr(args, "port", 8050)
+    open_b = not getattr(args, "no_browser", False)
+    print(f"Launching BioLabCalc Interactive Plasmid Workbench on port {port} ...")
+    launch_plasmid_workbench(port=port, open_browser=open_b)
+
+
+
 COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
     "dilute": handle_dilute,
     "wizard": handle_wizard,
@@ -1643,7 +2038,12 @@ COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
     "diagnostics": handle_diagnostics,
     "setup": handle_setup,
     "portable": handle_portable,
+    "seq": handle_seq,
+    "plasmid": handle_plasmid,
+    "clone-gene": handle_clone_gene,
+    "interactive-plasmid": handle_interactive_plasmid,
 }
+
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1681,7 +2081,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_mw.add_argument("--compact", action="store_true", help="Compact JSON without indentation")
     p_mw.add_argument("-t", "--type", choices=["dna", "rna", "protein"], default="dna", help="Sequence type")
     p_mw.add_argument("--ds", action="store_true", help="Double-stranded (for DNA)")
+    p_mw.add_argument("--circular", action="store_true", help="Calculate MW for circular dsDNA/plasmids")
     p_mw.add_argument("--end-5", "--end5", dest="end_5", choices=["hydroxyl", "monophosphate", "triphosphate"], default="hydroxyl", help="5' phosphorylation state")
+
     p_mw.add_argument("--end-3", "--end3", dest="end_3", choices=["hydroxyl", "monophosphate", "diphosphate", "triphosphate", "cyclic_phosphate"], default="hydroxyl", help="3' terminal phosphorylation state")
     p_mw.add_argument("--backbone", choices=["monophosphate", "phosphorothioate"], default="monophosphate", help="Internucleotide backbone chemistry")
 
@@ -1704,11 +2106,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     # 3. pcr
     p_pcr = subparsers.add_parser("pcr", parents=[common], help="Calculate PCR kinetics and dNTP usage")
-    p_pcr.add_argument("-l", "--length", type=int, required=True, help="Amplicon length in bp")
+    p_pcr.add_argument("-l", "--length", type=int, default=None, help="Amplicon length in bp")
+    p_pcr.add_argument("-s", "--sequence", default=None, help="Amplicon or template sequence string")
+    p_pcr.add_argument("-v", "--volume", default="50.0 uL", help="Reaction volume in µL (default: 50 uL)")
     p_pcr.add_argument("-t", "--template-ng", required=True, help="Template input in ng (e.g. '10 ng', '0.5 ug', 10)")
     p_pcr.add_argument("-c", "--cycles", type=int, default=30, help="PCR cycles")
     p_pcr.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     p_pcr.add_argument("--compact", action="store_true", help="Compact JSON without indentation")
+
 
     # 4. pcr-opt
     p_pcr_opt = subparsers.add_parser("pcr-opt", parents=[common], help="Optimize PCR annealing temp, extension time, and cycling")
@@ -1803,11 +2208,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     # 15. digest
     p_dig = subparsers.add_parser("digest", parents=[common], help="Plan restriction enzyme digestion with buffer compatibility and pipetting volumes")
-    p_dig.add_argument("--dna-ug", type=float, required=True, help="DNA mass in µg")
+    p_dig.add_argument("-m", "--dna-ug", type=float, default=None, help="DNA mass in µg")
+    p_dig.add_argument("-c", "--dna-conc", type=float, default=None, help="DNA stock concentration in ng/µL")
     p_dig.add_argument("-v", "--volume", type=float, default=50.0, help="Total reaction volume in µL (default: 50)")
     p_dig.add_argument("-e1", "--enzyme-1", default="EcoRI", help="First restriction enzyme (e.g. EcoRI, BamHI, HindIII)")
     p_dig.add_argument("-e2", "--enzyme-2", default=None, help="Second restriction enzyme for double digest (optional)")
-    p_dig.add_argument("--dna-conc", type=float, default=None, help="DNA stock concentration in ng/µL")
+    p_dig.add_argument("-s", "--sequence", default=None, help="DNA nucleotide sequence for in-silico restriction digest")
+    p_dig.add_argument("-p", "--plasmid", default=None, help="Plasmid name or record for in-silico restriction digest")
+    p_dig.add_argument("--simulate-gel", action="store_true", help="Simulate and display virtual gel migration")
+
 
     # 16. ligate
     p_lig = subparsers.add_parser("ligate", parents=[common], help="Calculate DNA ligation insert mass and reaction setup")
@@ -1982,7 +2391,89 @@ def build_parser() -> argparse.ArgumentParser:
     # 32. portable (Portable Environment Status)
     p_port = subparsers.add_parser("portable", parents=[common], help="Inspect portable runtime status, shared drive mounts, and storage paths")
 
+    # 33. seq (Sequence Store Management & FASTA I/O)
+    p_seq = subparsers.add_parser("seq", parents=[common], help="Sequence store management, catalog, and FASTA I/O")
+    seq_sub = p_seq.add_subparsers(dest="seq_action", help="Sequence operation")
+
+    p_s_save = seq_sub.add_parser("save", parents=[common], help="Save a sequence to store")
+    p_s_save.add_argument("-n", "--name", default=None, help="Sequence name / identifier")
+    p_s_save.add_argument("-s", "--sequence", default=None, help="Sequence string (or '-' for stdin)")
+    p_s_save.add_argument("-f", "--file", default=None, help="Sequence file")
+    p_s_save.add_argument("-t", "--type", default="dna", choices=["dna", "rna", "protein"], help="Sequence modality")
+    p_s_save.add_argument("-d", "--desc", default="", help="Description")
+    p_s_save.add_argument("--file-path", default=None, help="Custom JSON store file path")
+
+    p_s_list = seq_sub.add_parser("list", parents=[common], help="List all saved and catalog sequences")
+    p_s_list.add_argument("--file-path", default=None, help="Custom JSON store file path")
+    p_s_list.add_argument("--json", action="store_true", help="Output JSON")
+    p_s_list.add_argument("--compact", action="store_true", help="Compact JSON")
+
+    p_s_get = seq_sub.add_parser("get", parents=[common], help="Retrieve a sequence record")
+    p_s_get.add_argument("-n", "--name", "-i", "--id", dest="name", required=True, help="Sequence identifier")
+    p_s_get.add_argument("--file-path", default=None, help="Custom JSON store file path")
+    p_s_get.add_argument("--json", action="store_true", help="Output JSON")
+    p_s_get.add_argument("--compact", action="store_true", help="Compact JSON")
+
+    p_s_del = seq_sub.add_parser("delete", parents=[common], help="Delete a sequence from store")
+    p_s_del.add_argument("-n", "--name", "-i", "--id", dest="name", required=True, help="Sequence identifier")
+    p_s_del.add_argument("--file-path", default=None, help="Custom JSON store file path")
+
+    p_s_imp = seq_sub.add_parser("import", parents=[common], help="Import sequences from a FASTA file")
+    p_s_imp.add_argument("-f", "--file", required=True, help="Path to FASTA file")
+    p_s_imp.add_argument("--file-path", default=None, help="Custom JSON store file path")
+
+    p_s_exp = seq_sub.add_parser("export", parents=[common], help="Export stored sequences to FASTA")
+    p_s_exp.add_argument("-o", "--output", default="exported_sequences.fasta", help="Output FASTA path")
+    p_s_exp.add_argument("--file-path", default=None, help="Custom JSON store file path")
+
+    # 34. plasmid (Circular Plasmid Management, Annotation & GenBank)
+    p_plas = subparsers.add_parser("plasmid", parents=[common], help="Plasmid construct inspection, annotation, digest, and GenBank export")
+    plas_sub = p_plas.add_subparsers(dest="plasmid_action", help="Plasmid operation")
+
+    p_p_ins = plas_sub.add_parser("inspect", parents=[common], help="Inspect plasmid metadata, features, and biophysics")
+    p_p_ins.add_argument("-p", "--plasmid", required=True, help="Plasmid catalog name (e.g. pUC19, pET-28a(+)) or GenBank path")
+    p_p_ins.add_argument("--json", action="store_true", help="Output JSON")
+    p_p_ins.add_argument("--compact", action="store_true", help="Compact JSON")
+
+    p_p_ann = plas_sub.add_parser("annotate", parents=[common], help="Auto-annotate plasmid features, ORFs, promoters, and markers")
+    p_p_ann.add_argument("-p", "--plasmid", required=True, help="Plasmid catalog name or GenBank path")
+    p_p_ann.add_argument("--json", action="store_true", help="Output JSON")
+    p_p_ann.add_argument("--compact", action="store_true", help="Compact JSON")
+
+    p_p_dig = plas_sub.add_parser("digest", parents=[common], help="In-silico restriction digest prediction")
+    p_p_dig.add_argument("-p", "--plasmid", required=True, help="Plasmid catalog name or GenBank path")
+    p_p_dig.add_argument("-e", "--enzymes", default="EcoRI", help="Enzyme name(s) (comma or space separated)")
+    p_p_dig.add_argument("-l", "--ladder", default="1kb_dna", choices=LADDER_CHOICES, help="MW ladder")
+    p_p_dig.add_argument("--json", action="store_true", help="Output JSON")
+    p_p_dig.add_argument("--compact", action="store_true", help="Compact JSON")
+
+    p_p_exp = plas_sub.add_parser("export", parents=[common], help="Export plasmid construct to GenBank format")
+    p_p_exp.add_argument("-p", "--plasmid", required=True, help="Plasmid catalog name or GenBank path")
+    p_p_exp.add_argument("-o", "--output", default=None, help="Output GenBank file path (.gb)")
+
+    # 35. clone-gene (Automated Gene Expression Cloning)
+    p_clone = subparsers.add_parser("clone-gene", parents=[common], help="Automated gene expression cloning with frame synchronization and 7-point validation")
+    p_clone.add_argument("-v", "--vector", default="pET-28a(+)", help="Destination vector (catalog name e.g. pET-28a(+), or file)")
+    p_clone.add_argument("-i", "--insert", required=True, help="Insert coding sequence or FASTA path")
+    p_clone.add_argument("-g", "--gene-name", default="Target", help="Gene name")
+    p_clone.add_argument("-m", "--mode", default="restriction_ligation", choices=["restriction_ligation", "gibson", "golden_gate"], help="Assembly method")
+    p_clone.add_argument("--enzyme5", "-e1", default="BamHI", help="5' restriction enzyme in MCS (default: BamHI)")
+    p_clone.add_argument("--enzyme3", "-e2", default="XhoI", help="3' restriction enzyme in MCS (default: XhoI)")
+    p_clone.add_argument("--host", default="ecoli", choices=["ecoli", "human"], help="Expression host organism")
+    p_clone.add_argument("-o", "--output-gb", default=None, help="Optional GenBank output path")
+    p_clone.add_argument("--json", action="store_true", help="Output JSON")
+    p_clone.add_argument("--compact", action="store_true", help="Compact JSON")
+
+    # 36. interactive-plasmid (Workbench & SVG Map)
+    p_iplas = subparsers.add_parser("interactive-plasmid", parents=[common], help="Launch interactive SVG plasmid workbench in browser or export HTML")
+    p_iplas.add_argument("-p", "--plasmid", default="pUC19", help="Plasmid name or record (default: pUC19)")
+    p_iplas.add_argument("--port", type=int, default=8050, help="Local port (default: 8050)")
+    p_iplas.add_argument("--open-browser", action="store_true", default=True, help="Open browser on launch")
+    p_iplas.add_argument("--no-browser", action="store_true", help="Do not open browser")
+    p_iplas.add_argument("--export-html", "-o", default=None, help="Export standalone HTML workbench file without running server")
+
     return parser
+
 
 
 def main(argv: list[str] | None = None) -> None:

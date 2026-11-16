@@ -499,6 +499,26 @@ class TestInventoryService(unittest.TestCase):
         self.assertEqual(lineage["location"]["room"]["name"], "Bioprocessing Suite 402")
         self.assertEqual(lineage["construct"]["entity_id"], "pET-28a-T7RNAP")
 
+    def test_inventory_state_persistence_across_restart(self) -> None:
+        """Verify that inventory data persists to disk and reloads on new service instance."""
+        import tempfile
+        from biolabcalc.eln.services.inventory_service import InventoryService
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            persist_file = os.path.join(tmp_dir, "test_inv.json")
+            inv1 = InventoryService(storage_path=persist_file)
+            tube = inv1.place_tube(
+                box_id="BOX-T7RNAP-01",
+                slot="H8",
+                sample_name="Persistent Tube",
+                volume_ul=250.0,
+            )
+            # Simulate server restart by creating new service instance pointing to same file
+            inv2 = InventoryService(storage_path=persist_file)
+            retrieved = inv2.get_tube(tube.tube_id)
+            self.assertIsNotNone(retrieved)
+            self.assertEqual(retrieved.slot, "H8")
+            self.assertEqual(retrieved.sample_name, "Persistent Tube")
+
 
 class TestAuthAndRBAC(unittest.TestCase):
     """
@@ -535,6 +555,13 @@ class TestAuthAndRBAC(unittest.TestCase):
         self.assertFalse(alumni.has_permission("entry:create"))
         self.assertFalse(alumni.has_permission("inventory:move"))
         self.assertTrue(alumni.has_permission("audit:view"))
+
+    def test_production_mode_disables_demo_tokens(self) -> None:
+        """Verify production environment or explicit flag prevents default token seeding."""
+        from biolabcalc.eln.api.auth import AuthService, AuthorizationError
+        prod_auth = AuthService(allow_demo_users=False)
+        with self.assertRaises(AuthorizationError):
+            prod_auth.authenticate_token("token-pi-admin")
 
 
 class TestRESTAPIEndpoints(unittest.TestCase):

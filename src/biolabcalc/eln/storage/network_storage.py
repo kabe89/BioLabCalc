@@ -286,8 +286,8 @@ class NetworkFileLock:
                         f"Active lock held by another process/workstation."
                     )
 
-                # 4. Exponential backoff with random jitter
-                jitter = delay * random.uniform(0.0, 0.25)
+                # 4. Exponential backoff with random jitter (0.1 to 0.5 to prevent lock convoys)
+                jitter = delay * random.uniform(0.1, 0.5)
                 sleep_duration = min(delay + jitter, self.max_delay)
                 time.sleep(sleep_duration)
                 delay = min(delay * self.backoff_factor, self.max_delay)

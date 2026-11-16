@@ -848,14 +848,14 @@ export class AppController {
     if (tableBody) {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td style="font-family:var(--font-mono);">${tp.id}</td>
-        <td><strong>${tp.label}</strong></td>
-        <td>${new Date(tp.timestampIso).toLocaleTimeString()}</td>
-        <td>${tp.paramName} = <strong>${tp.paramValue}</strong></td>
+        <td style="font-family:var(--font-mono);">${this._escapeHtml(tp.id)}</td>
+        <td><strong>${this._escapeHtml(tp.label)}</strong></td>
+        <td>${this._escapeHtml(new Date(tp.timestampIso).toLocaleTimeString())}</td>
+        <td>${this._escapeHtml(tp.paramName)} = <strong>${this._escapeHtml(tp.paramValue)}</strong></td>
         <td>
-          <span class="badge badge-dev-${tp.deviationStatus.toLowerCase()}">${tp.deviationBadge}</span>
+          <span class="badge badge-dev-${encodeURIComponent(tp.deviationStatus.toLowerCase())}">${this._escapeHtml(tp.deviationBadge)}</span>
         </td>
-        <td>${tp.operator}</td>
+        <td>${this._escapeHtml(tp.operator)}</td>
       `;
       tableBody.prepend(row);
     }

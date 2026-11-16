@@ -375,8 +375,8 @@ class FailureDiagnosticsRecorder:
 
     def __init__(
         self,
-        log_path: Union[str, Path] = "failures.log",
-        jsonl_path: Union[str, Path] = "failures.jsonl",
+        log_path: Optional[Union[str, Path]] = None,
+        jsonl_path: Optional[Union[str, Path]] = None,
         log_dir: Optional[Union[str, Path]] = None,
     ):
         if log_dir is not None:
@@ -384,8 +384,9 @@ class FailureDiagnosticsRecorder:
             self.log_path = dir_path / "failures.log"
             self.jsonl_path = dir_path / "failures.jsonl"
         else:
-            self.log_path = Path(log_path)
-            self.jsonl_path = Path(jsonl_path)
+            default_dir = Path.home() / ".biolabcalc" / "logs"
+            self.log_path = Path(log_path) if log_path is not None else default_dir / "failures.log"
+            self.jsonl_path = Path(jsonl_path) if jsonl_path is not None else default_dir / "failures.jsonl"
 
         self._lock = threading.Lock()
         self._in_memory_records: List[Dict[str, Any]] = []

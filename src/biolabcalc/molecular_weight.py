@@ -118,16 +118,17 @@ class MolecularWeightResult:
 
 
 def calculate_dna_mw(
-    seq: str,
+    seq: Optional[str] = None,
     double_stranded: bool = False,
     end_5: Literal["hydroxyl", "monophosphate", "triphosphate"] = "hydroxyl",
     circular: bool = False,
+    length: Optional[int] = None,
 ) -> MolecularWeightResult:
     """Calculate the molecular weight of ssDNA or dsDNA.
 
     Parameters
     ----------
-    seq : str
+    seq : Optional[str]
         DNA sequence (5' to 3').
     double_stranded : bool
         If True, calculates MW of double-stranded duplex.
@@ -135,8 +136,39 @@ def calculate_dna_mw(
         Phosphorylation state at the 5' terminus.
     circular : bool
         If True, treats as circular DNA without terminal free ends.
+    length : Optional[int]
+        Optional sequence length in bp/nt when explicit sequence is not provided.
     """
-    clean_seq = clean_sequence(seq).replace("U", "T")
+    if (seq is None or seq == "") and length is not None:
+        if length <= 0:
+            return MolecularWeightResult("", "DNA", 0, 0.0, 0.0, {}, 0.0)
+        # Standard molecular biology empirical average: 650.0 Da per dsDNA bp, ~330.0 Da per ssDNA nt
+        if double_stranded:
+            total_avg = length * 650.0
+            total_mono = length * 649.8
+            return MolecularWeightResult("", "dsDNA", length, round(total_avg, 2), round(total_mono, 4), {}, 50.0, end_5=end_5)
+        avg_res = 308.95
+        mono_res = 308.85
+        strand_avg = length * avg_res
+        strand_mono = length * mono_res
+        if not circular:
+            if end_5 == "hydroxyl":
+                adj_avg = -61.96
+                adj_mono = -61.9558
+            elif end_5 == "monophosphate":
+                adj_avg = 18.02
+                adj_mono = 18.0106
+            elif end_5 == "triphosphate":
+                adj_avg = 177.98
+                adj_mono = 177.9430
+            else:
+                adj_avg = -61.96
+                adj_mono = -61.9558
+            strand_avg += adj_avg
+            strand_mono += adj_mono
+        return MolecularWeightResult("", "ssDNA", length, round(strand_avg, 2), round(strand_mono, 4), {}, 50.0, end_5=end_5)
+
+    clean_seq = clean_sequence(seq or "").replace("U", "T")
     counts = count_bases(clean_seq)
     length = len(clean_seq)
     if length == 0:

@@ -471,11 +471,16 @@ def generate_tailored_config(
             flags |= os.O_NOFOLLOW
         fd = os.open(str(path_to_write), flags, 0o600)
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(file_body)
+            f = os.fdopen(fd, "w", encoding="utf-8")
         except Exception:
-            os.close(fd)
+            try:
+                os.close(fd)
+            except OSError:
+                pass
             raise
+
+        with f:
+            f.write(file_body)
 
     try:
         _write_file_secure(target_config, header + yaml_text)

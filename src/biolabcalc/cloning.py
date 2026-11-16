@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 import math
+import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Any
+
+from .molecular_weight import calculate_dna_mw
+from .seq_utils import reverse_complement
+
 
 @dataclass(frozen=True)
 class RestrictionEnzyme:
@@ -17,31 +22,237 @@ class RestrictionEnzyme:
     standard_buffer: str
     buffer_activity_rcutsmart: int  # percentage
     notes: str
+    recognition_seq_clean: str = ""
+    cut_offset_top: int = 0
+    cut_offset_bottom: int = 0
+    is_type_iis: bool = False
+    isoschizomers: Tuple[str, ...] = ()
+
 
 ENZYME_DATABASE: Dict[str, RestrictionEnzyme] = {
-    "ECORI": RestrictionEnzyme("EcoRI", "G^AATTC", "5' overhang", "AATT", 37, "65°C for 20 min", "None", "rCutSmart", 100, "High fidelity High-Fidelity versions available."),
-    "BAMHI": RestrictionEnzyme("BamHI", "G^GATCC", "5' overhang", "GATC", 37, "None (column clean-up required)", "None", "rCutSmart", 100, "High glycerol (>5%) causes star activity."),
-    "HINDIII": RestrictionEnzyme("HindIII", "A^AGCTT", "5' overhang", "AGCT", 37, "80°C for 20 min", "None", "rCutSmart", 100, "Classic 5' overhang cloning enzyme."),
-    "XHOI": RestrictionEnzyme("XhoI", "C^TCGAG", "5' overhang", "TCGA", 37, "65°C for 20 min", "None", "rCutSmart", 100, "Compatible with SalI overhangs."),
-    "NDEI": RestrictionEnzyme("NdeI", "CA^TATG", "5' overhang", "TA", 37, "65°C for 20 min", "None", "rCutSmart", 100, "Includes ATG start codon in recognition site."),
-    "NOTI": RestrictionEnzyme("NotI", "GC^GGCCGC", "5' overhang", "GGCC", 37, "65°C for 20 min", "CpG methylation sensitive", "rCutSmart", 100, "Rare 8-base cutter."),
-    "SALI": RestrictionEnzyme("SalI", "G^TCGAC", "5' overhang", "TCGA", 37, "65°C for 20 min", "CpG methylation sensitive", "rCutSmart", 100, "Requires BSA or rCutSmart."),
-    "NHEI": RestrictionEnzyme("NheI", "G^CTAGC", "5' overhang", "CTAG", 37, "65°C for 20 min", "None", "rCutSmart", 100, "Compatible with SpeI and XbaI."),
-    "BGLII": RestrictionEnzyme("BglII", "A^GATCT", "5' overhang", "GATC", 37, "None (column clean-up required)", "dam methylation sensitive", "rCutSmart", 100, "Compatible with BamHI overhangs."),
-    "DPNI": RestrictionEnzyme("DpnI", "GA^TC", "blunt", "", 37, "80°C for 20 min", "Requires Dam-methylation (Gm6ATC)", "rCutSmart", 100, "Selectively digests dam-methylated parent plasmid in site-directed mutagenesis."),
-    "ECORV": RestrictionEnzyme("EcoRV", "GAT^ATC", "blunt", "", 37, "80°C for 20 min", "None", "rCutSmart", 100, "Blunt cutter."),
-    "SMAI": RestrictionEnzyme("SmaI", "CCC^GGG", "blunt", "", 25, "65°C for 20 min", "CpG sensitive", "rCutSmart", 100, "Incubate at 25°C, not 37°C."),
-    "XBAI": RestrictionEnzyme("XbaI", "T^CTAGA", "5' overhang", "CTAG", 37, "65°C for 20 min", "dam sensitive (if overlapping)", "rCutSmart", 100, "Check dam methylation when flanked by TC."),
-    "BSAI": RestrictionEnzyme("BsaI-HFv2", "GGTCTC(1/5)", "5' overhang", "NNNN", 37, "80°C for 20 min", "None", "rCutSmart", 100, "Type IIS enzyme; primary choice for Golden Gate Assembly."),
-    "BSAIHFV2": RestrictionEnzyme("BsaI-HFv2", "GGTCTC(1/5)", "5' overhang", "NNNN", 37, "80°C for 20 min", "None", "rCutSmart", 100, "Type IIS enzyme; primary choice for Golden Gate Assembly."),
-    "BSMBI": RestrictionEnzyme("BsmBI-v2", "CGTCTC(1/5)", "5' overhang", "NNNN", 42, "80°C for 20 min", "None", "NEBuffer r3.1", 100, "Type IIS enzyme; incubate at 42°C for Golden Gate digestion phase."),
-    "BSMBIV2": RestrictionEnzyme("BsmBI-v2", "CGTCTC(1/5)", "5' overhang", "NNNN", 42, "80°C for 20 min", "None", "NEBuffer r3.1", 100, "Type IIS enzyme; incubate at 42°C for Golden Gate digestion phase."),
-    "ESP3I": RestrictionEnzyme("Esp3I", "CGTCTC(1/5)", "5' overhang", "NNNN", 37, "65°C for 20 min", "dam/dcm sensitive", "rCutSmart", 100, "Type IIS enzyme; isoschizomer of BsmBI."),
-    "BBSI": RestrictionEnzyme("BbsI-HF", "GAAGAC(2/6)", "5' overhang", "NNNN", 37, "65°C for 20 min", "None", "rCutSmart", 100, "Type IIS enzyme; popular for mammalian CRISPR sgRNA cloning."),
-    "BBSIHF": RestrictionEnzyme("BbsI-HF", "GAAGAC(2/6)", "5' overhang", "NNNN", 37, "65°C for 20 min", "None", "rCutSmart", 100, "Type IIS enzyme; popular for mammalian CRISPR sgRNA cloning."),
-    "PAQCI": RestrictionEnzyme("PaqCI", "CACCTGC(4/8)", "5' overhang", "NNNN", 37, "65°C for 20 min", "None", "rCutSmart", 100, "Type IIS 7-base cutter with PaqCI activator."),
-    "SAPI": RestrictionEnzyme("SapI", "GCTCTTC(1/4)", "5' overhang", "NNN", 37, "65°C for 20 min", "CpG sensitive", "rCutSmart", 100, "Type IIS enzyme with 3-bp overhang."),
+    "ECORI": RestrictionEnzyme(
+        "EcoRI", "G^AATTC", "5' overhang", "AATT", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "High-Fidelity versions available.", recognition_seq_clean="GAATTC", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "BAMHI": RestrictionEnzyme(
+        "BamHI", "G^GATCC", "5' overhang", "GATC", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "High glycerol (>5%) causes star activity.", recognition_seq_clean="GGATCC", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "HINDIII": RestrictionEnzyme(
+        "HindIII", "A^AGCTT", "5' overhang", "AGCT", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Classic 5' overhang cloning enzyme.", recognition_seq_clean="AAGCTT", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "XHOI": RestrictionEnzyme(
+        "XhoI", "C^TCGAG", "5' overhang", "TCGA", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Compatible with SalI overhangs.", recognition_seq_clean="CTCGAG", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=("PaeR7I",)
+    ),
+    "NDEI": RestrictionEnzyme(
+        "NdeI", "CA^TATG", "5' overhang", "TA", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Includes ATG start codon in recognition site.", recognition_seq_clean="CATATG", cut_offset_top=2, cut_offset_bottom=4,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "NOTI": RestrictionEnzyme(
+        "NotI", "GC^GGCCGC", "5' overhang", "GGCC", 37, "65°C for 20 min", "CpG methylation sensitive", "rCutSmart", 100,
+        "Rare 8-base cutter.", recognition_seq_clean="GCGGCCGC", cut_offset_top=2, cut_offset_bottom=6,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "SALI": RestrictionEnzyme(
+        "SalI", "G^TCGAC", "5' overhang", "TCGA", 37, "65°C for 20 min", "CpG methylation sensitive", "rCutSmart", 100,
+        "Requires BSA or rCutSmart.", recognition_seq_clean="GTCGAC", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "NHEI": RestrictionEnzyme(
+        "NheI", "G^CTAGC", "5' overhang", "CTAG", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Compatible with SpeI and XbaI.", recognition_seq_clean="GCTAGC", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "BGLII": RestrictionEnzyme(
+        "BglII", "A^GATCT", "5' overhang", "GATC", 37, "None (column clean-up required)", "dam methylation sensitive", "rCutSmart", 100,
+        "Compatible with BamHI overhangs.", recognition_seq_clean="AGATCT", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "DPNI": RestrictionEnzyme(
+        "DpnI", "GA^TC", "blunt", "", 37, "80°C for 20 min", "Requires Dam-methylation (Gm6ATC)", "rCutSmart", 100,
+        "Selectively digests dam-methylated parent plasmid in site-directed mutagenesis.", recognition_seq_clean="GATC",
+        cut_offset_top=2, cut_offset_bottom=2, is_type_iis=False, isoschizomers=()
+    ),
+    "ECORV": RestrictionEnzyme(
+        "EcoRV", "GAT^ATC", "blunt", "", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Blunt cutter.", recognition_seq_clean="GATATC", cut_offset_top=3, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=("Eco32I",)
+    ),
+    "SMAI": RestrictionEnzyme(
+        "SmaI", "CCC^GGG", "blunt", "", 25, "65°C for 20 min", "CpG sensitive", "rCutSmart", 100,
+        "Incubate at 25°C, not 37°C.", recognition_seq_clean="CCCGGG", cut_offset_top=3, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "XBAI": RestrictionEnzyme(
+        "XbaI", "T^CTAGA", "5' overhang", "CTAG", 37, "65°C for 20 min", "dam sensitive (if overlapping)", "rCutSmart", 100,
+        "Check dam methylation when flanked by TC.", recognition_seq_clean="TCTAGA", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "KPNI": RestrictionEnzyme(
+        "KpnI", "GGTAC^C", "3' overhang", "GTAC", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Generates 3' overhang.", recognition_seq_clean="GGTACC", cut_offset_top=5, cut_offset_bottom=1,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "SACI": RestrictionEnzyme(
+        "SacI", "GAGCT^C", "3' overhang", "AGCT", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Generates 3' overhang.", recognition_seq_clean="GAGCTC", cut_offset_top=5, cut_offset_bottom=1,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "PSTI": RestrictionEnzyme(
+        "PstI", "CTGCA^G", "3' overhang", "TGCA", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Generates 3' overhang.", recognition_seq_clean="CTGCAG", cut_offset_top=5, cut_offset_bottom=1,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "SPHI": RestrictionEnzyme(
+        "SphI", "GCATG^C", "3' overhang", "CATG", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Generates 3' overhang.", recognition_seq_clean="GCATGC", cut_offset_top=5, cut_offset_bottom=1,
+        is_type_iis=False, isoschizomers=("PaeI",)
+    ),
+    "SPEI": RestrictionEnzyme(
+        "SpeI", "A^CTAGT", "5' overhang", "CTAG", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Compatible with NheI, XbaI, and AvrII.", recognition_seq_clean="ACTAGT", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=("BcuI",)
+    ),
+    "AGEI": RestrictionEnzyme(
+        "AgeI", "A^CCGGT", "5' overhang", "CCGG", 37, "65°C for 20 min", "CpG sensitive", "rCutSmart", 100,
+        "Commonly used for fluorescent protein fusions.", recognition_seq_clean="ACCGGT", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=("BshTI",)
+    ),
+    "AVRII": RestrictionEnzyme(
+        "AvrII", "C^CTAGG", "5' overhang", "CTAG", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Compatible with SpeI, NheI, and XbaI.", recognition_seq_clean="CCTAGG", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=("BlnI",)
+    ),
+    "PACI": RestrictionEnzyme(
+        "PacI", "TTAAT^TAA", "3' overhang", "TAAT", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Rare 8-base cutter with AT-rich target.", recognition_seq_clean="TTAATTAA", cut_offset_top=5, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "ASCI": RestrictionEnzyme(
+        "AscI", "GG^CGCGCC", "5' overhang", "CGCG", 37, "80°C for 20 min", "CpG sensitive", "rCutSmart", 100,
+        "Rare 8-base cutter with GC-rich target.", recognition_seq_clean="GGCGCGCC", cut_offset_top=2, cut_offset_bottom=6,
+        is_type_iis=False, isoschizomers=("PalAI",)
+    ),
+    "FSEI": RestrictionEnzyme(
+        "FseI", "GGCCGG^CC", "3' overhang", "CCGG", 37, "65°C for 20 min", "CpG sensitive", "rCutSmart", 100,
+        "Rare 8-base cutter with 3' overhang.", recognition_seq_clean="GGCCGGCC", cut_offset_top=6, cut_offset_bottom=2,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "SFII": RestrictionEnzyme(
+        "SfiI", "GGCCNNNN^NGGCC", "3' overhang", "NNN", 50, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Requires two recognition sites to cleave; incubate at 50°C.", recognition_seq_clean="GGCCNNNNNGGCC", cut_offset_top=8, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "PMEI": RestrictionEnzyme(
+        "PmeI", "GTTT^AAAC", "blunt", "", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Rare 8-base blunt cutter.", recognition_seq_clean="GTTTAAAC", cut_offset_top=4, cut_offset_bottom=4,
+        is_type_iis=False, isoschizomers=("MssI",)
+    ),
+    "SWAI": RestrictionEnzyme(
+        "SwaI", "ATTT^AAAT", "blunt", "", 25, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Rare 8-base blunt cutter; incubate at 25°C.", recognition_seq_clean="ATTTAAAT", cut_offset_top=4, cut_offset_bottom=4,
+        is_type_iis=False, isoschizomers=("SmiI",)
+    ),
+    "NCOI": RestrictionEnzyme(
+        "NcoI", "C^CATGG", "5' overhang", "CATG", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Contains ATG start codon in recognition site.", recognition_seq_clean="CCATGG", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "BSPEI": RestrictionEnzyme(
+        "BspEI", "T^CCGGA", "5' overhang", "CCGG", 37, "80°C for 20 min", "dam sensitive", "rCutSmart", 100,
+        "Sensitive to dam methylation if preceded by GG.", recognition_seq_clean="TCCGGA", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=("AccIII",)
+    ),
+    "MFEI": RestrictionEnzyme(
+        "MfeI", "C^AATTG", "5' overhang", "AATT", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Compatible with EcoRI overhangs.", recognition_seq_clean="CAATTG", cut_offset_top=1, cut_offset_bottom=5,
+        is_type_iis=False, isoschizomers=("MunI",)
+    ),
+    "CLAI": RestrictionEnzyme(
+        "ClaI", "AT^CGAT", "5' overhang", "CG", 37, "65°C for 20 min", "dam sensitive (if overlapping)", "rCutSmart", 100,
+        "Blocked by dam methylation if overlapping GATC.", recognition_seq_clean="ATCGAT", cut_offset_top=2, cut_offset_bottom=4,
+        is_type_iis=False, isoschizomers=("Bsp106I",)
+    ),
+    "DRAI": RestrictionEnzyme(
+        "DraI", "TTT^AAA", "blunt", "", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "6-base blunt cutter.", recognition_seq_clean="TTTAAA", cut_offset_top=3, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "SCAI": RestrictionEnzyme(
+        "ScaI", "AGT^ACT", "blunt", "", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Often cuts within ampicillin resistance gene (bla).", recognition_seq_clean="AGTACT", cut_offset_top=3, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=("AssI",)
+    ),
+    "PVUI": RestrictionEnzyme(
+        "PvuI", "CGAT^CG", "3' overhang", "AT", 37, "None (column clean-up required)", "CpG sensitive", "rCutSmart", 100,
+        "Often cuts within ampicillin resistance gene.", recognition_seq_clean="CGATCG", cut_offset_top=4, cut_offset_bottom=2,
+        is_type_iis=False, isoschizomers=("Ple19I",)
+    ),
+    "PVUII": RestrictionEnzyme(
+        "PvuII", "CAG^CTG", "blunt", "", 37, "None (column clean-up required)", "None", "rCutSmart", 100,
+        "Blunt cutter.", recognition_seq_clean="CAGCTG", cut_offset_top=3, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=()
+    ),
+    "STUI": RestrictionEnzyme(
+        "StuI", "AGG^CCT", "blunt", "", 37, "None (column clean-up required)", "dcm sensitive", "rCutSmart", 100,
+        "Blunt cutter; sensitive to dcm methylation if flanked.", recognition_seq_clean="AGGCCT", cut_offset_top=3, cut_offset_bottom=3,
+        is_type_iis=False, isoschizomers=("AatI",)
+    ),
+    # Type IIS enzymes
+    "BSAI": RestrictionEnzyme(
+        "BsaI-HFv2", "GGTCTC(1/5)", "5' overhang", "NNNN", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Type IIS enzyme; primary choice for Golden Gate Assembly.", recognition_seq_clean="GGTCTC", cut_offset_top=7, cut_offset_bottom=11,
+        is_type_iis=True, isoschizomers=("Eco31I", "BsaI")
+    ),
+    "BSAIHFV2": RestrictionEnzyme(
+        "BsaI-HFv2", "GGTCTC(1/5)", "5' overhang", "NNNN", 37, "80°C for 20 min", "None", "rCutSmart", 100,
+        "Type IIS enzyme; primary choice for Golden Gate Assembly.", recognition_seq_clean="GGTCTC", cut_offset_top=7, cut_offset_bottom=11,
+        is_type_iis=True, isoschizomers=("Eco31I", "BsaI")
+    ),
+    "BSMBI": RestrictionEnzyme(
+        "BsmBI-v2", "CGTCTC(1/5)", "5' overhang", "NNNN", 42, "80°C for 20 min", "None", "NEBuffer r3.1", 100,
+        "Type IIS enzyme; incubate at 42°C for Golden Gate digestion phase.", recognition_seq_clean="CGTCTC", cut_offset_top=7, cut_offset_bottom=11,
+        is_type_iis=True, isoschizomers=("Esp3I", "BsmBI")
+    ),
+    "BSMBIV2": RestrictionEnzyme(
+        "BsmBI-v2", "CGTCTC(1/5)", "5' overhang", "NNNN", 42, "80°C for 20 min", "None", "NEBuffer r3.1", 100,
+        "Type IIS enzyme; incubate at 42°C for Golden Gate digestion phase.", recognition_seq_clean="CGTCTC", cut_offset_top=7, cut_offset_bottom=11,
+        is_type_iis=True, isoschizomers=("Esp3I", "BsmBI")
+    ),
+    "ESP3I": RestrictionEnzyme(
+        "Esp3I", "CGTCTC(1/5)", "5' overhang", "NNNN", 37, "65°C for 20 min", "dam/dcm sensitive", "rCutSmart", 100,
+        "Type IIS enzyme; isoschizomer of BsmBI.", recognition_seq_clean="CGTCTC", cut_offset_top=7, cut_offset_bottom=11,
+        is_type_iis=True, isoschizomers=("BsmBI", "BsmBI-v2")
+    ),
+    "BBSI": RestrictionEnzyme(
+        "BbsI-HF", "GAAGAC(2/6)", "5' overhang", "NNNN", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Type IIS enzyme; popular for mammalian CRISPR sgRNA cloning.", recognition_seq_clean="GAAGAC", cut_offset_top=8, cut_offset_bottom=12,
+        is_type_iis=True, isoschizomers=("BpiI", "BbsI")
+    ),
+    "BBSIHF": RestrictionEnzyme(
+        "BbsI-HF", "GAAGAC(2/6)", "5' overhang", "NNNN", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Type IIS enzyme; popular for mammalian CRISPR sgRNA cloning.", recognition_seq_clean="GAAGAC", cut_offset_top=8, cut_offset_bottom=12,
+        is_type_iis=True, isoschizomers=("BpiI", "BbsI")
+    ),
+    "PAQCI": RestrictionEnzyme(
+        "PaqCI", "CACCTGC(4/8)", "5' overhang", "NNNN", 37, "65°C for 20 min", "None", "rCutSmart", 100,
+        "Type IIS 7-base cutter with PaqCI activator.", recognition_seq_clean="CACCTGC", cut_offset_top=11, cut_offset_bottom=15,
+        is_type_iis=True, isoschizomers=("AarI",)
+    ),
+    "SAPI": RestrictionEnzyme(
+        "SapI", "GCTCTTC(1/4)", "5' overhang", "NNN", 37, "65°C for 20 min", "CpG sensitive", "rCutSmart", 100,
+        "Type IIS enzyme with 3-bp overhang.", recognition_seq_clean="GCTCTTC", cut_offset_top=8, cut_offset_bottom=11,
+        is_type_iis=True, isoschizomers=("BpuEI",)
+    ),
 }
+
 
 def get_restriction_enzyme(name: str) -> RestrictionEnzyme:
     """Look up restriction enzyme details with flexible alias, casing, and High-Fidelity (-HF) matching."""
@@ -50,16 +261,20 @@ def get_restriction_enzyme(name: str) -> RestrictionEnzyme:
     if norm in ENZYME_DATABASE:
         return ENZYME_DATABASE[norm]
     # 2. Match without HF / v2 suffixes (e.g. ECORIHF -> ECORI, BAMHIHF -> BAMHI)
-    import re
     stripped = re.sub(r'(HFV2|HF|V2)$', '', norm)
     if stripped in ENZYME_DATABASE:
         return ENZYME_DATABASE[stripped]
-    # 3. Fuzzy search in name
+    # 3. Match against values by canonical name or alias
     for k, v in ENZYME_DATABASE.items():
         v_norm = v.name.upper().replace("-", "").replace(" ", "").replace("_", "")
         if norm == v_norm or stripped == v_norm or v_norm in norm or norm in v_norm:
             return v
-    raise KeyError(f"Enzyme '{name}' not found. Available: {list(ENZYME_DATABASE.keys())}")
+        for iso in v.isoschizomers:
+            iso_norm = iso.upper().replace("-", "").replace(" ", "").replace("_", "")
+            if norm == iso_norm or stripped == iso_norm:
+                return v
+    raise KeyError(f"Enzyme '{name}' not found. Available: {sorted(set(e.name for e in ENZYME_DATABASE.values()))}")
+
 
 @dataclass(frozen=True)
 class DigestSetupResult:
@@ -75,6 +290,7 @@ class DigestSetupResult:
     star_activity_warning: bool
     notes: List[str]
 
+
 @dataclass(frozen=True)
 class LigationSetupResult:
     vector_length_bp: int
@@ -87,6 +303,7 @@ class LigationSetupResult:
     reagent_volumes: Dict[str, float]
     incubation_guidelines: str
 
+
 @dataclass(frozen=True)
 class GibsonAssemblyResult:
     vector_length_bp: int
@@ -96,6 +313,7 @@ class GibsonAssemblyResult:
     total_dna_pmol: float
     reagent_volumes: Dict[str, float]
     incubation_protocol: str
+
 
 def plan_restriction_digest(
     dna_mass_ug: float,
@@ -198,6 +416,7 @@ def plan_restriction_digest(
         notes=notes,
     )
 
+
 def calculate_ligation(
     vector_length_bp: int,
     insert_length_bp: int,
@@ -210,13 +429,15 @@ def calculate_ligation(
     """Calculate insert mass and reaction setup for sticky or blunt-end DNA ligation."""
     if vector_length_bp <= 0 or insert_length_bp <= 0 or vector_mass_ng <= 0:
         raise ValueError("Vector and insert dimensions and mass must be positive.")
+    if reaction_volume_ul <= 0:
+        raise ValueError("Reaction volume must be strictly positive.")
 
     # Mass_insert = Mass_vector * (Length_insert / Length_vector) * Molar_Ratio
     insert_mass_ng = vector_mass_ng * (insert_length_bp / vector_length_bp) * molar_ratio
 
-    # Moles calculation (dsDNA): mass_g / (len_bp * 617.96)
-    vec_mw = vector_length_bp * 617.96 + 36.04
-    ins_mw = insert_length_bp * 617.96 + 36.04
+    # Moles calculation (dsDNA) unified through calculate_dna_mw
+    vec_mw = calculate_dna_mw(length=vector_length_bp, double_stranded=True).average_mw
+    ins_mw = calculate_dna_mw(length=insert_length_bp, double_stranded=True).average_mw
     vec_pmol = (vector_mass_ng * 1e-9 / vec_mw) * 1e12
     ins_pmol = (insert_mass_ng * 1e-9 / ins_mw) * 1e12
 
@@ -227,9 +448,13 @@ def calculate_ligation(
     vec_vol = round(vector_mass_ng / vector_conc_ng_ul, 2) if (vector_conc_ng_ul and vector_conc_ng_ul > 0) else round(vector_mass_ng / 50.0, 2)
     ins_vol = round(insert_mass_ng / insert_conc_ng_ul, 2) if (insert_conc_ng_ul and insert_conc_ng_ul > 0) else round(insert_mass_ng / 25.0, 2)
 
-    water_vol = round(reaction_volume_ul - (buf_vol + ligase_vol + vec_vol + ins_vol), 2)
+    solutes = buf_vol + ligase_vol + vec_vol + ins_vol
+    water_vol = round(reaction_volume_ul - solutes, 2)
     if water_vol < 0:
-        water_vol = 0.0
+        raise ValueError(
+            f"Volume overflow: Combined reagents ({solutes:.1f} µL) exceed reaction volume ({reaction_volume_ul:.1f} µL). "
+            f"Concentrate DNA or increase reaction volume."
+        )
 
     reagents = {
         "Nuclease-Free Water": max(0.0, water_vol),
@@ -256,6 +481,7 @@ def calculate_ligation(
         incubation_guidelines=guidelines,
     )
 
+
 def calculate_gibson_assembly(
     vector_length_bp: int,
     insert_lengths_bp: List[int],
@@ -271,14 +497,15 @@ def calculate_gibson_assembly(
     if reaction_volume_ul <= 0:
         raise ValueError("Reaction volume must be strictly positive.")
 
-    vec_mw = vector_length_bp * 617.96 + 36.04
+    # Moles calculation unified through calculate_dna_mw
+    vec_mw = calculate_dna_mw(length=vector_length_bp, double_stranded=True).average_mw
     vec_pmol = (vector_mass_ng * 1e-9 / vec_mw) * 1e12
 
     insert_masses = []
     tot_pmol = vec_pmol
 
     for idx, ins_len in enumerate(insert_lengths_bp):
-        ins_mw = ins_len * 617.96 + 36.04
+        ins_mw = calculate_dna_mw(length=ins_len, double_stranded=True).average_mw
         # Standard 2:1 ratio for 2-3 fragments, 1:1 for 4-6 fragments
         ins_mass = vector_mass_ng * (ins_len / vector_length_bp) * molar_ratio
         ins_pmol = (ins_mass * 1e-9 / ins_mw) * 1e12
@@ -293,7 +520,13 @@ def calculate_gibson_assembly(
         c = insert_concs_ng_ul[idx] if (insert_concs_ng_ul and idx < len(insert_concs_ng_ul) and insert_concs_ng_ul[idx] > 0) else 50.0
         ins_vols.append(round(imass / c, 2))
 
-    water_vol = round(reaction_volume_ul - (master_mix_vol + vec_vol + sum(ins_vols)), 2)
+    solutes = master_mix_vol + vec_vol + sum(ins_vols)
+    water_vol = round(reaction_volume_ul - solutes, 2)
+    if water_vol < 0:
+        raise ValueError(
+            f"Volume overflow: Combined reagents ({solutes:.1f} µL) exceed reaction volume ({reaction_volume_ul:.1f} µL). "
+            f"Concentrate DNA or increase reaction volume."
+        )
 
     reagents = {
         "2X Gibson Assembly Master Mix": master_mix_vol,
@@ -323,8 +556,16 @@ def calculate_gibson_assembly(
     )
 
 
-def are_overhangs_compatible(enzyme_1: str, enzyme_2: str) -> Tuple[bool, str]:
-    """Determine whether two restriction enzymes produce compatible cohesive (or blunt) ends."""
+def are_overhangs_compatible(
+    enzyme_1: str,
+    enzyme_2: str,
+    overhang_1: Optional[str] = None,
+    overhang_2: Optional[str] = None,
+) -> Tuple[bool, str]:
+    """Determine whether two restriction enzymes produce compatible cohesive (or blunt) ends.
+
+    Supports Type IIS enzymes where variable overhangs must be provided explicitly.
+    """
     e1 = get_restriction_enzyme(enzyme_1)
     e2 = get_restriction_enzyme(enzyme_2)
 
@@ -334,15 +575,29 @@ def are_overhangs_compatible(enzyme_1: str, enzyme_2: str) -> Tuple[bool, str]:
     if e1.cut_type != e2.cut_type:
         return False, f"Incompatible cut types: {e1.name} generates {e1.cut_type}, whereas {e2.name} generates {e2.cut_type}."
 
-    if e1.overhang_sequence == e2.overhang_sequence:
-        return True, f"Compatible cohesive ends: both generate identical {e1.cut_type} ({e1.overhang_sequence})."
+    is_iis_1 = e1.is_type_iis or "N" in e1.overhang_sequence
+    is_iis_2 = e2.is_type_iis or "N" in e2.overhang_sequence
 
-    # Complementary overhang check for non-palindromic or staggered cohesive ends
-    from .seq_utils import reverse_complement
-    if e1.overhang_sequence == reverse_complement(e2.overhang_sequence, seq_type="dna"):
-        return True, f"Compatible complementary cohesive ends: {e1.name} ({e1.overhang_sequence}) pairs with {e2.name} ({e2.overhang_sequence})."
+    if is_iis_1 or is_iis_2:
+        if overhang_1 is None or overhang_2 is None:
+            return False, "Type IIS enzymes generate sequence-dependent variable overhangs; supply explicit overhangs to check compatibility."
+        oh1 = overhang_1.upper()
+        oh2 = overhang_2.upper()
+    else:
+        oh1 = (overhang_1 or e1.overhang_sequence).upper()
+        oh2 = (overhang_2 or e2.overhang_sequence).upper()
 
-    return False, f"Incompatible overhangs: {e1.name} ({e1.overhang_sequence}) vs {e2.name} ({e2.overhang_sequence})."
+    if len(oh1) != len(oh2):
+        return False, f"Incompatible overhang lengths: {len(oh1)} bp vs {len(oh2)} bp."
+
+    if oh1 == oh2:
+        return True, f"Compatible cohesive ends: both generate identical {e1.cut_type} ({oh1})."
+
+    rc_oh2 = reverse_complement(oh2, seq_type="dna")
+    if oh1 == rc_oh2:
+        return True, f"Compatible complementary cohesive ends: {e1.name} ({oh1}) pairs with {e2.name} ({oh2})."
+
+    return False, f"Incompatible overhangs: {e1.name} ({oh1}) vs {e2.name} ({oh2})."
 
 
 def register_custom_enzyme(enzyme: RestrictionEnzyme) -> None:
@@ -407,20 +662,22 @@ def calculate_golden_gate_assembly(
     if reaction_volume_ul <= 0:
         raise ValueError("Reaction volume must be strictly positive.")
 
-    # Molar calculation: 1 fmol = (ng * 1e6) / (bp * 650)
-    # mass_ng = (fmol * bp * 650) / 1e6
+    # Moles calculation unified through calculate_dna_mw:
+    # 1 fmol = (ng * 1e6) / MW
+    vec_mw = calculate_dna_mw(length=vector_length_bp, double_stranded=True).average_mw
     if vector_mass_ng is not None and vector_mass_ng > 0:
         v_mass = vector_mass_ng
-        v_fmol = (v_mass * 1e6) / (vector_length_bp * 650.0)
+        v_fmol = (v_mass * 1e6) / vec_mw
     else:
         v_fmol = target_vector_fmol
-        v_mass = (v_fmol * vector_length_bp * 650.0) / 1e6
+        v_mass = (v_fmol * vec_mw) / 1e6
 
     insert_masses: List[float] = []
     insert_fmols: List[float] = []
     for ins_len in insert_lengths_bp:
+        ins_mw = calculate_dna_mw(length=ins_len, double_stranded=True).average_mw
         ins_f = v_fmol * insert_to_vector_ratio
-        ins_m = (ins_f * ins_len * 650.0) / 1e6
+        ins_m = (ins_f * ins_mw) / 1e6
         insert_fmols.append(round(ins_f, 2))
         insert_masses.append(round(ins_m, 2))
 
@@ -440,8 +697,13 @@ def calculate_golden_gate_assembly(
     enzyme_vol = 1.0  # Type IIS enzyme (typically 20 U)
     ligase_vol = 1.0  # T4 DNA Ligase (High Concentration)
 
-    dna_and_enz_vol = v_vol + sum(ins_vols) + buffer_vol + enzyme_vol + ligase_vol
-    water_vol = max(0.0, round(reaction_volume_ul - dna_and_enz_vol, 2))
+    dna_and_enz_vol = round(v_vol + sum(ins_vols) + buffer_vol + enzyme_vol + ligase_vol, 2)
+    water_vol = round(reaction_volume_ul - dna_and_enz_vol, 2)
+    if water_vol < 0:
+        raise ValueError(
+            f"Volume overflow: Combined reagents ({dna_and_enz_vol:.1f} µL) exceed reaction volume ({reaction_volume_ul:.1f} µL). "
+            f"Concentrate DNA stocks or increase total reaction volume."
+        )
 
     reagents = {
         "Destination Vector": v_vol,
@@ -451,7 +713,7 @@ def calculate_golden_gate_assembly(
     reagents["T4 DNA Ligase Buffer (10X w/ 10 mM ATP)"] = buffer_vol
     reagents[f"Type IIS Enzyme ({type_iis_enzyme})"] = enzyme_vol
     reagents["T4 DNA Ligase (High Conc)"] = ligase_vol
-    reagents["Nuclease-Free Water"] = water_vol
+    reagents["Nuclease-Free Water"] = max(0.0, water_vol)
 
     # Cycling protocol
     enz_lower = type_iis_enzyme.lower()
@@ -468,11 +730,6 @@ def calculate_golden_gate_assembly(
         f"Target molar amount: {v_fmol:.1f} fmol vector : {v_fmol * insert_to_vector_ratio:.1f} fmol each insert ({insert_to_vector_ratio:.1f}:1 molar ratio).",
         "Ensure primers or synthesized fragments do not contain internal recognition sites for the chosen Type IIS enzyme.",
     ]
-    if dna_and_enz_vol > reaction_volume_ul:
-        notes.append(
-            f"WARNING: Total reagent volume ({dna_and_enz_vol:.1f} µL) exceeds reaction volume ({reaction_volume_ul} µL). "
-            "Concentrate DNA stocks or increase total reaction volume."
-        )
 
     return GoldenGateResult(
         enzyme=type_iis_enzyme,

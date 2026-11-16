@@ -21,6 +21,12 @@ from .ecoli_growth import calculate_ecoli_growth, calculate_inoculation_volume
 from .lab_report import new_lab_report, get_active_report, record_measurement, auto_record, LabReport
 from .western_blot import plan_western_blot, calculate_transfer_conditions, calculate_lysate_loading, calculate_antibody_dilution, troubleshoot_western_blot
 from .workflows import cloning_workflow as _cloning_workflow, ivt_workflow as _ivt_workflow, CloningWorkflowResult, IVTWorkflowResult
+from .sequence_store import SequenceRecord, save_sequence, get_sequence
+from .plasmid import PlasmidRecord, STANDARD_PLASMID_CATALOG, get_plasmid, parse_genbank
+from .restriction_engine import RestrictionDigestPrediction, predict_restriction_digest
+from .plasmid_engineering import EngineeredPlasmidResult, engineer_plasmid, optimize_codons
+from .interactive_plasmid import render_plasmid_map_svg
+
 
 
 def dilute(
@@ -651,6 +657,165 @@ def ivt_workflow(
         sample_id=sample_id,
         notes=notes,
     )
+
+
+# ---------------------------------------------------------------------------
+# v0.4.0 High-Level Easy Helpers
+# ---------------------------------------------------------------------------
+
+def save_seq(name: str, seq: str, seq_type: str = "dna", description: str = "") -> str:
+    """Save a DNA, RNA, or protein sequence to the persistent user sequence store.
+    
+    Args:
+        name: Unique sequence identifier or gene name.
+        seq: Nucleotide or amino acid sequence string.
+        seq_type: Sequence modality ('dna', 'rna', or 'protein').
+        description: Freeform description or biological notes.
+        
+    Returns:
+        The sequence ID under which the record was saved.
+    """
+    rec = SequenceRecord(
+        id=name,
+        name=name,
+        sequence=seq,
+        seq_type=seq_type,
+        description=description,
+    )
+    try:
+        return save_sequence(rec)
+    except (PermissionError, OSError):
+        import tempfile
+        fallback_path = os.path.join(tempfile.gettempdir(), ".biolabcalc", "sequences.json")
+        return save_sequence(rec, filepath=fallback_path)
+
+
+def get_seq(name_or_id: str) -> SequenceRecord:
+    """Retrieve a sequence record from the user store or default catalog.
+    
+    Args:
+        name_or_id: Sequence ID, catalog key, or record name.
+        
+    Returns:
+        SequenceRecord entity.
+    """
+    try:
+        return get_sequence(name_or_id)
+    except (KeyError, PermissionError, OSError):
+        import tempfile
+        fallback_path = os.path.join(tempfile.gettempdir(), ".biolabcalc", "sequences.json")
+        return get_sequence(name_or_id, filepath=fallback_path)
+
+
+def load_plasmid(name_or_gb: str) -> PlasmidRecord:
+    """Load a plasmid construct from standard catalog, user store, or GenBank file/string.
+    
+    Args:
+        name_or_gb: Catalog identifier ('pUC19', 'pET-28a(+)'), file path, or GenBank text.
+        
+    Returns:
+        Immutable PlasmidRecord entity.
+    """
+    if name_or_gb in STANDARD_PLASMID_CATALOG:
+        return STANDARD_PLASMID_CATALOG[name_or_gb]
+
+    if os.path.exists(name_or_gb) or name_or_gb.strip().startswith("LOCUS"):
+        return parse_genbank(name_or_gb)
+
+    try:
+        return get_plasmid(name_or_gb)
+    except (KeyError, PermissionError, OSError):
+        import tempfile
+        fallback_path = os.path.join(tempfile.gettempdir(), ".biolabcalc", "plasmids.json")
+        return get_plasmid(name_or_gb, filepath=fallback_path)
+
+
+
+def digest_map(
+    plasmid_or_seq: Any,
+    enzymes: Union[List[str], str],
+    ladder: str = "1kb_dna",
+) -> RestrictionDigestPrediction:
+    """Perform in-silico restriction digest prediction and virtual gel simulation.
+    
+    Args:
+        plasmid_or_seq: PlasmidRecord, sequence string, or catalog name ('pUC19').
+        enzymes: Single enzyme name or list of restriction enzymes (e.g. ['EcoRI', 'HindIII']).
+        ladder: Ladder catalog identifier for virtual gel migration (default: '1kb_dna').
+        
+    Returns:
+        RestrictionDigestPrediction containing fragments, cut sites, and virtual gel bands.
+    """
+    target = load_plasmid(plasmid_or_seq) if (isinstance(plasmid_or_seq, str) and plasmid_or_seq in STANDARD_PLASMID_CATALOG) else plasmid_or_seq
+    enz_list = [enzymes] if isinstance(enzymes, str) else list(enzymes)
+    return predict_restriction_digest(target, enz_list, ladder_key=ladder)
+
+
+
+def clone_gene(
+    vector: Any,
+    insert: str,
+    gene_name: str = "Target",
+    mode: str = "restriction_ligation",
+    enzyme_5: str = "BamHI",
+    enzyme_3: str = "XhoI",
+) -> EngineeredPlasmidResult:
+    """Automated gene expression cloning with reading frame synchronization and 7-point validation.
+    
+    Args:
+        vector: Destination vector (PlasmidRecord, catalog name e.g. 'pET-28a(+)', or sequence).
+        insert: Insert coding sequence (DNA CDS or amino acid sequence).
+        gene_name: Identifier for the cloned gene.
+        mode: Cloning assembly strategy ('restriction_ligation', 'gibson', 'golden_gate').
+        enzyme_5: 5' restriction enzyme in MCS (default: 'BamHI').
+        enzyme_3: 3' restriction enzyme in MCS (default: 'XhoI').
+        
+    Returns:
+        EngineeredPlasmidResult with assembled PlasmidRecord, translation, and validation checklist.
+    """
+    vec_target = load_plasmid(vector) if (isinstance(vector, str) and vector in STANDARD_PLASMID_CATALOG) else vector
+    return engineer_plasmid(
+        vector=vec_target,
+        insert_seq=insert,
+        gene_name=gene_name,
+        mode=mode,
+        enzyme_5prime=enzyme_5,
+        enzyme_3prime=enzyme_3,
+    )
+
+
+def codon_opt(seq: str, host: str = "ecoli") -> str:
+    """Optimize a coding sequence or reverse-translate a protein using preferred host codons.
+    
+    Args:
+        seq: Nucleotide CDS or amino acid sequence string.
+        host: Host expression system ('ecoli', 'human').
+        
+    Returns:
+        Optimized nucleotide coding sequence string.
+    """
+    return optimize_codons(seq, host=host)
+
+
+def plasmid_svg(plasmid: Any, output_path: Optional[str] = None) -> str:
+    """Generate a circular vector map in SVG format and optionally save to disk.
+    
+    Args:
+        plasmid: PlasmidRecord, sequence, or catalog name.
+        output_path: Optional file path to write SVG output (e.g. 'plasmid_map.svg').
+        
+    Returns:
+        Raw SVG XML string.
+    """
+    target = load_plasmid(plasmid) if (isinstance(plasmid, str) and plasmid in STANDARD_PLASMID_CATALOG) else plasmid
+    svg_str = render_plasmid_map_svg(target)
+    if output_path:
+        abs_p = os.path.abspath(output_path)
+        os.makedirs(os.path.dirname(abs_p), exist_ok=True)
+        with open(abs_p, "w", encoding="utf-8") as f:
+            f.write(svg_str)
+    return svg_str
+
 
 
 

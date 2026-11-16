@@ -46,6 +46,12 @@
   - [13. Nucleic Acid Precipitation & Desalting (`precipitation`)](#13-nucleic-acid-precipitation--desalting)
   - [14. Interactive Drag-and-Drop Gel Annotator (`interactive_gel`)](#14-interactive-drag-and-drop-gel-annotator)
   - [15. Built-in Excel Workbook Generator (`excel_extension`)](#15-built-in-excel-workbook-generator)
+  - [16. In-Silico Restriction Digestion Engine & Virtual Gel (`restriction_engine`)](#16-in-silico-restriction-digestion-engine--virtual-gel)
+  - [17. Plasmid Engineering & Automated Gene Cloning (`plasmid_engineering`)](#17-plasmid-engineering--automated-gene-cloning)
+  - [18. Sequence Store & Plasmid GenBank I/O (`sequence_store`, `plasmid`)](#18-sequence-store--plasmid-genbank-io)
+  - [19. Elm Architecture (TEA) State Runtime (`tea_runtime`)](#19-elm-architecture-tea-state-runtime)
+  - [20. Interactive SVG Plasmid Workbench (`interactive_plasmid`)](#20-interactive-svg-plasmid-workbench)
+  - [21. Standard Lab Protocols & SOP Execution (`protocols`)](#21-standard-lab-protocols--sop-execution)
 - [Command-Line Interface (CLI)](#-command-line-interface-cli)
 - [Documentation & 25-Page Wiki Directory](#-documentation--25-page-wiki-directory)
 - [Planned Features & Strategic Roadmap](#-planned-features--strategic-roadmap)
@@ -187,6 +193,11 @@ python run.py setup --shared-dir "Z:\BioLabCalc_Data" --role client --non-intera
 | **NanoDrop Purity Check** | `biolabcalc purity --a260 1.25 --a280 0.63 --a230 0.58 -t rna` | Status: PURE (A260/A280 = 1.98, A260/A230 = 2.16) |
 | **Phenol:Chloroform Extraction** | `biolabcalc pci -v 150 -t rna` | 150 µL Sample + 150 µL PCI (pH 4.5) + 150 µL Chloroform |
 | **Precipitate Low-Yield RNA** | `biolabcalc precipitate -v 100 -t rna -a ethanol -s naoac` | Add 10 µL 3M NaOAc, 1 µL GlycoBlue, 300 µL 100% EtOH |
+| **List Sequence Catalog** | `biolabcalc seq list` | Lists standard & user sequences in catalog |
+| **Inspect Plasmid Vector** | `biolabcalc plasmid inspect -p pUC19` | 2686 bp, ColE1/pUC ori, AmpR marker |
+| **In-Silico Restriction Digest** | `biolabcalc digest -p pUC19 -e1 EcoRI -e2 HindIII --simulate-gel` | 51 bp and 2635 bp fragments + virtual gel |
+| **Automated Gene Cloning** | `biolabcalc clone-gene -v "pET-28a(+)" -i "ATGGCC..." -n EGFP` | Frame-synchronized recombinant plasmid |
+| **Interactive Plasmid Workbench** | `biolabcalc interactive-plasmid --export-html workbench.html` | Self-contained SVG plasmid workbench HTML |
 | **Interactive Guided Wizard** | `biolabcalc wizard` | Step-by-step prompted menu for bench calculations |
 | **View System Diagnostics** | `biolabcalc diagnostics` | Plain-English health inspection and failure remediation |
 | **Launch Electronic Lab Notebook** | `biolabcalc eln --port 8080` | Opens modern web ELN in browser |
@@ -222,6 +233,26 @@ print(f"Vector: {gg.vector_mass_ng:.1f} ng | Inserts: {gg.insert_masses_ng} ng")
 # 6. NanoDrop nucleic acid purity diagnostics
 purity = easy.nanodrop_purity(a260=1.25, a280=0.63, a230=0.58, sample_type="rna")
 print(f"Status: {purity.purity_status.upper()} -> {purity.diagnostic_feedback[0]}")
+
+# 7. Sequence storage & retrieval
+seq_id = easy.save_seq("cloning_primer", "ATGCCGTCCAGGCTGCTGGTC", description="Forward primer")
+seq_rec = easy.get_seq(seq_id)
+print(f"Retrieved sequence: {seq_rec.name} ({seq_rec.length} bp, {seq_rec.gc_percent:.1f}% GC)")
+
+# 8. Plasmid loading & in-silico restriction digest mapping
+puc = easy.load_plasmid("pUC19")
+digest_res = easy.digest_map("pUC19", ["EcoRI", "HindIII"])
+print(f"Fragments: {[f.length_bp for f in digest_res.fragments]} bp")
+
+# 9. Automated expression cloning into standard vectors
+clone_res = easy.clone_gene(vector="pET-28a(+)", insert=seq_rec.sequence, gene_name="MyGene", enzyme_5="BamHI", enzyme_3="XhoI")
+print(f"Construct: {clone_res.assembled_plasmid.name}, In-Frame: {clone_res.in_frame}")
+
+# 10. Species-aware codon optimization
+opt_seq = easy.codon_opt("ATGAAATTT...", host="ecoli")
+
+# 11. Circular plasmid vector SVG map rendering
+svg_code = easy.plasmid_svg("pUC19", output_path="pUC19_map.svg")
 ```
 
 ---
@@ -523,6 +554,81 @@ from biolabcalc.excel_extension import generate_lab_notebook_template
 generate_lab_notebook_template("BioLab_Interactive_Notebook.xlsx")
 ```
 
+### 16. In-Silico Restriction Digestion Engine & Virtual Gel
+```python
+from biolabcalc.restriction_engine import predict_restriction_digest, find_restriction_sites, screen_restriction_enzymes
+
+# Comprehensive restriction cut site mapping
+sites = find_restriction_sites("GAATTCGGATCC", enzyme_names=["EcoRI", "BamHI"])
+
+# In-silico digestion with fragment mass stoichiometry and virtual gel migration
+pred = predict_restriction_digest("GAATTC...AAGCTT", enzymes=["EcoRI", "HindIII"], circular=True, ladder_key="1kb_dna")
+for frag in pred.fragments:
+    print(f"Fragment #{frag.fragment_id}: {frag.length_bp} bp, {frag.molecular_weight_da:.0f} Da, {frag.mass_ng:.1f} ng")
+```
+
+### 17. Plasmid Engineering & Automated Gene Cloning
+```python
+from biolabcalc.plasmid_engineering import engineer_plasmid, evaluate_codon_usage, optimize_codons
+
+# Frame-synchronized recombinant plasmid design with 7-point validation checklist
+result = engineer_plasmid(
+    vector="pET-28a(+)",
+    insert_seq=gene_cds,
+    gene_name="EGFP",
+    mode="restriction_ligation",
+    enzyme_5prime="BamHI",
+    enzyme_3prime="XhoI",
+    host="ecoli"
+)
+print(f"In-Frame: {result.in_frame}, MW: {result.protein_mw_da:.1f} Da, Colony PCR: {result.colony_pcr_amplicon_bp} bp")
+```
+
+### 18. Sequence Store & Plasmid GenBank I/O
+```python
+from biolabcalc.sequence_store import save_sequence, get_sequence, list_sequences, SequenceRecord
+from biolabcalc.plasmid import parse_genbank, export_genbank, auto_annotate_plasmid, STANDARD_PLASMID_CATALOG
+
+# Auto-annotate plasmid features against built-in feature catalog
+annotated = auto_annotate_plasmid(puc_seq, name="pUC19")
+
+# GenBank file parsing and round-trip export
+plasmid = parse_genbank(gb_text)
+gb_output = export_genbank(plasmid)
+```
+
+### 19. Elm Architecture (TEA) State Runtime
+```python
+from biolabcalc.tea_runtime import TEAStore, LoadPlasmidMsg, SelectEnzymesMsg, RunDigestMsg, update, view
+
+store = TEAStore()
+store.dispatch(LoadPlasmidMsg(plasmid_name="pUC19"))
+store.dispatch(SelectEnzymesMsg(enzymes=("EcoRI", "HindIII")))
+store.dispatch(RunDigestMsg())
+state_summary = view(store.model)
+```
+
+### 20. Interactive SVG Plasmid Workbench
+```python
+from biolabcalc.interactive_plasmid import render_plasmid_map_svg, save_plasmid_workbench_html, launch_plasmid_workbench
+
+# Render publication-quality vector SVG map
+svg_markup = render_plasmid_map_svg(plasmid)
+
+# Save standalone interactive web workbench HTML
+save_plasmid_workbench_html("workbench.html")
+```
+
+### 21. Standard Lab Protocols & SOP Execution
+```python
+from biolabcalc.protocols import list_protocols, get_protocol, format_protocol_markdown
+
+# Browse and render peer-reviewed molecular biology SOPs
+all_protocols = list_protocols()
+sop = get_protocol("golden_gate_assembly")
+sop_markdown = format_protocol_markdown(sop)
+```
+
 ---
 
 ## 💻 Command-Line Interface (CLI)
@@ -552,13 +658,14 @@ biolabcalc golden-gate --vec-bp 4500 --ins-bp 1200 600 --fmol 20 --enzyme BsaI-H
 # 7. Gibson Assembly / NEBuilder HiFi
 biolabcalc gibson --vec-bp 5000 --ins-bp 850 1500 --vec-ng 100
 
-# 8. Restriction Enzyme Digest Setup
-biolabcalc digest --dna-ug 2.0 -e1 EcoRI -e2 BamHI --dna-conc 250
+# 8. Restriction Enzyme Digest Setup (with in-silico simulation)
+biolabcalc digest -m 2.0 -c 250 -e1 EcoRI -e2 BamHI -v 50
+biolabcalc digest -p pUC19 -e1 EcoRI -e2 HindIII --simulate-gel
 
 # 9. NanoDrop Purity Assessment
 biolabcalc purity --a260 1.25 --a280 0.63 --a230 0.58 -t rna
 
-# 10. Gel Lane Image Annotation
+# 10. Gel Lane Image Annotation (Supports all 7 ladders: 1kb_dna, 100bp_dna, low_mw_dna, high_mw_dna, ssdna_ladder, rna_millennium, low_range_ssrna)
 biolabcalc annotate-gel \
     --lanes "Ladder,Ctrl,Clone1,Clone2,Digest" \
     --ladder 1kb_dna \
@@ -578,6 +685,29 @@ biolabcalc portable
 
 # 14. Launch Electronic Lab Notebook (ELN) Server
 biolabcalc eln --port 8080
+
+# 15. Sequence Store Management
+biolabcalc seq list
+biolabcalc seq save -n "my_primer" -s "ATGCCGTCCAGGCTGCTGGTC" -d "Forward sequencing primer"
+biolabcalc seq get -n "my_primer"
+
+# 16. Plasmid Vector Inspection & Annotation
+biolabcalc plasmid inspect -p pUC19
+biolabcalc plasmid annotate -p pUC19
+biolabcalc plasmid digest -p pUC19 -e EcoRI HindIII
+
+# 17. Automated Gene Expression Cloning
+biolabcalc clone-gene -v "pET-28a(+)" -i "ATGGTGAGCAAGGGCGAG..." -n "EGFP" -m restriction_ligation --enzyme5 BamHI --enzyme3 XhoI --host ecoli
+
+# 18. Interactive SVG Plasmid Workbench
+biolabcalc interactive-plasmid --export-html workbench.html
+biolabcalc interactive-plasmid --port 8090 --open-browser
+
+# 19. Molecular Weight Calculation (Linear or Circular)
+biolabcalc mw -s "GAATTCGGATCCTTAA" --circular
+
+# 20. PCR Kinetics with Volume and Sequence
+biolabcalc pcr -l 650 -t 5.0 -c 30 -v 50.0 -s "ATGCCGTCCAGGCTGCTGGTC"
 ```
 
 ---

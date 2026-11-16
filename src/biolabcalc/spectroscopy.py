@@ -101,6 +101,14 @@ class SolutionRecipeResult:
     buffer_volume_needed_ul: Optional[float] = None
     preparation_instructions: str = ""
 
+    @property
+    def expected_nanodrop_ng_ul(self) -> float:
+        return self.actual_concentration_ng_ul
+
+    @property
+    def expected_nanodrop_a260_1cm(self) -> float:
+        return self.expected_nanodrop_a260_sequence_specific
+
 
 def prepare_standard_solution(
     target_molarity_um: float,

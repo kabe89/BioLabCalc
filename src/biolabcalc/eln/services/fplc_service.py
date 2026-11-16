@@ -8,6 +8,9 @@ stoichiometry (pooled volume, weighted mean UV280, estimated protein concentrati
 
 from __future__ import annotations
 
+import json
+import os
+import tempfile
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -115,15 +118,64 @@ class FPLCService:
     gel electrophoresis, and freezer inventory.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, storage_path: Optional[str] = None) -> None:
         """
-        Initialize FPLCService in-memory repository and audit link.
-
+        Initialize FPLCService in-memory repository and audit link, optionally loading persisted pools.
         """
         self._lock = threading.RLock()
         self._pools: Dict[str, FractionPoolResult] = {}
         self._audit_service = get_audit_service()
         self._sequence_service = get_sequence_service()
+        self._storage_path = storage_path or os.environ.get("BIOLABCALC_FPLC_STORE")
+        if self._storage_path and os.path.exists(self._storage_path):
+            self.load_state(self._storage_path)
+
+    def _auto_save(self) -> None:
+        if self._storage_path:
+            self.save_state(self._storage_path)
+
+    def export_state_dict(self) -> Dict[str, Any]:
+        with self._lock:
+            return {"pools": [p.to_dict() for p in self._pools.values()]}
+
+    def import_state_dict(self, state: Dict[str, Any]) -> None:
+        with self._lock:
+            for p_data in state.get("pools", []):
+                self._pools[p_data["pool_id"]] = FractionPoolResult(**p_data)
+
+    def save_state(self, filepath: Optional[str] = None) -> str:
+        """Persist fraction pools atomically to disk."""
+        target_path = filepath or self._storage_path or os.path.expanduser("~/.biolabcalc/fplc_pools.json")
+        dir_name = os.path.dirname(os.path.abspath(target_path))
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+        data = self.export_state_dict()
+        temp_fd, temp_file = tempfile.mkstemp(dir=dir_name, prefix=".tmp_fplc_", suffix=".json")
+        try:
+            with open(temp_fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            os.replace(temp_file, target_path)
+        except Exception:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            raise
+        return target_path
+
+    def load_state(self, filepath: Optional[str] = None) -> bool:
+        """Load fraction pools from disk."""
+        target_path = filepath or self._storage_path or os.path.expanduser("~/.biolabcalc/fplc_pools.json")
+        if not os.path.exists(target_path) or os.path.getsize(target_path) == 0:
+            return False
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.import_state_dict(data)
+            return True
+        except Exception:
+            return False
 
     def integrate_peak(
         self,
@@ -334,6 +386,7 @@ class FPLCService:
                 },
             )
 
+            self._auto_save()
         return pool_result
 
     def link_pool_to_entities(
@@ -378,6 +431,7 @@ class FPLCService:
                 new_state=pool.to_dict(),
                 metadata={"nanodrop_id": nanodrop_id, "gel_lane_id": gel_lane_id},
             )
+            self._auto_save()
             return pool
 
     def get_pool(self, pool_id: str) -> Optional[FractionPoolResult]:

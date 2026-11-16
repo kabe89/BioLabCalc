@@ -161,7 +161,18 @@ class CASFileStorage:
             if res:
                 return res
             # Check if exists in blob_store
-            meta = self.blob_store.get_metadata(file_id_or_hash.lower())
+            meta = None
+            target_str = file_id_or_hash.strip()
+            if len(target_str) == 64:
+                meta = self.blob_store.get_metadata(target_str.lower())
+            elif target_str.upper().startswith("FILE-"):
+                prefix = target_str[5:].lower()
+                for b in self.blob_store.list_blobs():
+                    if b.sha256.lower().startswith(prefix):
+                        meta = b
+                        break
+            else:
+                meta = self.blob_store.get_metadata(target_str.lower())
             if meta:
                 file_id = f"FILE-{meta.sha256[:12].upper()}"
                 tokens: List[OCRToken] = []

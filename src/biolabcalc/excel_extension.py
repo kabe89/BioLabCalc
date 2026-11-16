@@ -25,6 +25,8 @@ from .transcription import IVTResult, calculate_ivt_yield
 from .pcr import PCRResult, calculate_pcr_kinetics, build_master_mix
 from .protein import ProteinYieldResult, calculate_extinction_coefficient, quantify_protein_a280
 from .primers import PrimerPair, PrimerAnalysis, design_primers
+from .spectroscopy import calculate_nucleic_acid_e260
+from .seq_utils import reverse_complement
 
 # Typography and Styling Theme
 if PatternFill is not None and Font is not None and Border is not None:
@@ -185,20 +187,24 @@ def generate_lab_notebook_template(output_path: str) -> str:
         c.border = HEADER_BORDER
 
     mm_components = [
-        ("Nuclease-Free Water", "-", "-", 34.5, "=D8*$B$5*$D$5"),
-        ("5X PCR Buffer", "5X", "1X", 10.0, "=D9*$B$5*$D$5"),
-        ("dNTP Mix", "10 mM each", "0.2 mM each", 1.0, "=D10*$B$5*$D$5"),
-        ("Forward Primer", "10 µM", "0.4 µM", 2.0, "=D11*$B$5*$D$5"),
-        ("Reverse Primer", "10 µM", "0.4 µM", 2.0, "=D12*$B$5*$D$5"),
-        ("DNA Polymerase", "2 U/µL", "1 U", 0.5, "=D13*$B$5*$D$5"),
-        ("Template DNA (add per tube)", "-", "-", 2.0, "Add 2.0 µL to each tube"),
+        ("Nuclease-Free Water", "-", "-", 34.5),
+        ("5X PCR Buffer", "5X", "1X", 10.0),
+        ("dNTP Mix", "10 mM each", "0.2 mM each", 1.0),
+        ("Forward Primer", "10 µM", "0.4 µM", 2.0),
+        ("Reverse Primer", "10 µM", "0.4 µM", 2.0),
+        ("DNA Polymerase", "2 U/µL", "1 U", 0.5),
+        ("Template DNA (add per tube)", "-", "-", 2.0),
     ]
 
-    for idx, (reagent, stock, final_c, vol1, form_tot) in enumerate(mm_components, 8):
+    for idx, (reagent, stock, final_c, vol1) in enumerate(mm_components, 8):
         c1 = ws_pcr.cell(row=idx, column=1, value=reagent)
         c2 = ws_pcr.cell(row=idx, column=2, value=stock)
         c3 = ws_pcr.cell(row=idx, column=3, value=final_c)
         c4 = ws_pcr.cell(row=idx, column=4, value=vol1)
+        if idx <= 13:
+            form_tot = f"=D{idx}*$B$5*$D$5"
+        else:
+            form_tot = "Add 2.0 µL to each tube"
         c5 = ws_pcr.cell(row=idx, column=5, value=form_tot)
         c1.font = BOLD_FONT
         c2.font = REGULAR_FONT
@@ -323,7 +329,7 @@ def generate_lab_notebook_template(output_path: str) -> str:
         c4 = ws_prot.cell(row=s_idx, column=4, value=s_abs)
         # Using linear regression: x = (y - intercept) / slope
         # In Excel: SLOPE(known_y, known_x), INTERCEPT(known_y, known_x)
-        c5 = ws_prot.cell(row=s_idx, column=5, value=f"=(D{s_idx}-INTERCEPT(B20:B25, A20:A25))/SLOPE(B20:B25, A20:A25)")
+        c5 = ws_prot.cell(row=s_idx, column=5, value=f"=(D{s_idx}-INTERCEPT($B$20:$B$25,$A$20:$A$25))/SLOPE($B$20:$B$25,$A$20:$A$25)")
         c6 = ws_prot.cell(row=s_idx, column=6, value=s_vol)
         c7 = ws_prot.cell(row=s_idx, column=7, value=f"=(E{s_idx}*F{s_idx})/1000")
         c8 = ws_prot.cell(row=s_idx, column=8, value=f"=G{s_idx}*1000000")
@@ -426,9 +432,9 @@ def generate_lab_notebook_template(output_path: str) -> str:
         c.border = HEADER_BORDER
 
     sol_results = [
-        ("Required Amount (Moles)", "=(B6*B7)/1000", "nmol", "= Molarity * Volume"),
+        ("Required Amount (Moles)", "=(B6*B7)/1000", "nmol", "Molarity * Volume"),
         ("Required Amount (pmol)", "=B15*1000", "pmol", "Molar quantity in tube"),
-        ("Required Mass (µg)", "=(B15*B10)/1000", "µg", "= nmol * MW / 1000"),
+        ("Required Mass (µg)", "=(B15*B10)/1000", "µg", "nmol * MW / 1000"),
         ("Required Mass (ng)", "=B17*1000", "ng", "Total nanograms needed"),
         ("Target Concentration", "=B18/B7", "ng/µL", "Direct concentration of solution"),
         ("Stock Volume to Pipette", "=IF(B11>0, B18/B11, 0)", "µL", "Pipette this volume of stock"),
@@ -533,8 +539,8 @@ def generate_lab_notebook_template(output_path: str) -> str:
         ("Absorbance at Dye Max (A_max)", 0.650, "AU", "Peak absorbance of attached dye"),
         ("Absorbance at 260 or 280 nm", 1.250, "AU", "Total absorbance of labeled conjugate"),
         ("Corrected Biomolecule Abs", "=B21-(B20*B18)", "AU", "A_corrected = A_total - (A_max * CF)"),
-        ("Biomolecule Conc (µM)", "=(B22/B19)*1000000", "µM", "= A_corr / ε_biomol"),
-        ("Dye Conc (µM)", "=(B20/B17)*1000000", "µM", "= A_max / ε_dye"),
+        ("Biomolecule Conc (µM)", "=(B22/B19)*1000000", "µM", "A_corr / ε_biomol"),
+        ("Dye Conc (µM)", "=(B20/B17)*1000000", "µM", "A_max / ε_dye"),
         ("Degree of Labeling (DOL)", "=B24/B23", "moles dye / mol", "Target: ~0.8 to 1.2 for single 5'/3' label"),
     ]
     for idx, (p, v, u, d) in enumerate(dol_inputs, 16):
@@ -586,7 +592,7 @@ def generate_lab_notebook_template(output_path: str) -> str:
     ws_ec.cell(row=12, column=1, value="2. Growth Outputs (Calculated)").font = SECTION_FONT
     ec_results = [
         ("Required Doublings", "=LOG(B6/B5, 2)", "generations", "Number of cell divisions"),
-        ("Time to Induction (Minutes)", "=B13*B9", "minutes", "= doublings * doubling time"),
+        ("Time to Induction (Minutes)", "=B13*B9", "minutes", "doublings * doubling time"),
         ("Time to Induction (Hours)", "=B14/60", "hours", "Plan your lab schedule"),
         ("Cell Count at Induction", "=B6*800000000", "cells/mL", "~8.0e8 cells/mL per 1.0 OD600"),
         ("Total Cells in Culture", "=B16*B10", "total cells", "Total biomass in vessel"),
@@ -795,16 +801,27 @@ def batch_process_excel(input_path: str, output_path: str) -> str:
         try:
             if "rna" in seq_type:
                 mw_obj = calculate_rna_mw(raw_seq)
-                e_coeff = f"{mw_obj.length * 10000} M^-1 cm^-1"
+                e_val = calculate_nucleic_acid_e260(raw_seq, seq_type="rna")
+                e_coeff = f"{e_val} M^-1 cm^-1"
                 st = "RNA"
             elif "prot" in seq_type or "aa" in seq_type:
                 mw_obj = calculate_protein_mw(raw_seq)
                 c_obj = calculate_extinction_coefficient(raw_seq)
                 e_coeff = f"{c_obj.extinction_coeff_m_cm} M^-1 cm^-1"
                 st = "Protein"
+            elif "dsdna" in seq_type or "plasmid" in seq_type:
+                is_plasmid = "plasmid" in seq_type
+                mw_obj = calculate_dna_mw(raw_seq, double_stranded=True, circular=is_plasmid)
+                e_sense = calculate_nucleic_acid_e260(raw_seq, seq_type="dna")
+                comp_seq = reverse_complement(raw_seq, seq_type="dna")
+                e_comp = calculate_nucleic_acid_e260(comp_seq, seq_type="dna")
+                e_val = int(round(0.80 * (e_sense + e_comp)))
+                e_coeff = f"{e_val} M^-1 cm^-1"
+                st = "Plasmid" if is_plasmid else "dsDNA"
             else:
                 mw_obj = calculate_dna_mw(raw_seq, double_stranded=False)
-                e_coeff = f"{mw_obj.length * 9000} M^-1 cm^-1"
+                e_val = calculate_nucleic_acid_e260(raw_seq, seq_type="dna")
+                e_coeff = f"{e_val} M^-1 cm^-1"
                 st = "ssDNA"
 
             pmol_100ng = round((100.0 * 1e-9 / mw_obj.average_mw) * 1e12, 2) if mw_obj.average_mw > 0 else 0.0

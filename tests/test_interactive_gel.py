@@ -26,14 +26,11 @@ class TestInteractiveGel(unittest.TestCase):
         self.assertIn("interpolateMwFromRf", html)
 
     def test_save_interactive_app(self):
-        out_path = os.path.join(tempfile.gettempdir(), "test_save_gel_app.html")
-        res = save_interactive_app(out_path)
-        self.assertTrue(os.path.exists(res))
-        self.assertGreater(os.path.getsize(res), 5000)
-        try:
-            os.remove(out_path)
-        except OSError:
-            pass
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_path = os.path.join(tmp_dir, "test_save_gel_app.html")
+            res = save_interactive_app(out_path)
+            self.assertTrue(os.path.exists(res))
+            self.assertGreater(os.path.getsize(res), 5000)
 
     def test_calculate_ladder_standard_curve(self):
         # Sample ladder bands: 10000 bp at Rf 0.1, 1000 bp at Rf 0.5, 100 bp at Rf 0.9

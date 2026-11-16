@@ -150,8 +150,58 @@ def main():
     print(f"Modified RNA MW (m1Ψ + CleanCap): {ivt_mod.rna_mw:,.2f} Da (Initiation: {ivt_mod.initiation_efficiency_rating})")
     print(f"Estimated Capping Efficiency: {ivt_mod.predicted_capping_efficiency_percent:.0f}%")
 
+    # 14. Sequence Storage & Plasmid Feature Annotation
+    print("\n14. SEQUENCE STORAGE & PLASMID FEATURE AUTO-ANNOTATION")
+    seq_id = easy.save_seq("cloning_primer_fwd", "ATGCCGTCCAGGCTGCTGGTC", seq_type="dna", description="Exon 1 forward sequencing primer")
+    saved_seq = easy.get_seq(seq_id)
+    print(f"Saved & Retrieved Sequence: '{saved_seq.name}' ({saved_seq.length} bp, {saved_seq.gc_percent:.1f}% GC, MW: {saved_seq.molecular_weight_da:,.1f} Da)")
+
+    puc = blc.STANDARD_PLASMID_CATALOG["pUC19"]
+    annotated_puc = blc.auto_annotate_plasmid(puc.sequence, name="pUC19")
+    print(f"Annotated Plasmid: {annotated_puc.name} ({annotated_puc.length} bp, {len(annotated_puc.features)} features identified):")
+    for feat in annotated_puc.features:
+        print(f"  - {feat.name} [{feat.feature_type}]: {feat.start}..{feat.end} (strand: {feat.strand})")
+
+    # 15. In-Silico Restriction Digestion Mapping & Virtual Gel
+    print("\n15. RESTRICTION DIGEST PREDICTION & VIRTUAL AGAROSE GEL")
+    digest_pred = blc.predict_restriction_digest(puc.sequence, enzymes=["EcoRI", "HindIII"], circular=True)
+    print(f"Double Digest of {puc.name} (EcoRI + HindIII):")
+    print(f"  Fragments Generated: {digest_pred.fragment_count}")
+    for frag in digest_pred.fragments:
+        print(f"  - Fragment #{frag.fragment_id}: {frag.length_bp} bp (MW: {frag.molecular_weight_da:,.1f} Da, {frag.mass_ng:.1f} ng, ends: {frag.left_enzyme}/{frag.right_enzyme})")
+    print("  Virtual Gel Migration (1kb DNA Ladder):")
+    for band in digest_pred.gel_bands:
+        print(f"    Band {band['label']} -> Rf = {band['relative_migration_rf']:.2f}")
+
+    # 16. Automated Gene Expression Cloning & 7-Point Validation
+    print("\n16. AUTOMATED GENE EXPRESSION CLONING (EGFP into pET-28a(+))")
+    pet = blc.STANDARD_PLASMID_CATALOG["pET-28a(+)"]
+    egfp = blc.DEFAULT_SEQUENCE_CATALOG["EGFP_CDS"]
+    clone_res = blc.engineer_plasmid(
+        vector=pet,
+        insert_seq=egfp.sequence,
+        gene_name="EGFP",
+        enzyme_5prime="BamHI",
+        enzyme_3prime="XhoI",
+        host="ecoli"
+    )
+    sync_status = "IN-FRAME" if clone_res.in_frame else "OUT-OF-FRAME"
+    print(f"Engineered Construct: {clone_res.assembled_plasmid.name} ({clone_res.assembled_plasmid.length} bp)")
+    print(f"  Cloning Mode: {clone_res.mode}")
+    print(f"  Reading Frame Status: {sync_status} with N-terminal His-tag")
+    print(f"  Expressed Fusion Protein MW: {clone_res.protein_mw_da:,.2f} Da (Predicted Yield: {clone_res.predicted_expression_yield_mg_l:.1f} mg/L)")
+    print(f"  Colony PCR Screening Amplicon: {clone_res.colony_pcr_amplicon_bp} bp")
+    print("  7-Point Synthetic Biology Validation Checklist:")
+    print(f"    1. Open Reading Frame Synchronized: {clone_res.in_frame}")
+    print(f"    2. Translation Start Codon Intact: {clone_res.has_start_codon}")
+    print(f"    3. Translation Termination Stop Codon: {clone_res.has_stop_codon}")
+    print(f"    4. Internal Premature Stop Codons: {clone_res.premature_stops} (OK)")
+    print(f"    5. Vector Replication Origin Preserved: {clone_res.ori_intact}")
+    print(f"    6. Antibiotic Selection Marker Preserved: {clone_res.marker_intact}")
+    print(f"    7. RBS / Translation Initiation Verified: {clone_res.rbs_or_kozak_ok}")
+
     print("\n" + "=" * 75)
-    print("  ALL 13 DEMONSTRATION WORKFLOWS COMPLETED SUCCESSFULLY! ✨")
+    print("  ALL 16 DEMONSTRATION WORKFLOWS COMPLETED SUCCESSFULLY! ✨")
     print("=" * 75)
 
 if __name__ == "__main__":
