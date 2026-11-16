@@ -4,8 +4,8 @@
 [![PyPI Version](https://img.shields.io/pypi/v/biolabcalc.svg)](https://pypi.org/project/biolabcalc/)
 [![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/biolabcalc/)
 [![Security: CodeQL](https://img.shields.io/badge/security-CodeQL%20passed-success.svg)](https://github.com/kabe89/BioLabCalc/security)
-[![Wiki: 25 Guides](https://img.shields.io/badge/wiki-25%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
-[![Tests](https://img.shields.io/badge/tests-392%20passed-brightgreen.svg)](#-running-tests)
+[![Wiki: 26 Guides](https://img.shields.io/badge/wiki-26%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
+[![Tests](https://img.shields.io/badge/tests-473%20passed-brightgreen.svg)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -53,7 +53,7 @@
   - [20. Interactive SVG Plasmid Workbench (`interactive_plasmid`)](#20-interactive-svg-plasmid-workbench)
   - [21. Standard Lab Protocols & SOP Execution (`protocols`)](#21-standard-lab-protocols--sop-execution)
 - [Command-Line Interface (CLI)](#-command-line-interface-cli)
-- [Documentation & 25-Page Wiki Directory](#-documentation--25-page-wiki-directory)
+- [Documentation & 26-Page Wiki Directory](#-documentation--26-page-wiki-directory)
 - [Planned Features & Strategic Roadmap](#-planned-features--strategic-roadmap)
 - [Running Tests](#-running-tests)
 - [Contributing](#-contributing)
@@ -712,7 +712,7 @@ biolabcalc pcr -l 650 -t 5.0 -c 30 -v 50.0 -s "ATGCCGTCCAGGCTGCTGGTC"
 
 ---
 
-## 📚 Documentation & 25-Page Wiki Directory
+## 📚 Documentation & 26-Page Wiki Directory
 
 Comprehensive documentation, scientific derivations, and deployment guides are hosted on the [BioLabCalc GitHub Wiki](https://github.com/kabe89/BioLabCalc/wiki):
 
@@ -766,10 +766,10 @@ pytest tests/
 ```
 
 ```text
-======================= 392 passed, 7 skipped in 5.28s =======================
+======================= 473 passed, 6 skipped in 3.35s =======================
 ```
 
-All 392 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
+All 473 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
 
 ```bash
 # Run Git Security & PII Compliance Audit

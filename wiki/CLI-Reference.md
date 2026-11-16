@@ -70,6 +70,13 @@ Subcommands performing biophysical or protocol calculations (`pcr`, `ivt`, `prot
 | [`batch-csv`](#32-batch-csv) | High-Throughput | High-throughput batch sequence analysis from CSV or TSV |
 | [`rc`](#33-rc) | Sequences | Computes 5' -> 3' reverse complement of DNA or RNA |
 | [`translate`](#34-translate) | Sequences | Translates nucleotide sequences to amino acids across 6 frames |
+| [`setup`](#35-setup) | Operations | Interactive first-run setup wizard for network shares and server |
+| [`diagnostics`](#36-diagnostics) | Operations | Plain-English failure diagnostics, remediation, and log ledger |
+| [`portable`](#37-portable) | Operations | Inspects zero-install portable runtime environment and mounts |
+| [`seq`](#38-seq) | Sequences | Sequence catalog management, SHA-256 checksums, and FASTA I/O |
+| [`plasmid`](#39-plasmid) | Cloning | Circular plasmid feature inspection, origin rotation, GenBank I/O |
+| [`clone-gene`](#40-clone-gene) | Cloning | Automated expression plasmid design with frame sync and 7-point audit |
+| [`interactive-plasmid`](#41-interactive-plasmid) | Visualization | Launches TEA interactive SVG circular plasmid workbench in browser |
 
 ---
 
@@ -1395,7 +1402,7 @@ report.to_excel("multi_step_experiment.xlsx")
 
 ## 🛠️ Laboratory Accessibility, Setup & Diagnostics Commands
 
-### 32. `setup` — Interactive Shared Network Drive Setup Wizard
+### 35. `setup` — Interactive Shared Network Drive Setup Wizard
 
 Initializes and configures BioLabCalc for multi-user shared laboratory drives or local workstations.
 
@@ -1416,7 +1423,7 @@ python run.py setup --shared-dir "Z:\BioLabCalc_Data" --role "Active Researcher"
 
 ---
 
-### 33. `diagnostics` — Failure Logging & Troubleshooting
+### 36. `diagnostics` — Failure Logging & Troubleshooting
 
 Inspects the automated, git-ignored diagnostic failure ledger to explain system issues in plain English and provide actionable remediation steps.
 
@@ -1438,13 +1445,105 @@ python run.py diagnostics --clear
 
 ---
 
-### 34. `portable` — Portable Environment Status
+### 37. `portable` — Portable Environment Status
 
 Inspects active storage mode, shared folder mount status, CAS blob directory, and lock acquisition settings.
 
 ```bash
 python run.py portable
 ```
+
+---
+
+### 38. `seq` — Biological Sequence Catalog & FASTA I/O
+
+Manages immutable biological sequence records, FASTA import/export, and biophysical properties.
+
+```bash
+# List all pre-seeded and custom sequences
+biolabcalc seq --list
+
+# Inspect a sequence by ID
+biolabcalc seq --get EGFP_CDS
+
+# Import a sequence from FASTA file
+biolabcalc seq --import-fasta my_insert.fasta --type dna
+```
+
+#### Arguments:
+* `--list`: Enumerate all registered sequence records.
+* `--get <ID>`: Display details and biophysical properties for a sequence.
+* `--import-fasta <FILE>`: Import sequence from FASTA file.
+* `--type <TYPE>`: Sequence type (`dna`, `rna`, `protein`).
+
+---
+
+### 39. `plasmid` — Circular Plasmid Storage & GenBank I/O
+
+Inspects circular plasmid records, calculates origin-spanning coordinates, and parses/exports GenBank flatfiles.
+
+```bash
+# List all standard catalog plasmids
+biolabcalc plasmid --list
+
+# Inspect pUC19 features, GC%, and molecular weight
+biolabcalc plasmid --get pUC19 --info
+
+# Export plasmid to GenBank format
+biolabcalc plasmid --get pET-28a(+) --export-gb pet28a.gb
+```
+
+#### Arguments:
+* `--list`: List all available plasmids in catalog.
+* `--get <ID>`: Target plasmid identifier or name.
+* `--info`: Output full feature table, restriction map, and biophysical properties.
+* `--export-gb <PATH>`: Export plasmid as a GenBank flatfile.
+
+---
+
+### 40. `clone-gene` — Automated Expression Plasmid Engineering
+
+Automates expression cassette design with reading frame synchronization, silent restriction domestication, and 7-point quality audit.
+
+```bash
+# Assemble EGFP into pET-28a(+) via restriction ligation
+biolabcalc clone-gene \
+  --vector "pET-28a(+)" \
+  --insert "ATGGTGAGCAAGGGCGAGGAGCTG..." \
+  --gene-name "EGFP" \
+  --mode restriction_ligation \
+  --e5 BamHI \
+  --e3 XhoI \
+  --tag "6xHis"
+```
+
+#### Arguments:
+* `--vector <NAME>`: Target recipient vector from catalog or file.
+* `--insert <SEQ>`: Target gene coding sequence or amino acid string.
+* `--gene-name <NAME>`: Display name for the target gene.
+* `--mode <MODE>`: Assembly mode (`restriction_ligation`, `gibson`, `golden_gate`).
+* `--e5 <ENZYME>`: 5' restriction enzyme.
+* `--e3 <ENZYME>`: 3' restriction enzyme.
+* `--tag <TAG>`: N-terminal affinity tag (`6xHis`, `FLAG`, etc.).
+
+---
+
+### 41. `interactive-plasmid` — Interactive HTML5/SVG Plasmid Workbench
+
+Launches or exports the responsive Elm Architecture (TEA) circular plasmid workbench.
+
+```bash
+# Export standalone HTML5/SVG workbench
+biolabcalc interactive-plasmid --plasmid pUC19 --output pUC19_map.html
+
+# Launch directly in browser
+biolabcalc interactive-plasmid --plasmid "pET-28a(+)" --open-browser
+```
+
+#### Arguments:
+* `--plasmid <ID>`: Plasmid name or path to GenBank file.
+* `-o, --output <PATH>`: Output HTML file path.
+* `--open-browser`: Automatically open generated workbench in default browser.
 
 ---
 

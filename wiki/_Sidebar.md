@@ -19,6 +19,7 @@
 
 ### 🔬 Molecular Biology Suite
 * [Molecular Cloning & Assembly](Molecular-Cloning-&-Assembly)
+* [Plasmid Engineering & Workbench](Plasmid-Engineering-&-Restriction-Workbench)
 * [PCR Kinetics & Primer Design](PCR-Kinetics-&-Primer-Design)
 * [In Vitro Transcription (IVT)](In-Vitro-Transcription-(IVT))
 * [Western Blotting Suite](Western-Blotting-Suite)

@@ -1353,3 +1353,83 @@ Returned by `ivt_workflow` and `easy.ivt_workflow`.
 | `report` | `LabReport` | Complete audit report session containing all logged QC measurements |
 
 - **`summary()`**: Returns a formatted multi-line summary string summarizing transcript length, predicted yield, turnover, optimal incubation hours, precipitation volume, buffer recipe, and logged records.
+
+---
+
+### 29. `SequenceRecord` & `SequenceAnnotation`
+Returned by `biolabcalc.sequence_store.get_sequence` and `save_sequence`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `str` | Unique record identifier (e.g. `'EGFP_CDS'`) |
+| `name` | `str` | Display name of the sequence |
+| `sequence` | `str` | Cleaned nucleotide or amino acid sequence string |
+| `seq_type` | `str` | Sequence type (`dna`, `rna`, `protein`) |
+| `topology` | `str` | Molecule topology (`linear`, `circular`, `dsdna`) |
+| `sha256_checksum` | `str` | First 16 hexadecimal characters of SHA-256 sequence hash |
+| `length` | `int` | Sequence length in bases or amino acids |
+| `gc_percent` | `float` | Guanine-cytosine content percentage |
+| `molecular_weight_da`| `float` | Exact biophysical molecular weight in Daltons |
+| `annotations` | `Tuple[SequenceAnnotation, ...]` | Immutable feature annotations with 1-based coordinates |
+
+---
+
+### 30. `PlasmidRecord` & `PlasmidFeature`
+Returned by `biolabcalc.plasmid.get_plasmid`, `parse_genbank`, and `auto_annotate_plasmid`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `str` | Plasmid identifier (e.g. `'pUC19'`, `'pET-28a(+)'`) |
+| `name` | `str` | Plasmid title |
+| `sequence` | `str` | Complete circular double-stranded DNA sequence |
+| `topology` | `str` | Circular or linear plasmid topology |
+| `length` | `int` | Vector length in base pairs |
+| `features` | `Tuple[PlasmidFeature, ...]` | Origin-spanning and linear features with 1-based coordinates |
+| `molecular_weight_da`| `float` | Double-stranded molecular weight (650 Da/bp standard) |
+
+---
+
+### 31. `DigestionPrediction` & `RestrictionCutSite`
+Returned by `biolabcalc.restriction_engine.simulate_restriction_digest`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `plasmid_name` | `str` | Target plasmid name |
+| `enzymes` | `Tuple[str, ...]` | Restriction enzymes utilized in digestion |
+| `cut_sites` | `Tuple[RestrictionCutSite, ...]`| Cleavage coordinates, top/bottom offsets, and overhangs |
+| `fragments` | `Tuple[RestrictionFragment, ...]`| Cleaved DNA fragments with lengths and terminal ends |
+| `fragment_count` | `int` | Total number of fragments produced |
+| `is_linearized` | `bool` | True if circular vector cleaved exactly once |
+| `is_uncut` | `bool` | True if vector has zero recognition sites |
+
+---
+
+### 32. `EngineeredPlasmidResult`
+Returned by `biolabcalc.plasmid_engineering.engineer_plasmid`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `plasmid` | `PlasmidRecord` | Complete engineered plasmid record with inserted CDS and tags |
+| `target_gene_name` | `str` | Name of cloned gene |
+| `mode` | `str` | Assembly mode (`restriction_ligation`, `gibson`, `golden_gate`) |
+| `in_frame` | `bool` | True if target CDS is in continuous reading frame with tags |
+| `has_start_codon` | `bool` | True if canonical initiator ATG is present |
+| `has_stop_codon` | `bool` | True if translation stop codon terminates cassette |
+| `premature_stops` | `int` | Count of premature termination codons (must be 0) |
+| `forward_primer_full_seq`| `str` | Complete forward amplification primer with cloning overhang |
+| `reverse_primer_full_seq`| `str` | Complete reverse amplification primer with cloning overhang |
+| `predicted_expression_yield_mg_l`| `float` | Expected recombinant protein yield in mg/L culture |
+
+---
+
+### 33. `BioLabModel` (Elm Architecture)
+State container in `biolabcalc.tea_runtime`.
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `loaded_plasmid` | `Optional[PlasmidRecord]` | Currently loaded circular plasmid construct |
+| `selected_enzymes`| `Tuple[str, ...]` | Active restriction enzymes selected in workbench |
+| `digestion_prediction`| `Optional[DigestionPrediction]`| In-silico digestion prediction result |
+| `engineered_result`| `Optional[EngineeredPlasmidResult]`| Active cloned vector result |
+| `history` | `Tuple[Any, ...]` | Time-travel state history stack for undo operations |
+| `future` | `Tuple[Any, ...]` | Time-travel state future stack for redo operations |
