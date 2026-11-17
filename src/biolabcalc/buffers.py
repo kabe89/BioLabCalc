@@ -121,6 +121,11 @@ class BufferEquilibriumResult:
             f"</tr>"
             for p in self.precipitation_risks
         )
+        precip_table = (
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 11.5px; background: #F8FAFC; border-radius: 4px;">{precip_rows}</table>'
+            if precip_rows
+            else ""
+        )
         return (
             f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
             f'border-radius: 8px; padding: 14px; max-width: 600px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
@@ -135,7 +140,7 @@ class BufferEquilibriumResult:
             f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Free [Ca²⁺]</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.free_ca_conc_m * 1000.0:.3f} mM</td></tr>'
             f'<tr><td style="padding: 3px 0; color: #64748B;">Free [ATP]</td><td style="text-align: right; font-weight: 600;">{self.free_atp_conc_m * 1000.0:.3f} mM</td></tr>'
             f'</table>'
-            f'{"<table style=\'width: 100%; border-collapse: collapse; font-size: 11.5px; background: #F8FAFC; border-radius: 4px;\'>" + precip_rows + "</table>" if precip_rows else ""}'
+            f'{precip_table}'
             f'</div>'
         )
 

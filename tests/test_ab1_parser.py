@@ -2,6 +2,8 @@
 Tests for Sanger .ab1 Chromatogram Parser and Construct Verification
 """
 
+from __future__ import annotations
+
 import os
 import struct
 import sys
@@ -9,6 +11,7 @@ import tempfile
 import unittest
 from dataclasses import FrozenInstanceError
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 _src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _src_dir not in sys.path:

@@ -7,9 +7,12 @@ Outputs:
   - docs_site/gel.html (Interactive Agarose/PAGE Gel Simulator)
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Ensure 'src' is in pythonpath
 repo_root = Path(__file__).resolve().parent.parent
@@ -21,7 +24,7 @@ from biolabcalc.interactive_gel import get_interactive_html
 from biolabcalc.interactive_plasmid import get_plasmid_workbench_html
 
 
-def build_pages_demo(output_dir: Path | None = None) -> Path:
+def build_pages_demo(output_dir: Optional[Path] = None) -> Path:
     if output_dir is None:
         output_dir = repo_root / "docs_site"
 

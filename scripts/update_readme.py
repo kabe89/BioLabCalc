@@ -89,9 +89,9 @@ def get_test_stats(run_live: bool = False) -> Tuple[int, int, float]:
         duration = round(time.time() - start_time, 2)
         output = res.stderr or res.stdout
 
-        # Parse unittest output: "Ran 473 tests in 3.350s"
+        # Parse unittest output: "Ran 543 tests in 3.350s"
         m_ran = re.search(r"Ran (\d+) tests in ([\d\.]+)s", output)
-        total = int(m_ran.group(1)) if m_ran else 473
+        total = int(m_ran.group(1)) if m_ran else 543
         dur = float(m_ran.group(2)) if m_ran else duration
 
         # Parse skipped: "OK (skipped=6)"
@@ -108,10 +108,29 @@ def get_test_stats(run_live: bool = False) -> Tuple[int, int, float]:
             if sys_path_root not in sys.path:
                 sys.path.insert(0, sys_path_root)
             suite = unittest.defaultTestLoader.discover(str(REPO_ROOT / "tests"), top_level_dir=sys_path_root)
+
+            # Check for any module-level import failures during discovery
+            failed_modules = []
+            def _check_failed(item):
+                if isinstance(item, unittest.TestSuite):
+                    for child in item:
+                        _check_failed(child)
+                elif isinstance(item, unittest.TestCase):
+                    if "FailedTest" in item.__class__.__name__:
+                        try:
+                            getattr(item, item._testMethodName)()
+                        except Exception as err:
+                            failed_modules.append(f"{item._testMethodName}: {err}")
+            _check_failed(suite)
+            if failed_modules:
+                print(f"[!] Warning: Test discovery encountered {len(failed_modules)} failed module(s):")
+                for fm in failed_modules:
+                    print(f"    - {fm}")
+
             count = suite.countTestCases()
             return (count, 6, 3.35)
         except Exception:
-            return (473, 6, 3.35)
+            return (543, 6, 3.35)
 
 
 def generate_updated_readme(
