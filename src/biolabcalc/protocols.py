@@ -42,12 +42,18 @@ class LabProtocol:
     summary: str
     estimated_time: str
     skill_level: str
-    safety_notes: List[str]
-    reagents: List[ProtocolReagent]
-    materials_equipment: List[str]
-    steps: List[ProtocolStep]
-    troubleshooting: List[TroubleshootingItem]
-    references: List[str] = field(default_factory=list)
+    safety_notes: Tuple[str, ...]
+    reagents: Tuple[ProtocolReagent, ...]
+    materials_equipment: Tuple[str, ...]
+    steps: Tuple[ProtocolStep, ...]
+    troubleshooting: Tuple[TroubleshootingItem, ...]
+    references: Tuple[str, ...] = ()
+
+    def __post_init__(self):
+        for f in ("safety_notes", "reagents", "materials_equipment", "steps", "troubleshooting", "references"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 PROTOCOL_CATALOG: Dict[str, LabProtocol] = {

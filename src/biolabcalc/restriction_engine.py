@@ -112,6 +112,34 @@ class RestrictionDigestPrediction:
     gel_bands: Tuple[Dict[str, Any], ...] = ()
     pipetting_plan: Optional[Any] = None
 
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        frag_rows = "".join(
+            f"<tr style='border-bottom: 1px solid #F1F5F9;'>"
+            f"<td style='padding: 3px 6px;'>#{f.fragment_id}</td>"
+            f"<td style='padding: 3px 6px; font-weight: 600; color: #2563EB;'>{f.length_bp:,} bp</td>"
+            f"<td style='padding: 3px 6px;'>{f.start_1based} .. {f.end_1based}{' (wraps origin)' if f.wraps_origin else ''}</td>"
+            f"<td style='padding: 3px 6px;'>{html.escape(f.left_enzyme or '—')} / {html.escape(f.right_enzyme or '—')}</td>"
+            f"</tr>"
+            for f in self.fragments
+        )
+        enzymes_str = ", ".join(self.enzymes) if self.enzymes else "None"
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 600px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">Digest: {html.escape(self.plasmid_name)}</h3>'
+            f'<span style="background: #EFF6FF; color: #2563EB; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">{self.total_length_bp:,} bp • {html.escape(self.topology)}</span>'
+            f'</div>'
+            f'<div style="font-size: 12px; color: #64748B; margin-bottom: 8px;">Enzymes: <strong>{html.escape(enzymes_str)}</strong> ({self.fragment_count} fragments)</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 12px; background: #F8FAFC; border-radius: 4px;">'
+            f'<tr style="color: #64748B; border-bottom: 1px solid #E2E8F0;"><th style="padding: 4px 6px; text-align: left;">Frag</th><th style="padding: 4px 6px; text-align: left;">Size</th><th style="padding: 4px 6px; text-align: left;">Span</th><th style="padding: 4px 6px; text-align: left;">Ends</th></tr>'
+            f'{frag_rows}'
+            f'</table>'
+            f'</div>'
+        )
+
 
 @dataclass(frozen=True)
 class EnzymeScreenResult:

@@ -646,6 +646,30 @@ class EngineeredPlasmidResult:
     warnings: Tuple[str, ...]
     notes: Tuple[str, ...]
 
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        status_in_frame = '<span style="color: #16A34A; font-weight: 600;">In-Frame</span>' if self.in_frame else '<span style="color: #DC2626; font-weight: 600;">Frameshift</span>'
+        status_stops = f'<span style="color: #16A34A;">0</span>' if self.premature_stops == 0 else f'<span style="color: #DC2626; font-weight: 600;">{self.premature_stops}</span>'
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 620px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">Engineered Plasmid: {html.escape(self.assembled_plasmid.name)}</h3>'
+            f'<span style="background: #F5F3FF; color: #7C3AED; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">{html.escape(self.mode.upper())}</span>'
+            f'</div>'
+            f'<div style="font-size: 12px; color: #64748B; margin-bottom: 10px;">Target: <strong>{html.escape(self.target_gene_name)}</strong> • {self.assembled_plasmid.length:,} bp</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 8px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Reading Frame</td><td style="text-align: right;">{status_in_frame}</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Start / Stop Codon</td><td style="text-align: right;">{"Yes" if self.has_start_codon else "Missing"} / {"Yes" if self.has_stop_codon else "Missing"} (Premature stops: {status_stops})</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Backbone Integrity</td><td style="text-align: right;">Ori: {"OK" if self.ori_intact else "Disrupted"} • Marker: {"OK" if self.marker_intact else "Disrupted"}</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Colony PCR Amplicon</td><td style="text-align: right; font-weight: 600;">{self.colony_pcr_amplicon_bp} bp</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Expressed Protein</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.protein_mw_da:,.1f} Da (ε280: {self.protein_extinction_280:,} M⁻¹cm⁻¹)</td></tr>'
+            f'<tr><td style="padding: 3px 0; color: #64748B;">Predicted Yield</td><td style="text-align: right; font-weight: 600; color: #16A34A;">{self.predicted_expression_yield_mg_l:.1f} mg/L</td></tr>'
+            f'</table>'
+            f'</div>'
+        )
+
 
 def _design_annealing_core(seq: str, reverse: bool = False) -> str:
     """Pick optimal 18-24 nt annealing core with Tm 55-65°C and GC clamp."""
@@ -1116,3 +1140,80 @@ def engineer_plasmid(
         warnings=tuple(warnings),
         notes=tuple(notes),
     )
+
+
+engineer_expression_plasmid = engineer_plasmid
+
+
+def generate_allosteric_mutagenesis_primers(
+    plasmid: PlasmidRecord,
+    allosteric_result: Any,
+    target_amino_acid: str = "A",
+    flanking_bp: int = 15,
+) -> Tuple[PrimerPair, ...]:
+    """
+    Auto-generate site-directed mutagenesis primers targeting allosteric hotspot
+    and bottleneck residues identified by allosteric pathway tracing.
+    
+    Parameters:
+        plasmid (PlasmidRecord): Plasmid containing the target gene/CDS.
+        allosteric_result (AllostericNetworkResult): Identified allosteric pathways & hotspots.
+        target_amino_acid (str): Target replacement amino acid (default 'A' for Alanine scanning).
+        flanking_bp (int): Flanking homology length on each side of the mutation (default: 15 bp).
+        
+    Returns:
+        Tuple[PrimerPair, ...]: Designed mutagenesis primer pairs for each hotspot residue.
+    """
+    from .primers import analyze_primer, PrimerPair
+
+    # Select target codon for alanine scanning or specified amino acid
+    aa_to_codon = {
+        "A": "GCG", "C": "TGC", "D": "GAC", "E": "GAG", "F": "TTC",
+        "G": "GGC", "H": "CAC", "I": "ATC", "K": "AAG", "L": "CTG",
+        "M": "ATG", "N": "AAC", "P": "CCG", "Q": "CAG", "R": "CGC",
+        "S": "AGC", "T": "ACC", "V": "GTG", "W": "TGG", "Y": "TAC",
+    }
+    mut_codon = aa_to_codon.get(target_amino_acid.upper(), "GCG")
+
+    # Locate coding feature
+    cds_feat = next((f for f in plasmid.features if f.feature_type.upper() in ("CDS", "GENE")), None)
+    seq = plasmid.sequence
+    cds_start = cds_feat.start if cds_feat else 1
+
+    pairs: List[PrimerPair] = []
+    hotspots = getattr(allosteric_result, "hotspot_residues", ())
+    if not hotspots and hasattr(allosteric_result, "paths") and allosteric_result.paths:
+        hotspots = (allosteric_result.paths[0].bottleneck_residue,)
+
+    for res_idx in hotspots:
+        # Determine 1-based nucleotide position in plasmid sequence
+        codon_start_nt = cds_start + (res_idx - 1) * 3
+        if codon_start_nt < 1 or codon_start_nt + 2 > len(seq):
+            continue
+
+        # Extract flanking 5' and 3' regions
+        left_start = max(1, codon_start_nt - flanking_bp)
+        right_end = min(len(seq), codon_start_nt + 2 + flanking_bp)
+
+        left_flank = seq[left_start - 1 : codon_start_nt - 1]
+        right_flank = seq[codon_start_nt + 2 : right_end]
+
+        fwd_mut_seq = left_flank + mut_codon + right_flank
+        rev_mut_seq = reverse_complement(fwd_mut_seq, seq_type="dna")
+
+        pa_fwd = analyze_primer(fwd_mut_seq)
+        pa_rev = analyze_primer(rev_mut_seq)
+
+        tm_diff = abs(pa_fwd.tm_celsius - pa_rev.tm_celsius)
+        pair = PrimerPair(
+            forward_primer=pa_fwd,
+            reverse_primer=pa_rev,
+            amplicon_length_bp=len(seq),
+            tm_difference=round(tm_diff, 2),
+            product_start=left_start,
+            product_end=right_end,
+            pair_quality_score=round((pa_fwd.quality_score + pa_rev.quality_score) / 2.0, 2),
+        )
+        pairs.append(pair)
+
+    return tuple(pairs)

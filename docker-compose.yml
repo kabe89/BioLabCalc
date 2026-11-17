@@ -1,0 +1,24 @@
+services:
+  biolabcalc-eln:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biolabcalc-eln
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - biolabcalc_data:/data
+    environment:
+      - BIOLABCALC_STORAGE_DIR=/data
+      - BIOLABCALC_ENV=production
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  biolabcalc_data:
+    driver: local

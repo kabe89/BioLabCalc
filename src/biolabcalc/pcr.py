@@ -28,6 +28,26 @@ class PCRResult:
     theoretical_max_amplicon_ug: float
     limiting_reagent: str = "dNTPs"
 
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 580px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">PCR Amplification Yield</h3>'
+            f'<span style="background: #EFF6FF; color: #1D4ED8; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">{self.cycles_run} Cycles • {self.efficiency_percent:.1f}% Eff</span>'
+            f'</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 13px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Amplicon Size</td><td style="text-align: right; font-weight: 600;">{self.amplicon_length_bp:,} bp ({self.amplicon_mw:,.1f} Da)</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Yield (Mass / Moles)</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.amplicon_yield_ng:,.1f} ng ({self.amplicon_yield_pmol:,.2f} pmol)</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Template → Amplicon Copies</td><td style="text-align: right;">{self.template_initial_copies:.2e} → {self.amplicon_final_copies:.2e}</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Theoretical Max</td><td style="text-align: right;">{self.theoretical_max_amplicon_ug:,.2f} µg</td></tr>'
+            f'<tr><td style="padding: 4px 0; color: #64748B;">Limiting Factor</td><td style="text-align: right; font-weight: 600; color: #D97706;">{html.escape(self.limiting_reagent)} ({html.escape(self.limiting_dntp)})</td></tr>'
+            f'</table>'
+            f'</div>'
+        )
+
 
 @dataclass(frozen=True)
 class MasterMixItem:
@@ -249,8 +269,12 @@ class PCROptimizationResult:
     gc_percent: float
     touchdown_initial_ta: float
     touchdown_cycles: int
-    recommended_additives: List[str]
+    recommended_additives: Tuple[str, ...]
     cycling_protocol_summary: str
+
+    def __post_init__(self):
+        if isinstance(self.recommended_additives, (list, set, tuple)):
+            object.__setattr__(self, "recommended_additives", tuple(self.recommended_additives))
 
 
 def optimize_pcr_protocol(

@@ -301,20 +301,36 @@ class LocalStorageBackend(StorageBackend):
         # Deduplication check: if file exists and size matches, write metadata only if needed
         if blob_path.exists() and blob_path.stat().st_size == len(data):
             if not meta_path.exists():
-                with open(meta_path, "w", encoding="utf-8") as f:
-                    json.dump(metadata.to_dict(), f, indent=2)
+                temp_dir = self._get_shard_dir(sha256)
+                with tempfile.NamedTemporaryFile(
+                    dir=temp_dir, delete=False, mode="w", encoding="utf-8", prefix=".tmp_meta_", suffix=".json"
+                ) as tf:
+                    json.dump(metadata.to_dict(), tf, indent=2)
+                    tf.flush()
+                    os.fsync(tf.fileno())
+                    temp_meta = tf.name
+                os.replace(temp_meta, str(meta_path))
             return metadata
 
         # Atomic write to temporary file first, then replace
         temp_dir = self._get_shard_dir(sha256)
-        with tempfile.NamedTemporaryFile(dir=temp_dir, delete=False) as tf:
+        with tempfile.NamedTemporaryFile(dir=temp_dir, delete=False, prefix=".tmp_blob_") as tf:
             tf.write(data)
+            tf.flush()
+            os.fsync(tf.fileno())
             temp_name = tf.name
 
-        shutil.move(temp_name, str(blob_path))
+        os.replace(temp_name, str(blob_path))
 
-        with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump(metadata.to_dict(), f, indent=2)
+        with tempfile.NamedTemporaryFile(
+            dir=temp_dir, delete=False, mode="w", encoding="utf-8", prefix=".tmp_meta_", suffix=".json"
+        ) as tf:
+            json.dump(metadata.to_dict(), tf, indent=2)
+            tf.flush()
+            os.fsync(tf.fileno())
+            temp_meta = tf.name
+
+        os.replace(temp_meta, str(meta_path))
 
         return metadata
 
@@ -453,9 +469,16 @@ class LocalStorageBackend(StorageBackend):
             return None
         meta.custom_attributes.update(custom_attributes)
         meta_path = self._meta_file(sha256)
-        meta_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump(meta.to_dict(), f, indent=2)
+        temp_dir = self._get_shard_dir(sha256)
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            dir=temp_dir, delete=False, mode="w", encoding="utf-8", prefix=".tmp_meta_", suffix=".json"
+        ) as tf:
+            json.dump(meta.to_dict(), tf, indent=2)
+            tf.flush()
+            os.fsync(tf.fileno())
+            temp_meta = tf.name
+        os.replace(temp_meta, str(meta_path))
         return meta
 
 

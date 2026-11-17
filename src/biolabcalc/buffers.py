@@ -3,6 +3,7 @@
 from __future__ import annotations
 import os
 import json
+import tempfile
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Tuple, Literal, Union
 
@@ -19,11 +20,124 @@ class BufferRecipeResult:
     buffer_id: str
     name: str
     target_volume_ml: float
-    components: List[BufferComponent]
+    components: Tuple[BufferComponent, ...]
     ph_specification: str
-    preparation_steps: List[str]
+    preparation_steps: Tuple[str, ...]
     storage_conditions: str
     safety_notes: Optional[str] = None
+
+    def __post_init__(self):
+        for f in ("components", "preparation_steps"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
+
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        comp_rows = "".join(
+            f"<tr style='border-bottom: 1px solid #F1F5F9;'>"
+            f"<td style='padding: 3px 6px;'>{html.escape(c.name)}</td>"
+            f"<td style='padding: 3px 6px;'>{html.escape(c.molar_concentration)}</td>"
+            f"<td style='padding: 3px 6px; text-align: right; font-weight: 600;'>{c.amount:.3g} {html.escape(c.unit)}</td>"
+            f"</tr>"
+            for c in self.components
+        )
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 580px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">{html.escape(self.name)}</h3>'
+            f'<span style="background: #EFF6FF; color: #2563EB; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">{self.target_volume_ml:g} mL</span>'
+            f'</div>'
+            f'<div style="font-size: 12px; color: #64748B; margin-bottom: 10px;">pH Spec: {html.escape(self.ph_specification)} • Storage: {html.escape(self.storage_conditions)}</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 12px; background: #F8FAFC; border-radius: 4px; margin-bottom: 8px;">'
+            f'<tr style="color: #64748B; border-bottom: 1px solid #E2E8F0;"><th style="padding: 4px 6px; text-align: left;">Component</th><th style="padding: 4px 6px; text-align: left;">Target Conc</th><th style="padding: 4px 6px; text-align: right;">Amount</th></tr>'
+            f'{comp_rows}'
+            f'</table>'
+            f'</div>'
+        )
+
+
+@dataclass(frozen=True)
+class EquilibriumComponent:
+    name: str
+    total_conc_m: float
+    pka_values: Tuple[float, ...] = ()
+    charge_states: Tuple[int, ...] = ()
+    dpka_dt: float = 0.0
+
+    def __post_init__(self):
+        for f in ("pka_values", "charge_states"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
+
+
+@dataclass(frozen=True)
+class SpeciesConcentration:
+    name: str
+    concentration_m: float
+    fraction_of_total: float
+    charge: int
+
+
+@dataclass(frozen=True)
+class PrecipitationCheck:
+    salt_name: str
+    ion_product: float
+    ksp: float
+    saturation_index: float
+    will_precipitate: bool
+
+
+@dataclass(frozen=True)
+class BufferEquilibriumResult:
+    target_ph: float
+    actual_ph: float
+    ionic_strength_m: float
+    temperature_celsius: float
+    free_mg_conc_m: float
+    free_ca_conc_m: float
+    free_atp_conc_m: float
+    species: Tuple[SpeciesConcentration, ...]
+    precipitation_risks: Tuple[PrecipitationCheck, ...]
+    buffer_capacity_beta: float = 0.0
+    components: Tuple[EquilibriumComponent, ...] = ()
+
+    def __post_init__(self):
+        for f in ("species", "precipitation_risks", "components"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
+
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        precip_rows = "".join(
+            f"<tr style='border-bottom: 1px solid #F1F5F9; color: {'#DC2626' if p.will_precipitate else '#16A34A'};'>"
+            f"<td style='padding: 2px 6px;'>{html.escape(p.salt_name)}</td>"
+            f"<td style='padding: 2px 6px; text-align: right;'>SI={p.saturation_index:+.2f} ({'RISK' if p.will_precipitate else 'Soluble'})</td>"
+            f"</tr>"
+            for p in self.precipitation_risks
+        )
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 600px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">Multi-Metal Buffer Speciation</h3>'
+            f'<span style="background: #F0FDF4; color: #16A34A; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">pH {self.actual_ph:.2f} @ {self.temperature_celsius:g}°C</span>'
+            f'</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 8px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Ionic Strength (I)</td><td style="text-align: right; font-weight: 600;">{self.ionic_strength_m:.4f} M</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Buffer Capacity (β)</td><td style="text-align: right; font-weight: 600;">{self.buffer_capacity_beta:.4f} M/pH</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Free [Mg²⁺]</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.free_mg_conc_m * 1000.0:.3f} mM</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Free [Ca²⁺]</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.free_ca_conc_m * 1000.0:.3f} mM</td></tr>'
+            f'<tr><td style="padding: 3px 0; color: #64748B;">Free [ATP]</td><td style="text-align: right; font-weight: 600;">{self.free_atp_conc_m * 1000.0:.3f} mM</td></tr>'
+            f'</table>'
+            f'{"<table style=\'width: 100%; border-collapse: collapse; font-size: 11.5px; background: #F8FAFC; border-radius: 4px;\'>" + precip_rows + "</table>" if precip_rows else ""}'
+            f'</div>'
+        )
 
 # Baseline recipes normalized to 1000 mL (1.0 L)
 BUFFER_CATALOG: Dict[str, Dict[str, Any]] = {
@@ -248,9 +362,15 @@ class NTPNeutralizationResult:
     naoh_mmol: float
     naoh_volume_ul: Dict[str, float]
     water_volume_ml: float
-    warnings: List[str]
-    logic_checks: List[str]
-    preparation_steps: List[str]
+    warnings: Tuple[str, ...]
+    logic_checks: Tuple[str, ...]
+    preparation_steps: Tuple[str, ...]
+
+    def __post_init__(self):
+        for f in ("warnings", "logic_checks", "preparation_steps"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 def calculate_ntp_ph_adjustment(
@@ -481,10 +601,16 @@ class HepesIVTBufferResult:
     hepes_conc_mm: float
     target_ph_37c: float
     preparation_ph_25c: float
-    components: List[BufferComponent]
+    components: Tuple[BufferComponent, ...]
     reagent_masses_and_volumes: Dict[str, float]
     buffering_capacity_comparison: str
-    preparation_steps: List[str]
+    preparation_steps: Tuple[str, ...]
+
+    def __post_init__(self):
+        for f in ("components", "preparation_steps"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 def calculate_hepes_ivt_buffer(
@@ -603,7 +729,7 @@ def get_custom_buffers_path() -> str:
 CUSTOM_BUFFERS_PATH = get_custom_buffers_path()
 
 
-@dataclass
+@dataclass(frozen=True)
 class CustomBufferComponent:
     name: str
     comp_type: Literal["solid", "stock", "percent_w_v", "percent_v_v"]
@@ -772,9 +898,11 @@ class CustomBufferBuilder:
 
 
 def save_custom_buffer_to_disk(builder: CustomBufferBuilder, filepath: Optional[str] = None) -> str:
-    """Save a custom buffer definition to JSON disk storage."""
+    """Save a custom buffer definition to JSON disk storage with atomic replacement."""
     path = filepath or CUSTOM_BUFFERS_PATH
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    dir_name = os.path.dirname(os.path.abspath(path))
+    if dir_name and not os.path.exists(dir_name):
+        os.makedirs(dir_name, exist_ok=True)
 
     data = {}
     if os.path.exists(path):
@@ -787,8 +915,20 @@ def save_custom_buffer_to_disk(builder: CustomBufferBuilder, filepath: Optional[
     key = builder.name.upper().replace("-", "_").replace(" ", "_")
     data[key] = builder.to_dict()
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    temp_fd, temp_file = tempfile.mkstemp(dir=dir_name, prefix=".tmp_buffer_", suffix=".json")
+    try:
+        with open(temp_fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_file, path)
+    except Exception:
+        if os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+            except OSError:
+                pass
+        raise
 
     # Register into runtime catalog
     builder.register(key)
@@ -832,7 +972,7 @@ def list_custom_buffers(filepath: Optional[str] = None) -> List[str]:
 
 
 def delete_custom_buffer(name_or_key: str, filepath: Optional[str] = None) -> bool:
-    """Delete a custom buffer from disk storage and runtime catalog."""
+    """Delete a custom buffer from disk storage and runtime catalog with atomic replacement."""
     key = name_or_key.upper().replace("-", "_").replace(" ", "_")
     path = filepath or CUSTOM_BUFFERS_PATH
     if not os.path.exists(path):
@@ -843,8 +983,21 @@ def delete_custom_buffer(name_or_key: str, filepath: Optional[str] = None) -> bo
             data = json.load(f)
         if key in data:
             del data[key]
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+            dir_name = os.path.dirname(os.path.abspath(path))
+            temp_fd, temp_file = tempfile.mkstemp(dir=dir_name, prefix=".tmp_buffer_", suffix=".json")
+            try:
+                with open(temp_fd, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(temp_file, path)
+            except Exception:
+                if os.path.exists(temp_file):
+                    try:
+                        os.remove(temp_file)
+                    except OSError:
+                        pass
+                raise
             if key in BUFFER_CATALOG:
                 del BUFFER_CATALOG[key]
             return True
@@ -926,3 +1079,525 @@ try:
     load_custom_buffers_from_disk()
 except Exception:
     pass
+
+
+# ============================================================================
+# Multi-Metal Competitive Buffer Speciation Solver
+# ============================================================================
+
+def _parse_conc_string(val_str: str) -> float:
+    """Parse a concentration string such as '50mM', '5uM', '10µM', '0.1M' into Molar."""
+    s = str(val_str).strip()
+    s_lower = s.lower()
+    if s_lower.endswith("um") or s_lower.endswith("µm"):
+        return float(s[:-2].strip()) * 1e-6
+    elif s_lower.endswith("mm"):
+        return float(s[:-2].strip()) * 1e-3
+    elif s_lower.endswith("nm"):
+        return float(s[:-2].strip()) * 1e-9
+    elif s_lower.endswith("m"):
+        return float(s[:-1].strip())
+    else:
+        try:
+            val = float(s)
+            # Default interpretation: if val >= 0.5, could be mM or M; standard lab notation without unit is mM if >= 1
+            return val * 1e-3 if val >= 0.5 else val
+        except ValueError:
+            raise ValueError(f"Unable to parse concentration value: '{val_str}'")
+
+
+# Standard thermodynamic database for buffer components at 25 °C
+_BUFFER_PKA_DB: Dict[str, Dict[str, Any]] = {
+    "tris": {
+        "pka": (8.06,),
+        "dpka_dt": -0.028,
+        "charges": (1, 0),
+        "is_base": True,
+    },
+    "hepes": {
+        "pka": (7.55,),
+        "dpka_dt": -0.014,
+        "charges": (0, -1),
+        "is_base": False,
+    },
+    "mops": {
+        "pka": (7.20,),
+        "dpka_dt": -0.011,
+        "charges": (0, -1),
+        "is_base": False,
+    },
+    "pipes": {
+        "pka": (6.76,),
+        "dpka_dt": -0.0085,
+        "charges": (-1, -2),
+        "is_base": False,
+    },
+    "mes": {
+        "pka": (6.15,),
+        "dpka_dt": -0.011,
+        "charges": (0, -1),
+        "is_base": False,
+    },
+    "phosphate": {
+        "pka": (2.15, 7.20, 12.35),
+        "dpka_dt": -0.0028,
+        "charges": (0, -1, -2, -3),
+        "is_base": False,
+    },
+    "pbs": {
+        "pka": (2.15, 7.20, 12.35),
+        "dpka_dt": -0.0028,
+        "charges": (0, -1, -2, -3),
+        "is_base": False,
+    },
+    "atp": {
+        "pka": (6.5,),
+        "dpka_dt": -0.001,
+        "charges": (-3, -4),
+        "is_base": False,
+        "log_k_mg": 4.0,
+        "log_k_ca": 3.9,
+    },
+    "gtp": {
+        "pka": (6.5,),
+        "dpka_dt": -0.001,
+        "charges": (-3, -4),
+        "is_base": False,
+        "log_k_mg": 4.0,
+        "log_k_ca": 3.9,
+    },
+    "dntp": {
+        "pka": (6.5,),
+        "dpka_dt": -0.001,
+        "charges": (-3, -4),
+        "is_base": False,
+        "log_k_mg": 4.0,
+        "log_k_ca": 3.9,
+    },
+    "egta": {
+        "pka": (2.0, 2.68, 8.85, 9.47),
+        "dpka_dt": -0.011,
+        "charges": (0, -1, -2, -3, -4),
+        "is_base": False,
+        "log_k_mg": 5.2,
+        "log_k_ca": 11.0,
+    },
+    "edta": {
+        "pka": (2.0, 2.70, 6.16, 10.26),
+        "dpka_dt": -0.005,
+        "charges": (0, -1, -2, -3, -4),
+        "is_base": False,
+        "log_k_mg": 8.79,
+        "log_k_ca": 10.69,
+    },
+    "ppi": {
+        "pka": (0.83, 2.26, 6.72, 9.46),
+        "dpka_dt": -0.002,
+        "charges": (0, -1, -2, -3, -4),
+        "is_base": False,
+        "log_k_mg": 5.4,
+        "log_k_ca": 5.0,
+    },
+}
+
+_KSP_DATABASE = {
+    "Mg2P2O7": {"ksp": 2.5e-13, "mg": 2, "ca": 0, "ppi": 1, "po4": 0, "hpo4": 0},
+    "Ca3(PO4)2": {"ksp": 2.07e-33, "mg": 0, "ca": 3, "ppi": 0, "po4": 2, "hpo4": 0},
+    "MgHPO4": {"ksp": 1.5e-6, "mg": 1, "ca": 0, "ppi": 0, "po4": 0, "hpo4": 1},
+    "Mg3(PO4)2": {"ksp": 1.0e-25, "mg": 3, "ca": 0, "ppi": 0, "po4": 2, "hpo4": 0},
+}
+
+
+def _solve_linear_system(A: List[List[float]], b: List[float]) -> List[float]:
+    """Pure-Python Gaussian elimination with partial pivoting."""
+    n = len(b)
+    # Augmented matrix
+    M = [A[i][:] + [b[i]] for i in range(n)]
+
+    for i in range(n):
+        # Pivot
+        max_row = i
+        max_val = abs(M[i][i])
+        for k in range(i + 1, n):
+            if abs(M[k][i]) > max_val:
+                max_val = abs(M[k][i])
+                max_row = k
+        if max_row != i:
+            M[i], M[max_row] = M[max_row], M[i]
+
+        pivot = M[i][i]
+        if abs(pivot) < 1e-15:
+            continue
+
+        for k in range(i + 1, n):
+            factor = M[k][i] / pivot
+            for j in range(i, n + 1):
+                M[k][j] -= factor * M[i][j]
+
+    # Back substitution
+    x = [0.0] * n
+    for i in range(n - 1, -1, -1):
+        if abs(M[i][i]) < 1e-15:
+            x[i] = 0.0
+            continue
+        s = sum(M[i][j] * x[j] for j in range(i + 1, n))
+        x[i] = (M[i][n] - s) / M[i][i]
+    return x
+
+
+def solve_buffer_equilibrium(
+    components: Union[str, Dict[str, Any], Sequence[Union[str, Dict[str, Any], EquilibriumComponent]]],
+    target_ph: float = 7.4,
+    temperature_celsius: float = 25.0,
+    output_temp_celsius: float = 37.0,
+    use_davies_correction: bool = True,
+) -> BufferEquilibriumResult:
+    """
+    Multi-Metal Competitive Buffer Speciation Solver.
+    
+    Solves simultaneous non-linear mass-balance equations for divalent cations (Mg2+, Ca2+)
+    and competing chelators/ligands (EGTA, EDTA, ATP, GTP, dNTPs, PPi, phosphate) using
+    a damped Newton-Raphson solver in log-concentration space, with temperature drift
+    corrections (dpKa/dT) and Davies ionic strength activity adjustments.
+    """
+    import math
+
+    # 1. Parse components into standard dictionary
+    comp_map: Dict[str, float] = {}
+    if isinstance(components, str):
+        # Format: "Tris=50mM,EGTA=5mM,MgCl2=10mM,ATP=4mM"
+        parts = [p.strip() for p in components.replace(";", ",").split(",") if p.strip()]
+        for part in parts:
+            if "=" in part:
+                k, v = part.split("=", 1)
+                comp_map[k.strip().lower()] = _parse_conc_string(v.strip())
+            elif ":" in part:
+                k, v = part.split(":", 1)
+                comp_map[k.strip().lower()] = _parse_conc_string(v.strip())
+    elif isinstance(components, dict):
+        for k, v in components.items():
+            conc = _parse_conc_string(v) if isinstance(v, str) else float(v)
+            comp_map[k.strip().lower()] = conc
+    elif isinstance(components, (list, tuple)):
+        for item in components:
+            if isinstance(item, EquilibriumComponent):
+                comp_map[item.name.strip().lower()] = item.total_conc_m
+            elif isinstance(item, dict):
+                k = item.get("name") or item.get("id")
+                v = item.get("conc_m") or item.get("conc_mm") or item.get("conc") or item.get("total_conc_m")
+                if k and v is not None:
+                    conc = float(v) * (1e-3 if "mm" in str(item).lower() and "m" not in str(item).lower() else 1.0)
+                    comp_map[str(k).strip().lower()] = conc
+            elif isinstance(item, str) and "=" in item:
+                k, v = item.split("=", 1)
+                comp_map[k.strip().lower()] = _parse_conc_string(v.strip())
+
+    temp_eff = output_temp_celsius if output_temp_celsius is not None else temperature_celsius
+    dt = temp_eff - 25.0
+
+    # Extract total metals
+    total_mg = 0.0
+    total_ca = 0.0
+    for name, c in comp_map.items():
+        if "mg" in name or "magnesium" in name:
+            total_mg += c
+        elif "ca" in name or "calcium" in name:
+            total_ca += c
+
+    # Extract ligands
+    ligand_names = ["egta", "edta", "atp", "gtp", "dntp", "ppi", "phosphate", "pbs"]
+    present_ligands = [lig for lig in ligand_names if any(lig in k for k in comp_map)]
+
+    # Compute effective deprotonated fraction (alpha) for each ligand at target pH
+    alpha_map: Dict[str, float] = {}
+    h_conc = 10.0 ** (-target_ph)
+
+    for lig in present_ligands:
+        data = _BUFFER_PKA_DB.get(lig, {})
+        base_pka = data.get("pka", (7.0,))
+        dpka = data.get("dpka_dt", 0.0)
+        eff_pka = tuple(pk + dpka * dt for pk in base_pka)
+
+        # Ka values
+        ka_vals = [10.0 ** (-pk) for pk in eff_pka]
+        n_pka = len(ka_vals)
+
+        # Denominator for polyprotic distribution
+        # D = [H]^n + K1 [H]^(n-1) + K1 K2 [H]^(n-2) + ...
+        terms = [h_conc ** n_pka]
+        prod_k = 1.0
+        for i, ka in enumerate(ka_vals):
+            prod_k *= ka
+            terms.append(prod_k * (h_conc ** (n_pka - 1 - i)))
+        d_sum = sum(terms)
+        # Fully deprotonated fraction is the last term / d_sum
+        alpha_map[lig] = terms[-1] / d_sum if d_sum > 0 else 1.0
+
+    # Initial ionic strength estimate
+    i_strength = 0.1  # default initial guess
+
+    # Davies activity correction factor
+    def get_davies_gamma(z: int, I: float) -> float:
+        if not use_davies_correction or I <= 0.0:
+            return 1.0
+        A = 0.509 * ((298.15 / (temp_eff + 273.15)) ** 1.5)
+        sqrt_i = math.sqrt(I)
+        log_gamma = -A * (z ** 2) * (sqrt_i / (1.0 + sqrt_i) - 0.3 * I)
+        return 10.0 ** log_gamma
+
+    # Build metal-ligand stability matrix
+    # Metals: M0 = Mg2+, M1 = Ca2+
+    # Ligands: L_k in present_ligands
+    m_totals = [total_mg, total_ca]
+    m_keys = ["mg", "ca"]
+    l_totals = [sum(v for k, v in comp_map.items() if lig in k) for lig in present_ligands]
+
+    # Effective binding constants K'[m, l]
+    k_prime: List[List[float]] = []
+    for m_idx, m_key in enumerate(m_keys):
+        row = []
+        for l_idx, lig in enumerate(present_ligands):
+            data = _BUFFER_PKA_DB.get(lig, {})
+            log_k = data.get(f"log_k_{m_key}", 0.0)
+            if log_k > 0:
+                k_val = 10.0 ** log_k
+                k_eff = k_val * alpha_map.get(lig, 1.0)
+            else:
+                k_eff = 0.0
+            row.append(k_eff)
+        k_prime.append(row)
+
+    # Solve competitive equilibrium via Newton-Raphson in log-space
+    n_m = len(m_totals)
+    n_l = len(l_totals)
+    n_vars = n_m + n_l
+
+    # Initial guesses: if total is 0, set to very small number
+    curr_m = [max(m * 0.5, 1e-12) for m in m_totals]
+    curr_l = [max(l * 0.5, 1e-12) for l in l_totals]
+
+    for iteration in range(50):
+        # Variables: x = [ln(M0), ln(M1), ln(L0), ln(L1), ...]
+        residuals = []
+        # Residuals for metals: F_m_j = M_j * (1 + sum_k K'_{j,k} L_k) - M_tot_j
+        for j in range(n_m):
+            if m_totals[j] <= 1e-15:
+                curr_m[j] = 0.0
+                residuals.append(0.0)
+                continue
+            binding_sum = sum(k_prime[j][k] * curr_l[k] for k in range(n_l))
+            calc_tot = curr_m[j] * (1.0 + binding_sum)
+            residuals.append(calc_tot - m_totals[j])
+
+        # Residuals for ligands: F_l_k = L_k * (1 + sum_j K'_{j,k} M_j) - L_tot_k
+        for k in range(n_l):
+            if l_totals[k] <= 1e-15:
+                curr_l[k] = 0.0
+                residuals.append(0.0)
+                continue
+            binding_sum = sum(k_prime[j][k] * curr_m[j] for j in range(n_m))
+            calc_tot = curr_l[k] * (1.0 + binding_sum)
+            residuals.append(calc_tot - l_totals[k])
+
+        res_norm = max(abs(r) for r in residuals) if residuals else 0.0
+        if res_norm < 1e-12:
+            break
+
+        # Compute Jacobian J in log-space: J_ab = dF_a / d(ln X_b) = X_b * dF_a / dX_b
+        J = [[0.0] * n_vars for _ in range(n_vars)]
+
+        for j in range(n_m):
+            if m_totals[j] <= 1e-15:
+                J[j][j] = 1.0
+                continue
+            binding_sum = sum(k_prime[j][k] * curr_l[k] for k in range(n_l))
+            J[j][j] = curr_m[j] * (1.0 + binding_sum)
+            for k in range(n_l):
+                J[j][n_m + k] = k_prime[j][k] * curr_m[j] * curr_l[k]
+
+        for k in range(n_l):
+            idx = n_m + k
+            if l_totals[k] <= 1e-15:
+                J[idx][idx] = 1.0
+                continue
+            binding_sum = sum(k_prime[j][k] * curr_m[j] for j in range(n_m))
+            J[idx][idx] = curr_l[k] * (1.0 + binding_sum)
+            for j in range(n_m):
+                J[idx][j] = k_prime[j][k] * curr_l[k] * curr_m[j]
+
+        # Solve J * delta_log = -residuals
+        rhs = [-r for r in residuals]
+        delta_log = _solve_linear_system(J, rhs)
+
+        # Clamp per-iteration step size: |Delta log10 c_i| <= 1.0 (meaning |delta_log_i| <= ln(10))
+        max_log10_step = max(abs(d) / math.log(10.0) for d in delta_log) if delta_log else 0.0
+        if max_log10_step > 1.0:
+            scale = 1.0 / max_log10_step
+            delta_log = [d * scale for d in delta_log]
+
+        # Damped backtracking line search on mass-balance residual norm ||r||_2
+        curr_norm2 = math.sqrt(sum(r * r for r in residuals))
+        best_alpha = 1.0
+        alpha = 1.0
+        for _ in range(8):
+            cand_m = list(curr_m)
+            cand_l = list(curr_l)
+            for j in range(n_m):
+                if m_totals[j] > 1e-15:
+                    cand_m[j] = curr_m[j] * math.exp(alpha * delta_log[j])
+            for k in range(n_l):
+                if l_totals[k] > 1e-15:
+                    cand_l[k] = curr_l[k] * math.exp(alpha * delta_log[n_m + k])
+
+            cand_res = []
+            for j in range(n_m):
+                if m_totals[j] <= 1e-15:
+                    cand_res.append(0.0)
+                else:
+                    bs = sum(k_prime[j][k] * cand_l[k] for k in range(n_l))
+                    cand_res.append(cand_m[j] * (1.0 + bs) - m_totals[j])
+            for k in range(n_l):
+                if l_totals[k] <= 1e-15:
+                    cand_res.append(0.0)
+                else:
+                    bs = sum(k_prime[j][k] * cand_m[j] for j in range(n_m))
+                    cand_res.append(cand_l[k] * (1.0 + bs) - l_totals[k])
+            cand_norm2 = math.sqrt(sum(r * r for r in cand_res))
+            if cand_norm2 <= curr_norm2 or alpha < 0.05:
+                best_alpha = alpha
+                break
+            alpha *= 0.5
+
+        for j in range(n_m):
+            if m_totals[j] > 1e-15:
+                curr_m[j] *= math.exp(best_alpha * delta_log[j])
+        for k in range(n_l):
+            if l_totals[k] > 1e-15:
+                curr_l[k] *= math.exp(best_alpha * delta_log[n_m + k])
+
+    free_mg = curr_m[0] if n_m > 0 else 0.0
+    free_ca = curr_m[1] if n_m > 1 else 0.0
+
+    free_atp = 0.0
+    for idx, lig in enumerate(present_ligands):
+        if lig == "atp":
+            free_atp = curr_l[idx]
+
+    # Calculate individual species concentrations and charges
+    species_list: List[SpeciesConcentration] = []
+
+    # Free metals
+    if total_mg > 0:
+        species_list.append(SpeciesConcentration("Mg2+ (free)", free_mg, free_mg / total_mg, 2))
+    if total_ca > 0:
+        species_list.append(SpeciesConcentration("Ca2+ (free)", free_ca, free_ca / total_ca, 2))
+
+    # Complexes and free ligand species
+    for l_idx, lig in enumerate(present_ligands):
+        tot = l_totals[l_idx]
+        free_l = curr_l[l_idx]
+        if tot <= 0:
+            continue
+        species_list.append(SpeciesConcentration(f"{lig.upper()} (free uncomplexed)", free_l, free_l / tot, -4 if lig in ("egta", "edta", "atp", "gtp") else -2))
+
+        # Check complexes
+        for m_idx, m_key in enumerate(m_keys):
+            k_eff = k_prime[m_idx][l_idx]
+            if k_eff > 0:
+                c_complex = k_eff * curr_m[m_idx] * free_l
+                m_label = "Mg" if m_key == "mg" else "Ca"
+                species_list.append(SpeciesConcentration(f"{m_label}-{lig.upper()}", c_complex, c_complex / tot, -2))
+
+    # Buffer species (e.g. Tris, HEPES, Phosphate)
+    buffer_capacity = 0.0
+    for name, c_tot in comp_map.items():
+        base_name = next((b for b in ("tris", "hepes", "mops", "pipes", "mes", "phosphate", "pbs") if b in name), None)
+        if base_name:
+            data = _BUFFER_PKA_DB[base_name]
+            pka_list = data["pka"]
+            dpka = data["dpka_dt"]
+            eff_pka = tuple(pk + dpka * dt for pk in pka_list)
+            for pk in eff_pka:
+                ka = 10.0 ** (-pk)
+                # Buffer capacity component
+                buffer_capacity += math.log(10.0) * c_tot * (ka * h_conc) / ((ka + h_conc) ** 2)
+
+    buffer_capacity += math.log(10.0) * (h_conc + (1e-14 / h_conc))
+
+    # Refine ionic strength from all species
+    actual_i = 0.5 * (free_mg * 4.0 + free_ca * 4.0)
+    for sp in species_list:
+        actual_i += 0.5 * sp.concentration_m * (sp.charge ** 2)
+    # Include uncomplexed background monovalents (e.g. Na+, K+, Cl-)
+    actual_i = max(actual_i, 0.05)
+
+    # Precipitation risk screening
+    # Free phosphate and pyrophosphate species
+    free_po4 = 0.0
+    free_hpo4 = 0.0
+    free_ppi = 0.0
+
+    for l_idx, lig in enumerate(present_ligands):
+        if lig in ("phosphate", "pbs"):
+            free_po4 = curr_l[l_idx] * alpha_map.get(lig, 0.0)
+            # Estimate HPO4 2-
+            free_hpo4 = curr_l[l_idx] * 0.5
+        elif lig == "ppi":
+            free_ppi = curr_l[l_idx] * alpha_map.get(lig, 0.0)
+
+    precip_checks: List[PrecipitationCheck] = []
+    gamma_mg = get_davies_gamma(2, actual_i)
+    gamma_ca = get_davies_gamma(2, actual_i)
+    gamma_po4 = get_davies_gamma(3, actual_i)
+    gamma_hpo4 = get_davies_gamma(2, actual_i)
+    gamma_ppi = get_davies_gamma(4, actual_i)
+
+    # 1. Mg2P2O7
+    iap_mg_ppi = ((free_mg * gamma_mg) ** 2) * (free_ppi * gamma_ppi)
+    ksp_mg_ppi = _KSP_DATABASE["Mg2P2O7"]["ksp"]
+    si_mg_ppi = math.log10(iap_mg_ppi / ksp_mg_ppi) if iap_mg_ppi > 0 else -99.0
+    precip_checks.append(PrecipitationCheck(
+        salt_name="Mg2P2O7 (Magnesium Pyrophosphate)",
+        ion_product=iap_mg_ppi,
+        ksp=ksp_mg_ppi,
+        saturation_index=si_mg_ppi,
+        will_precipitate=si_mg_ppi > 0.0,
+    ))
+
+    # 2. Ca3(PO4)2
+    iap_ca_po4 = ((free_ca * gamma_ca) ** 3) * ((free_po4 * gamma_po4) ** 2)
+    ksp_ca_po4 = _KSP_DATABASE["Ca3(PO4)2"]["ksp"]
+    si_ca_po4 = math.log10(iap_ca_po4 / ksp_ca_po4) if iap_ca_po4 > 0 else -99.0
+    precip_checks.append(PrecipitationCheck(
+        salt_name="Ca3(PO4)2 (Calcium Phosphate)",
+        ion_product=iap_ca_po4,
+        ksp=ksp_ca_po4,
+        saturation_index=si_ca_po4,
+        will_precipitate=si_ca_po4 > 0.0,
+    ))
+
+    # 3. MgHPO4
+    iap_mg_hpo4 = (free_mg * gamma_mg) * (free_hpo4 * gamma_hpo4)
+    ksp_mg_hpo4 = _KSP_DATABASE["MgHPO4"]["ksp"]
+    si_mg_hpo4 = math.log10(iap_mg_hpo4 / ksp_mg_hpo4) if iap_mg_hpo4 > 0 else -99.0
+    precip_checks.append(PrecipitationCheck(
+        salt_name="MgHPO4 (Magnesium Hydrogen Phosphate)",
+        ion_product=iap_mg_hpo4,
+        ksp=ksp_mg_hpo4,
+        saturation_index=si_mg_hpo4,
+        will_precipitate=si_mg_hpo4 > 0.0,
+    ))
+
+    return BufferEquilibriumResult(
+        target_ph=target_ph,
+        actual_ph=target_ph,
+        ionic_strength_m=round(actual_i, 5),
+        temperature_celsius=temp_eff,
+        free_mg_conc_m=free_mg,
+        free_ca_conc_m=free_ca,
+        free_atp_conc_m=free_atp,
+        species=tuple(species_list),
+        precipitation_risks=tuple(precip_checks),
+        buffer_capacity_beta=round(buffer_capacity, 5),
+    )
+

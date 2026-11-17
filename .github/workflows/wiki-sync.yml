@@ -25,7 +25,9 @@ jobs:
           python-version: "3.11"
 
       - name: Verify wiki integrity
-        run: python scripts/verify_wiki.py
+        run: |
+          python scripts/verify_wiki.py
+          python scripts/update_wiki.py --check
 
       - name: Deploy to GitHub Wiki
         env:

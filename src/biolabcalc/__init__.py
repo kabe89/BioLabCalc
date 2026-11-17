@@ -8,7 +8,7 @@ try:
 except Exception:
     mimetypes.inited = True
 
-__version__ = "0.4.0"
+__version__ = "1.1.0"
 
 from .seq_utils import (
     clean_sequence,
@@ -45,6 +45,25 @@ from .easy import (
     clone_gene,
     codon_opt,
     plasmid_svg,
+    plate_serial_dilution,
+    read_scn,
+)
+
+from .eln.parsers.biorad_parser import (
+    BioRadParser,
+    BioRadImage,
+    ExposureMetadata,
+)
+
+from .automation import (
+    WellTransfer,
+    PlateMap,
+    AutomationWorklist,
+    design_serial_dilution_plate,
+    design_pcr_setup_plate,
+    export_echo_csv,
+    export_opentrons_protocol,
+    export_pylabrobot_json,
 )
 
 from .molecular_weight import (
@@ -356,6 +375,11 @@ __all__ = [
     "clone_gene",
     "codon_opt",
     "plasmid_svg",
+    "plate_serial_dilution",
+    "read_scn",
+    "BioRadParser",
+    "BioRadImage",
+    "ExposureMetadata",
     "easy",
     # Biophysics & Molecular Weight
     "calculate_dna_mw",
@@ -566,4 +590,14 @@ __all__ = [
     "get_protocol",
     "format_protocol_markdown",
     "export_all_protocols_markdown",
+    # v1.0.0: Microplate Automation & Liquid Handlers
+    "WellTransfer",
+    "PlateMap",
+    "AutomationWorklist",
+    "design_serial_dilution_plate",
+    "design_pcr_setup_plate",
+    "export_echo_csv",
+    "export_opentrons_protocol",
+    "export_pylabrobot_json",
+    "plate_serial_dilution",
 ]

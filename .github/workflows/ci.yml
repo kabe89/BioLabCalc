@@ -59,6 +59,11 @@ jobs:
         run: |
           python scripts/security_audit.py
 
+      - name: Verify Documentation Synchronization
+        run: |
+          python scripts/update_readme.py --check
+          python scripts/update_wiki.py --check
+
       - name: Run unit test suite
         run: |
           python -m unittest discover tests

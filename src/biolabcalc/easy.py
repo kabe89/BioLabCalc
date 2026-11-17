@@ -14,7 +14,26 @@ from .pcr import calculate_pcr_kinetics, build_master_mix, optimize_pcr_protocol
 from .primers import analyze_primer
 from .protein import quantify_protein_a280, quantify_protein_a205, calculate_extinction_coefficient
 from .cloning import plan_restriction_digest, calculate_ligation, calculate_gibson_assembly, calculate_golden_gate_assembly, are_overhangs_compatible
-from .buffers import calculate_buffer_recipe, calculate_ntp_ph_adjustment, calculate_tris_temperature_shift, calculate_hepes_ivt_buffer, create_custom_buffer, CustomBufferBuilder
+from .buffers import (
+    calculate_buffer_recipe,
+    calculate_ntp_ph_adjustment,
+    calculate_tris_temperature_shift,
+    calculate_hepes_ivt_buffer,
+    create_custom_buffer,
+    CustomBufferBuilder,
+    solve_buffer_equilibrium,
+    BufferEquilibriumResult,
+)
+from .aptamers import (
+    evaluate_rna_hairpin_thermo,
+    analyze_counter_selex,
+    SecondaryStructureThermoResult,
+    SELEXEnrichmentResult,
+)
+from .allostery import (
+    trace_allosteric_paths,
+    AllostericNetworkResult,
+)
 from .precipitation import calculate_precipitation, calculate_phenol_chloroform_extraction
 from .spectroscopy import prepare_standard_solution, assess_nanodrop_purity
 from .ecoli_growth import calculate_ecoli_growth, calculate_inoculation_volume
@@ -815,6 +834,147 @@ def plasmid_svg(plasmid: Any, output_path: Optional[str] = None) -> str:
         with open(abs_p, "w", encoding="utf-8") as f:
             f.write(svg_str)
     return svg_str
+
+
+def buffer_equil(
+    components: Union[str, Dict[str, Any], Sequence[Any]],
+    ph: float = 7.4,
+    temp: float = 25.0,
+    output_temp: float = 37.0,
+    use_davies: bool = True,
+) -> BufferEquilibriumResult:
+    """Solve multi-metal competitive buffer speciation, chelation, and precipitation risks.
+    
+    Args:
+        components: Recipe string (e.g. 'Tris=50mM,EGTA=5mM,MgCl2=10mM,ATP=4mM') or dictionary.
+        ph: Target buffer pH (default: 7.4).
+        temp: Formulation temperature in Celsius (default: 25.0).
+        output_temp: Experimental assay temperature in Celsius (default: 37.0).
+        use_davies: Enable Davies ionic strength activity corrections (default: True).
+        
+    Returns:
+        BufferEquilibriumResult containing free metal ion concentrations and precipitation risks.
+    """
+    return solve_buffer_equilibrium(
+        components=components,
+        target_ph=ph,
+        temperature_celsius=temp,
+        output_temp_celsius=output_temp,
+        use_davies_correction=use_davies,
+    )
+
+
+def score_aptamer(
+    target_counts: Dict[str, int],
+    counter_counts: Dict[str, int],
+    alpha: float = 1.0,
+    fdr_threshold: float = 0.05,
+    round_number: int = 1,
+) -> SELEXEnrichmentResult:
+    """Analyze high-throughput Counter-SELEX sequencing counts with Benjamini-Hochberg FDR.
+    
+    Args:
+        target_counts: Dictionary mapping aptamer sequences to counts against target subunit.
+        counter_counts: Dictionary mapping aptamer sequences to counts against counter-target.
+        alpha: Dirichlet pseudo-count smoothing parameter (default: 1.0).
+        fdr_threshold: False discovery rate cutoff (default: 0.05).
+        round_number: Selection cycle round number (default: 1).
+        
+    Returns:
+        SELEXEnrichmentResult containing ranked, FDR-adjusted aptamer candidate scores.
+    """
+    return analyze_counter_selex(
+        target_counts=target_counts,
+        counter_counts=counter_counts,
+        alpha_smoothing=alpha,
+        fdr_threshold=fdr_threshold,
+        round_number=round_number,
+    )
+
+
+def hairpin_thermo(
+    sequence: str,
+    temp: float = 37.0,
+) -> SecondaryStructureThermoResult:
+    """Evaluate secondary structure RNA/DNA hairpin folding thermodynamics using Turner (2004).
+    
+    Args:
+        sequence: RNA or DNA nucleotide sequence string.
+        temp: Temperature in Celsius (default: 37.0).
+        
+    Returns:
+        SecondaryStructureThermoResult with dot-bracket structure, delta G, delta H, delta S, and Tm.
+    """
+    return evaluate_rna_hairpin_thermo(sequence, temperature_celsius=temp)
+
+
+def trace_allostery(
+    pdb_text_or_path: Union[str, Path],
+    source_resid: int,
+    sink_resid: int,
+    cutoff: float = 7.0,
+    k_paths: int = 5,
+) -> AllostericNetworkResult:
+    """Trace deterministic allosteric communication pathways and PRS effector/sensor profiles.
+    
+    Args:
+        pdb_text_or_path: PDB file path or raw PDB formatted string.
+        source_resid: Source residue sequence number (1-based).
+        sink_resid: Target/effector residue sequence number (1-based).
+        cutoff: GNM contact distance threshold in Angstroms (default: 7.0).
+        k_paths: Number of top communication paths to extract via Yen's algorithm (default: 5).
+        
+    Returns:
+        AllostericNetworkResult with identified routes, bottleneck residues, and PRS profiles.
+    """
+    return trace_allosteric_paths(
+        pdb_text_or_path=pdb_text_or_path,
+        source_resid=source_resid,
+        sink_resid=sink_resid,
+        cutoff_angstroms=cutoff,
+        k_paths=k_paths,
+    )
+
+
+def plate_serial_dilution(
+    start_conc: float = 100.0,
+    dilution_factor: float = 2.0,
+    points: int = 8,
+    replicates: int = 3,
+    plate_type: str = "96-well",
+) -> Any:
+    """Design a 96/384-well serial dilution plate and generate automation worklist."""
+    from .automation import design_serial_dilution_plate
+    return design_serial_dilution_plate(
+        start_conc=start_conc,
+        dilution_factor=dilution_factor,
+        num_points=points,
+        replicates=replicates,
+        plate_type=plate_type,
+    )
+
+
+def read_scn(
+    source: Union[bytes, str, Path],
+    auto_contrast: bool = True,
+    invert: bool = False,
+    gamma: float = 1.0,
+) -> Any:
+    """
+    Read and parse a Bio-Rad Image Lab .scn or legacy Quantity One .1sc file.
+    
+    Args:
+        source: Raw bytes, file path (str or Path) to a .scn / .1sc file.
+        auto_contrast: Automatically rescale 16-bit dynamic range based on 1st/99th percentiles.
+        invert: Invert grayscale palette (useful for chemiluminescent blots).
+        gamma: Gamma adjustment factor (default 1.0 = linear).
+        
+    Returns:
+        BioRadImage frozen domain object.
+    """
+    from .eln.parsers.biorad_parser import BioRadParser
+    return BioRadParser.parse(source, auto_contrast=auto_contrast, invert=invert, gamma=gamma)
+
 
 
 

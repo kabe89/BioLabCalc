@@ -122,12 +122,12 @@ class TestELNFunctionalServer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Launch functional server in background daemon on designated test port."""
-        cls.test_port = 8899
+        """Launch functional server in background daemon on OS-assigned ephemeral port."""
+        cls.test_port = 0
         cls.test_host = "127.0.0.1"
         cls.test_cfg = repo_root / "testing_config.yaml"
 
-        # Launch server using designated testing_config.yaml
+        # Launch server using designated testing_config.yaml with port 0
         try:
             cls.server_url = launch_eln_server(
                 host=cls.test_host,
@@ -138,6 +138,9 @@ class TestELNFunctionalServer(unittest.TestCase):
                 config_path=str(cls.test_cfg) if cls.test_cfg.is_file() else None,
                 anonymize=True,
             )
+            import urllib.parse
+            parsed = urllib.parse.urlparse(cls.server_url)
+            cls.test_port = parsed.port or 0
         except OSError:
             cls.server_url = f"http://{cls.test_host}:{cls.test_port}"
         time.sleep(0.5)

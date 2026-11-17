@@ -42,6 +42,34 @@ class PrimerAnalysis:
     dimer_score: int
     hairpin_score: int
     quality_score: float
+    self_dimer_dg_kcal: float = 0.0
+    hairpin_dg_kcal: float = 0.0
+    three_prime_dg_kcal: float = 0.0
+    alignment_ascii: str = ""
+
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        align_html = f"<pre style='background: #F8FAFC; padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 6px; overflow-x: auto;'>{html.escape(self.alignment_ascii)}</pre>" if self.alignment_ascii else ""
+        clamp_str = " (GC Clamp)" if self.has_gc_clamp else ""
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 580px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">Primer Analysis</h3>'
+            f'<span style="background: #EFF6FF; color: #2563EB; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">Score: {self.quality_score:.1f}/100</span>'
+            f'</div>'
+            f'<div style="font-family: monospace; font-size: 12px; background: #F8FAFC; padding: 6px 10px; border-radius: 4px; color: #334155; margin-bottom: 10px;">{html.escape(self.sequence)}</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Length / GC%</td><td style="text-align: right; font-weight: 600;">{self.length} nt • {self.gc_percent:.1f}% GC{clamp_str}</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Melting Temp (Tm)</td><td style="text-align: right; font-weight: 600; color: #DC2626;">{self.tm_celsius:.1f} °C</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Self-Dimer ΔG</td><td style="text-align: right;">{self.self_dimer_dg_kcal:.2f} kcal/mol</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 3px 0; color: #64748B;">Hairpin ΔG</td><td style="text-align: right;">{self.hairpin_dg_kcal:.2f} kcal/mol</td></tr>'
+            f'<tr><td style="padding: 3px 0; color: #64748B;">3\'-Terminal ΔG</td><td style="text-align: right;">{self.three_prime_dg_kcal:.2f} kcal/mol</td></tr>'
+            f'</table>'
+            f'{align_html}'
+            f'</div>'
+        )
 
 
 @dataclass(frozen=True)
@@ -56,6 +84,29 @@ class PrimerPair:
     heterodimer_score: int = 0
     three_prime_heterodimer_score: int = 0
     heterodimer_warning: bool = False
+    heterodimer_dg_kcal: float = 0.0
+    three_prime_dg_kcal: float = 0.0
+    alignment_ascii: str = ""
+
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 620px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">PCR Primer Pair</h3>'
+            f'<span style="background: #F0FDF4; color: #16A34A; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">Pair Score: {self.pair_quality_score:.1f}/100</span>'
+            f'</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 8px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Amplicon Size</td><td style="text-align: right; font-weight: 600;">{self.amplicon_length_bp:,} bp ({self.product_start} .. {self.product_end})</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Forward Primer</td><td style="text-align: right; font-family: monospace; font-size: 11.5px;">{html.escape(self.forward_primer.sequence)} ({self.forward_primer.tm_celsius:.1f}°C)</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Reverse Primer</td><td style="text-align: right; font-family: monospace; font-size: 11.5px;">{html.escape(self.reverse_primer.sequence)} ({self.reverse_primer.tm_celsius:.1f}°C)</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">ΔTm</td><td style="text-align: right;">{self.tm_difference:.1f} °C</td></tr>'
+            f'<tr><td style="padding: 4px 0; color: #64748B;">Cross-Dimer ΔG</td><td style="text-align: right;">{self.heterodimer_dg_kcal:.2f} kcal/mol</td></tr>'
+            f'</table>'
+            f'</div>'
+        )
 
 
 def check_self_dimer(seq: str) -> int:
@@ -112,6 +163,165 @@ def check_hairpin(seq: str) -> int:
                 if reverse_complement(sub) in target_region:
                     max_stem = max(max_stem, stem_len)
     return max_stem
+
+
+def calculate_dimer_dg(
+    seq1: str,
+    seq2: str,
+    temp_celsius: float = 37.0,
+    na_conc_mm: float = 50.0,
+    mg_conc_mm: float = 1.5,
+) -> Tuple[float, str, float]:
+    """
+    Calculate thermodynamic dimer free energy (dG in kcal/mol) using SantaLucia (1998)
+    nearest-neighbor parameters across all sliding antiparallel alignments.
+    
+    Returns:
+        (min_dg_kcal, ascii_alignment, three_prime_dg_kcal)
+    """
+    s1 = clean_sequence(seq1).replace("U", "T")
+    s2 = clean_sequence(seq2).replace("U", "T")
+    l1, l2 = len(s1), len(s2)
+    if l1 < 2 or l2 < 2:
+        return 0.0, "No dimer", 0.0
+
+    comp_map = {"A": "T", "T": "A", "C": "G", "G": "C"}
+    t_kelvin = temp_celsius + 273.15
+    free_mg = max(0.0, mg_conc_mm / 1000.0)
+    monovalent = max(0.001, (na_conc_mm / 1000.0) + 3.795 * math.sqrt(free_mg))
+
+    best_dg = 0.0
+    best_align = ""
+    three_prime_dg = 0.0
+
+    s2_rev = s2[::-1]  # 3' to 5'
+
+    for offset in range(-l2 + 1, l1):
+        matches: List[int] = []
+        for i in range(l1):
+            j = i - offset
+            if 0 <= j < l2:
+                if comp_map.get(s1[i]) == s2_rev[j]:
+                    matches.append(i)
+
+        if not matches:
+            continue
+
+        blocks: List[List[int]] = []
+        curr_b: List[int] = [matches[0]]
+        for m in matches[1:]:
+            if m == curr_b[-1] + 1:
+                curr_b.append(m)
+            else:
+                if len(curr_b) >= 2:
+                    blocks.append(curr_b)
+                curr_b = [m]
+        if len(curr_b) >= 2:
+            blocks.append(curr_b)
+
+        for b in blocks:
+            k = len(b)
+            dh = 0.0
+            ds = 0.0
+            for idx in range(k - 1):
+                dinuc = s1[b[idx] : b[idx] + 2]
+                if dinuc in NN_PARAMS:
+                    h, s = NN_PARAMS[dinuc]
+                    dh += h
+                    ds += s
+                else:
+                    dh += -8.0
+                    ds += -22.0
+
+            for term in (s1[b[0]], s1[b[-1]]):
+                if term in ("A", "T"):
+                    dh += INIT_TERMINAL_AT[0]
+                    ds += INIT_TERMINAL_AT[1]
+                else:
+                    dh += INIT_TERMINAL_GC[0]
+                    ds += INIT_TERMINAL_GC[1]
+
+            ds_corr = ds + 0.368 * (k - 1) * math.log(monovalent)
+            dg = dh - (t_kelvin * ds_corr / 1000.0) + 0.2
+
+            involves_3p = (l1 - 1 in b) or any((i - offset) == l2 - 1 for i in b)
+
+            if dg < best_dg:
+                best_dg = dg
+                top_str = "5' " + s1 + " 3'"
+                pipe_chars = [" "] * len(s1)
+                for i_pos in b:
+                    pipe_chars[i_pos] = "|"
+                mid_str = "   " + "".join(pipe_chars)
+                pad_s1 = max(0, offset)
+                bot_str = "3' " + (" " * pad_s1) + s2_rev + " 5'"
+                best_align = f"{top_str}\n{mid_str}\n{bot_str}"
+
+            if involves_3p and (dg < three_prime_dg or three_prime_dg == 0.0):
+                three_prime_dg = dg
+
+    return round(best_dg, 2), best_align, round(three_prime_dg, 2)
+
+
+def calculate_hairpin_dg(seq: str, temp_celsius: float = 37.0) -> Tuple[float, str]:
+    """
+    Calculate thermodynamic hairpin free energy (dG in kcal/mol) using SantaLucia (1998)
+    nearest-neighbor parameters across all internal stem-loop configurations.
+    
+    Returns:
+        (min_dg_kcal, dot_bracket_structure)
+    """
+    s = clean_sequence(seq).replace("U", "T")
+    L = len(s)
+    if L < 7:
+        return 0.0, "." * L
+
+    comp_map = {"A": "T", "T": "A", "C": "G", "G": "C"}
+    t_kelvin = temp_celsius + 273.15
+    best_dg = 0.0
+    best_struct = "." * L
+
+    loop_init = {3: 3.5, 4: 3.5, 5: 4.0, 6: 4.3}
+
+    for stem_len in range(2, L // 2 + 1):
+        for i in range(L - 2 * stem_len - 2):
+            for j in range(i + stem_len + 3 + stem_len - 1, L):
+                valid = True
+                for k in range(stem_len):
+                    if comp_map.get(s[i + k]) != s[j - k]:
+                        valid = False
+                        break
+                if not valid:
+                    continue
+
+                loop_size = (j - stem_len + 1) - (i + stem_len)
+                if loop_size < 3:
+                    continue
+
+                dh = 0.0
+                ds = 0.0
+                for k in range(stem_len - 1):
+                    dinuc = s[i + k : i + k + 2]
+                    if dinuc in NN_PARAMS:
+                        h, sc = NN_PARAMS[dinuc]
+                        dh += h
+                        ds += sc
+                    else:
+                        dh += -8.0
+                        ds += -22.0
+
+                l_pen = loop_init.get(loop_size, 4.5 + 1.05 * math.log(max(loop_size / 6.0, 1.0)))
+                dg = dh - (t_kelvin * ds / 1000.0) + l_pen
+
+                if dg < best_dg:
+                    best_dg = dg
+                    chars = ["."] * L
+                    for k in range(stem_len):
+                        chars[i + k] = "("
+                        chars[j - k] = ")"
+                    best_struct = "".join(chars)
+
+    return round(best_dg, 2), best_struct
 
 
 def calculate_tm_santalucia(
@@ -257,6 +467,8 @@ def analyze_primer(
 
     dimer = check_self_dimer(clean)
     hairpin = check_hairpin(clean)
+    self_dg, self_align, tp_self_dg = calculate_dimer_dg(clean, clean, na_conc_mm=na_conc_mm, mg_conc_mm=mg_conc_mm)
+    hp_dg, hp_struct = calculate_hairpin_dg(clean)
 
     # Quality score: 100 max, penalized for bad GC, homopolymer, extreme Tm, dimers
     score = 100.0
@@ -286,6 +498,10 @@ def analyze_primer(
         dimer_score=dimer,
         hairpin_score=hairpin,
         quality_score=round(max(0.0, score), 1),
+        self_dimer_dg_kcal=self_dg,
+        hairpin_dg_kcal=hp_dg,
+        three_prime_dg_kcal=tp_self_dg,
+        alignment_ascii=self_align,
     )
 
 
@@ -394,6 +610,7 @@ def design_primers(
 
                     tm_penalty = abs(f_prim.tm_celsius - target_tm) + abs(r_prim.tm_celsius - target_tm)
                     pair_score = (f_prim.quality_score + r_prim.quality_score) / 2.0 - (delta_tm * 5.0) - (tm_penalty * 2.0) - het_penalty
+                    het_dg, het_align, het_tp_dg = calculate_dimer_dg(f_prim.sequence, r_prim.sequence)
                     pairs.append(PrimerPair(
                         forward_primer=f_prim,
                         reverse_primer=r_prim,
@@ -405,6 +622,9 @@ def design_primers(
                         heterodimer_score=max_het,
                         three_prime_heterodimer_score=tp_het,
                         heterodimer_warning=het_warn,
+                        heterodimer_dg_kcal=het_dg,
+                        three_prime_dg_kcal=het_tp_dg,
+                        alignment_ascii=het_align,
                     ))
 
     # Sort by quality score descending
@@ -415,6 +635,8 @@ def design_primers(
 __all__ = [
     "calculate_tm_santalucia",
     "calculate_tm_santaluicia",
+    "calculate_dimer_dg",
+    "calculate_hairpin_dg",
     "analyze_primer",
     "design_primers",
     "check_self_dimer",

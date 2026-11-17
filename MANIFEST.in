@@ -5,5 +5,9 @@ include CONTRIBUTING.md
 include CODE_OF_CONDUCT.md
 include SECURITY.md
 include pyproject.toml
+include configure.py run.py config.yaml.example testing_config.yaml CITATION.cff
+recursive-include scripts *.py
 recursive-include src/biolabcalc *.py *.html *.js *.css *.sql
 recursive-include tests *.py
+recursive-include paper *.md *.bib
+include Dockerfile docker-compose.yml

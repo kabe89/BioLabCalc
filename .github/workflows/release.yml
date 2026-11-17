@@ -1,0 +1,73 @@
+name: Release & Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-verify:
+    name: Build Distribution & Verify Isolated Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build and packaging dependencies
+        run: |
+          python -m pip install --upgrade pip build twine wheel
+
+      - name: Build sdist and wheel
+        run: |
+          python -m build
+
+      - name: Check package metadata with twine
+        run: |
+          python -m twine check dist/*
+
+      - name: Verify sdist unpacked test execution
+        run: |
+          python -c "
+          import glob, subprocess, sys, tarfile, tempfile
+          sdist = sorted(glob.glob('dist/biolabcalc-*.tar.gz'))[-1]
+          with tempfile.TemporaryDirectory() as tmp:
+              with tarfile.open(sdist, 'r:gz') as tar:
+                  tar.extractall(tmp)
+              unpacked = glob.glob(f'{tmp}/biolabcalc-*')[0]
+              res = subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests'], cwd=unpacked)
+              assert res.returncode == 0, 'sdist isolated test run failed!'
+          print('SDIST ISOLATED VERIFICATION PASSED!')
+          "
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-pypi:
+    name: Publish to PyPI via OIDC
+    needs: build-and-verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true

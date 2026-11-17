@@ -40,6 +40,13 @@ from .sequence_service import (
     get_sequence_service,
 )
 from .sop_service import MasterSOP, SOPFork, SOPService, SOPStep, StepExecution, get_sop_service
+from .document_vault_service import (
+    DocumentRecord,
+    DocumentVaultService,
+    export_eln_rocrate,
+    get_document_vault_service,
+    import_eln_rocrate,
+)
 from .ephys_service import EphysService, get_ephys_service
 from .timepoint_service import (
     LiveTimer,
@@ -103,4 +110,10 @@ __all__ = [
     # Ephys Service
     "EphysService",
     "get_ephys_service",
+    # Document Vault & RO-Crate
+    "DocumentRecord",
+    "DocumentVaultService",
+    "get_document_vault_service",
+    "export_eln_rocrate",
+    "import_eln_rocrate",
 ]

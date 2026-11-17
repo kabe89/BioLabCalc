@@ -299,6 +299,18 @@ class LabReport:
         from openpyxl.utils import get_column_letter
 
         wb = openpyxl.Workbook()
+        try:
+            self._build_excel_content(wb)
+            dir_name = os.path.dirname(os.path.abspath(filepath))
+            if dir_name and not os.path.exists(dir_name):
+                os.makedirs(dir_name, exist_ok=True)
+            wb.save(filepath)
+            return filepath
+        finally:
+            wb.close()
+
+    def _build_excel_content(self, wb: Any) -> None:
+        """Populate workbook with report sections and styling."""
         ws = wb.active
         ws.title = "Lab_Report"
         ws.views.sheetView[0].showGridLines = True
@@ -440,12 +452,6 @@ class LabReport:
                 if not cell.coordinate in ws.merged_cells:
                     max_len = max(max_len, len(val))
             ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
-
-        dir_name = os.path.dirname(os.path.abspath(filepath))
-        if dir_name and not os.path.exists(dir_name):
-            os.makedirs(dir_name, exist_ok=True)
-        wb.save(filepath)
-        return filepath
 
     def to_csv(self, filepath: str) -> str:
         """Export raw measurement records to CSV."""

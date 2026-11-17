@@ -21,9 +21,13 @@ class InitiationAnalysis:
     efficiency_rating: str
     relative_efficiency_percent: float
     abortive_cycling_risk: str
-    recommendations: List[str]
+    recommendations: Tuple[str, ...]
     optimized_sequence: str
     added_leading_gs: int
+
+    def __post_init__(self):
+        if isinstance(self.recommendations, (list, set, tuple)):
+            object.__setattr__(self, "recommendations", tuple(self.recommendations))
 
 
 
@@ -40,8 +44,14 @@ class TranscriptionTimeOptimizationResult:
     risk_of_3prime_heterogeneity: str
     risk_of_degradation: str
     kinetic_profile_summary: str
-    time_course_predictions: List[Dict[str, Any]]
-    guidelines: List[str]
+    time_course_predictions: Tuple[Dict[str, Any], ...]
+    guidelines: Tuple[str, ...]
+
+    def __post_init__(self):
+        for f in ("time_course_predictions", "guidelines"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 def optimize_transcription_time(
@@ -203,6 +213,40 @@ class IVTResult:
     end_5: str = "triphosphate"
     end_3: str = "hydroxyl"
     backbone: str = "monophosphate"
+
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        ntp_rows = "".join(
+            f"<tr style='border-bottom: 1px solid #F1F5F9;'>"
+            f"<td style='padding: 3px 6px;'>{ntp}</td>"
+            f"<td style='padding: 3px 6px; text-align: right;'>{self.ntp_initial_mm.get(ntp, 0.0):.1f} mM</td>"
+            f"<td style='padding: 3px 6px; text-align: right;'>{self.ntp_consumed_nmol.get(ntp, 0.0):.1f} nmol</td>"
+            f"<td style='padding: 3px 6px; text-align: right;'>{self.ntp_remaining_mm.get(ntp, 0.0):.2f} mM</td>"
+            f"<td style='padding: 3px 6px; text-align: right; font-weight: 600;'>{self.ntp_incorporation_percent.get(ntp, 0.0):.1f}%</td>"
+            f"</tr>"
+            for ntp in sorted(self.ntp_initial_mm.keys())
+        )
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 600px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">IVT Yield & Efficiency</h3>'
+            f'<span style="background: #ECFDF5; color: #059669; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">{self.overall_efficiency_percent:.1f}% Efficiency</span>'
+            f'</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 10px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Transcript Length</td><td style="text-align: right; font-weight: 600;">{self.rna_length:,} nt</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Yield (Mass / Moles)</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.rna_yield_ug:,.2f} µg ({self.rna_yield_pmol:,.1f} pmol)</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Theoretical Max</td><td style="text-align: right;">{self.theoretical_max_yield_ug:,.2f} µg</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Limiting NTP</td><td style="text-align: right; font-weight: 600; color: #DC2626;">{html.escape(self.limiting_ntp)}</td></tr>'
+            f'<tr><td style="padding: 4px 0; color: #64748B;">Recommended Incubation</td><td style="text-align: right;">{self.recommended_incubation_hours:.1f} hours @ 37°C</td></tr>'
+            f'</table>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 11.5px; background: #F8FAFC; border-radius: 4px; margin-top: 6px;">'
+            f'<tr style="color: #64748B; border-bottom: 1px solid #E2E8F0;"><th style="padding: 4px 6px; text-align: left;">NTP</th><th style="padding: 4px 6px; text-align: right;">Initial</th><th style="padding: 4px 6px; text-align: right;">Used</th><th style="padding: 4px 6px; text-align: right;">Remain</th><th style="padding: 4px 6px; text-align: right;">Incorp</th></tr>'
+            f'{ntp_rows}'
+            f'</table>'
+            f'</div>'
+        )
 
 
 def detect_and_trim_promoter(seq: str) -> tuple[str, Optional[str], int]:

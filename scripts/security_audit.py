@@ -79,6 +79,7 @@ def check_and_shore_up_git_config(auto_fix: bool = True) -> Tuple[List[str], Lis
     """
     errors: List[str] = []
     actions: List[str] = []
+    is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
 
     code, email = run_git(["config", "user.email"])
     email_clean = email.strip() if code == 0 else ""
@@ -86,7 +87,10 @@ def check_and_shore_up_git_config(auto_fix: bool = True) -> Tuple[List[str], Lis
     is_valid = bool(email_clean and any(email_clean.lower().endswith(d) for d in ALLOWED_EMAIL_DOMAINS))
 
     if not is_valid:
-        if auto_fix:
+        if is_ci:
+            # Skip mutating local .git/config on ephemeral CI runners
+            actions.append("CI environment detected: skipping mutation of local .git/config")
+        elif auto_fix:
             # Automatically shore up local repository git config
             c1, _ = run_git(["config", "--local", "user.email", DEFAULT_NOREPLY_EMAIL])
             c2, _ = run_git(["config", "--local", "user.name", DEFAULT_USER_NAME])
@@ -124,6 +128,7 @@ def check_and_shore_up_git_config(auto_fix: bool = True) -> Tuple[List[str], Lis
 def check_unpushed_commits() -> List[str]:
     """Verify that unpushed commits do not contain personal emails in author or committer headers."""
     errors = []
+    is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
     # Check unpushed commits relative to origin/main or origin/master if remote exists
     for target in ("origin/main..HEAD", "origin/master..HEAD", "HEAD~1..HEAD"):
         code, log_out = run_git(["log", target, "--format=%h|%an|%ae|%cn|%ce"])
@@ -139,6 +144,9 @@ def check_unpushed_commits() -> List[str]:
                                 f"Run: git commit --amend --reset-author --no-edit"
                             )
             break
+        elif code != 0 and is_ci:
+            # Handle shallow clones in CI gracefully without failing
+            continue
 
     return errors
 

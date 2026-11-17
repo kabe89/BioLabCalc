@@ -79,6 +79,13 @@ def _autofit_columns(ws, min_width=12, padding=3):
 def generate_lab_notebook_template(output_path: str) -> str:
     """Create a comprehensive, publication-ready multi-sheet Excel lab notebook template with live formulas."""
     wb = openpyxl.Workbook()
+    try:
+        return _build_lab_notebook_template(wb, output_path)
+    finally:
+        wb.close()
+
+
+def _build_lab_notebook_template(wb: Any, output_path: str) -> str:
     # Sheet 1: IVT Reaction & Stoichiometry
     ws_ivt = wb.active
     ws_ivt.title = "IVT_Stoichiometry"
@@ -653,6 +660,20 @@ def export_analysis_to_excel(
 ) -> str:
     """Export live calculation results from Python objects directly into a styled multi-tab Excel workbook."""
     wb = openpyxl.Workbook()
+    try:
+        return _build_analysis_excel(wb, output_path, ivt_results, pcr_results, protein_results, primer_pairs)
+    finally:
+        wb.close()
+
+
+def _build_analysis_excel(
+    wb: Any,
+    output_path: str,
+    ivt_results: Optional[List[IVTResult]] = None,
+    pcr_results: Optional[List[PCRResult]] = None,
+    protein_results: Optional[List[ProteinYieldResult]] = None,
+    primer_pairs: Optional[List[PrimerPair]] = None,
+) -> str:
     # Remove default sheet
     default_sheet = wb.active
 
@@ -765,9 +786,16 @@ def export_analysis_to_excel(
 def batch_process_excel(input_path: str, output_path: str) -> str:
     """Read a batch table of sequences from an input Excel file, calculate properties, and write an annotated output workbook."""
     in_wb = openpyxl.load_workbook(input_path)
-    in_ws = in_wb.active
-
     out_wb = openpyxl.Workbook()
+    try:
+        return _run_batch_process_excel(in_wb, out_wb, output_path)
+    finally:
+        in_wb.close()
+        out_wb.close()
+
+
+def _run_batch_process_excel(in_wb: Any, out_wb: Any, output_path: str) -> str:
+    in_ws = in_wb.active
     out_ws = out_wb.active
     out_ws.title = "Batch_Analysis_Results"
     out_ws.views.sheetView[0].showGridLines = True
@@ -841,5 +869,9 @@ def batch_process_excel(input_path: str, output_path: str) -> str:
 
     _autofit_columns(out_ws)
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    out_wb.save(output_path)
+    try:
+        out_wb.save(output_path)
+    finally:
+        in_wb.close()
+        out_wb.close()
     return output_path

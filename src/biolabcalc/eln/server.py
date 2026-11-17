@@ -129,6 +129,13 @@ def launch_eln_server(
         templates_dir = os.path.join(web_dir, "templates")
         app = create_app(static_dir=static_dir, templates_dir=templates_dir)
 
+        if effective_port == 0:
+            import socket
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((effective_host, 0))
+                effective_port = s.getsockname()[1]
+            server_url = f"http://{effective_host}:{effective_port}"
+
         def run_uvicorn():
             log_level = "warning" if effective_quiet else "info"
             uvicorn.run(app, host=effective_host, port=effective_port, log_level=log_level)

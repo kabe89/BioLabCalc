@@ -75,11 +75,66 @@ class GelBand:
 @dataclass(frozen=True)
 class GelLaneSimulation:
     ladder_name: str
-    sample_sizes: List[float]
-    ladder_bands: List[GelBand]
-    sample_bands: List[GelBand]
+    sample_sizes: Tuple[float, ...]
+    ladder_bands: Tuple[GelBand, ...]
+    sample_bands: Tuple[GelBand, ...]
     recommended_gel_percentage: str
     ascii_visualization: str
+
+    def __post_init__(self):
+        for field_name in ("sample_sizes", "ladder_bands", "sample_bands"):
+            val = getattr(self, field_name, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, field_name, tuple(val))
+
+    def _repr_svg_(self) -> str:
+        """Render high-contrast agarose/PAGE gel diagram for Jupyter notebook rich display."""
+        import html
+        width = 320
+        height = 420
+        gel_top = 65
+        gel_bottom = 395
+        gel_height = gel_bottom - gel_top
+
+        svg = [
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
+            '<defs>',
+            '  <linearGradient id="gelBg" x1="0%" y1="0%" x2="0%" y2="100%">',
+            '    <stop offset="0%" stop-color="#0B132B"/>',
+            '    <stop offset="100%" stop-color="#1C2541"/>',
+            '  </linearGradient>',
+            '  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">',
+            '    <feGaussianBlur stdDeviation="1.5" result="blur" />',
+            '    <feMerge>',
+            '      <feMergeNode in="blur"/>',
+            '      <feMergeNode in="SourceGraphic"/>',
+            '    </feMerge>',
+            '  </filter>',
+            '</defs>',
+            f'<rect x="10" y="10" width="{width - 20}" height="{height - 20}" rx="8" fill="url(#gelBg)" stroke="#3A506B" stroke-width="2"/>',
+            f'<text x="{width / 2}" y="32" fill="#E0E1DD" font-family="system-ui, sans-serif" font-size="12" font-weight="600" text-anchor="middle">{html.escape(self.ladder_name)}</text>',
+            f'<text x="{width / 2}" y="48" fill="#778DA9" font-family="system-ui, sans-serif" font-size="9.5" text-anchor="middle">Matrix: {html.escape(str(self.recommended_gel_percentage))}</text>',
+            '<rect x="50" y="58" width="60" height="8" rx="2" fill="#0D1B2A" stroke="#415A77" stroke-width="1"/>',
+            '<rect x="170" y="58" width="80" height="8" rx="2" fill="#0D1B2A" stroke="#415A77" stroke-width="1"/>',
+            '<text x="80" y="54" fill="#778DA9" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Ladder</text>',
+            '<text x="210" y="54" fill="#778DA9" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Sample</text>',
+        ]
+
+        for b in self.ladder_bands:
+            y = gel_top + (b.relative_migration_rf * gel_height)
+            band_h = 3.5 if b.is_reference else 2.0
+            color = "#F43F5E" if b.is_reference else "#38BDF8"
+            glow_attr = ' filter="url(#glow)"' if b.is_reference else ''
+            svg.append(f'<rect x="52" y="{y - band_h / 2:.1f}" width="56" height="{band_h}" rx="1" fill="{color}"{glow_attr}/>')
+            svg.append(f'<text x="46" y="{y + 3:.1f}" fill="{color}" font-family="monospace" font-size="8" text-anchor="end">{b.size} {html.escape(str(b.unit))}</text>')
+
+        for b in self.sample_bands:
+            y = gel_top + (b.relative_migration_rf * gel_height)
+            svg.append(f'<rect x="172" y="{y - 1.5:.1f}" width="76" height="3" rx="1" fill="#34D399" filter="url(#glow)"/>')
+            svg.append(f'<text x="254" y="{y + 3:.1f}" fill="#34D399" font-family="monospace" font-size="8">{b.size} {html.escape(str(b.unit))}</text>')
+
+        svg.append('</svg>')
+        return "\n".join(svg)
 
 def calculate_rf(size: float, min_size: float, max_size: float) -> float:
     """Calculate relative mobility Rf using the logarithmic relationship Rf = a - b * log10(size)."""

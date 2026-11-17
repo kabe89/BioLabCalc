@@ -15,7 +15,8 @@ import json
 import os
 import re
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .molecular_weight import calculate_dna_mw
@@ -123,6 +124,11 @@ class PlasmidRecord:
 
         if not isinstance(self.cloning_history, tuple):
             object.__setattr__(self, "cloning_history", tuple(self.cloning_history))
+
+    def _repr_svg_(self) -> str:
+        """Render pure SVG plasmid map for Jupyter notebook rich display."""
+        from .interactive_plasmid import render_plasmid_map_svg
+        return render_plasmid_map_svg(self)
 
 
 # ---------------------------------------------------------------------------
@@ -1026,10 +1032,13 @@ def _load_user_plasmids(filepath: Optional[str] = None) -> Dict[str, PlasmidReco
     target_path = filepath if filepath is not None else DEFAULT_PLASMIDS_PATH
     if not os.path.exists(target_path):
         return {}
-    if os.path.getsize(target_path) == 0:
+    try:
+        if os.path.getsize(target_path) == 0:
+            return {}
+        with open(target_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, PermissionError):
         return {}
-    with open(target_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
     records: Dict[str, PlasmidRecord] = {}
     if isinstance(data, list):
         for item in data:
@@ -1052,6 +1061,8 @@ def _save_user_plasmids(records: Dict[str, PlasmidRecord], filepath: Optional[st
     try:
         with open(temp_fd, "w", encoding="utf-8") as f:
             json.dump(serialized, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(temp_file, target_path)
     except Exception:
         if os.path.exists(temp_file):
@@ -1092,6 +1103,9 @@ def get_plasmid(plasmid_id_or_name: str, filepath: Optional[str] = None) -> Plas
     raise KeyError(f"Plasmid '{plasmid_id_or_name}' not found in user storage or standard catalog.")
 
 
+load_plasmid = get_plasmid
+
+
 def list_plasmids(filepath: Optional[str] = None) -> List[PlasmidRecord]:
     """List all plasmids from user store merged with STANDARD_PLASMID_CATALOG."""
     records = _load_user_plasmids(filepath)
@@ -1121,3 +1135,128 @@ def delete_plasmid(plasmid_id_or_name: str, filepath: Optional[str] = None) -> b
         return True
 
     return False
+
+
+# ============================================================================
+# SnapGene .dna Binary Parser
+# ============================================================================
+
+def parse_snapgene_dna(data_or_path: Union[bytes, str, Path]) -> PlasmidRecord:
+    """
+    Parse a binary SnapGene .dna file into an immutable PlasmidRecord.
+    
+    Decodes the packet block architecture:
+    - Packet 0x09: Header
+    - Packet 0x00: DNA sequence and topology (circular / linear)
+    - Packet 0x0A: Features XML table
+    - Packet 0x06: Notes and annotations
+    """
+    import struct
+    import xml.etree.ElementTree as ET
+
+    name = "SnapGene_Construct"
+
+    if isinstance(data_or_path, (str, Path)):
+        p = Path(str(data_or_path))
+        if p.is_file():
+            name = p.stem
+            raw_bytes = p.read_bytes()
+        else:
+            raw_bytes = str(data_or_path).encode("latin1")
+    elif isinstance(data_or_path, (bytes, bytearray)):
+        raw_bytes = bytes(data_or_path)
+    else:
+        raise TypeError(f"Expected bytes, str, or Path, got {type(data_or_path)}")
+
+    offset = 0
+    total_len = len(raw_bytes)
+    dna_seq = ""
+    topology = "circular"
+    features: List[PlasmidFeature] = []
+    description = ""
+
+    while offset < total_len:
+        if offset + 5 > total_len:
+            raise ValueError(f"Corrupted SnapGene .dna file: truncated packet header at offset {offset} (file length {total_len})")
+        tag = raw_bytes[offset]
+        pkt_len = struct.unpack(">I", raw_bytes[offset + 1 : offset + 5])[0]
+        offset += 5
+
+        if offset + pkt_len > total_len:
+            raise ValueError(f"Corrupted SnapGene .dna file: packet 0x{tag:02X} length {pkt_len} exceeds remaining bytes at offset {offset} (file length {total_len})")
+        pkt_data = raw_bytes[offset : offset + pkt_len]
+        offset += pkt_len
+
+        # Tag 0x00: DNA sequence and topology
+        if tag == 0x00 and pkt_len >= 1:
+            flags = pkt_data[0]
+            is_circular = bool(flags & 0x01)
+            topology = "circular" if is_circular else "linear"
+            dna_seq = pkt_data[1:].decode("ascii", errors="ignore").upper()
+
+        # Tag 0x0A: Features XML
+        elif tag == 0x0A and pkt_len > 0:
+            try:
+                xml_str = pkt_data.decode("utf-8", errors="replace")
+                root = ET.fromstring(xml_str)
+                for feat_elem in root.iter("Feature"):
+                    f_name = feat_elem.get("name", "Unnamed")
+                    f_type = feat_elem.get("type", "misc_feature")
+                    f_dir = feat_elem.get("directionality", "1")
+                    strand = -1 if f_dir in ("2", "-1", "reverse") else 1
+
+                    for seg in feat_elem.iter("Segment"):
+                        rng = seg.get("range", "")
+                        color = seg.get("color", "#3B82F6")
+                        if "-" in rng:
+                            parts = rng.split("-")
+                            try:
+                                s_pos = int(parts[0])
+                                e_pos = int(parts[1])
+                                # Convert 0-based range to 1-based inclusive
+                                if s_pos == 0:
+                                    s_pos = 1
+                                features.append(PlasmidFeature(
+                                    name=f_name,
+                                    feature_type=f_type,
+                                    start=s_pos,
+                                    end=e_pos,
+                                    strand=strand,
+                                    color=color,
+                                    notes=f_type,
+                                ))
+                            except ValueError:
+                                pass
+            except Exception:
+                pass
+
+        # Tag 0x06: Notes
+        elif tag == 0x06 and pkt_len > 0:
+            try:
+                notes_text = pkt_data.decode("utf-8", errors="replace")
+                if "<" in notes_text and ">" in notes_text:
+                    try:
+                        n_root = ET.fromstring(notes_text)
+                        description = "".join(n_root.itertext()).strip()
+                    except Exception:
+                        description = notes_text.strip()
+                else:
+                    description = notes_text.strip()
+            except Exception:
+                pass
+
+    L = len(dna_seq)
+    final_features = []
+    for f in features:
+        if f.plasmid_length == 0 and L > 0:
+            f = replace(f, plasmid_length=L)
+        final_features.append(f)
+
+    return PlasmidRecord(
+        id=name,
+        name=name,
+        sequence=dna_seq,
+        topology=topology,
+        features=tuple(final_features),
+        description=description,
+    )

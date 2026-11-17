@@ -6,11 +6,15 @@ _src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
+from dataclasses import FrozenInstanceError
+
 from biolabcalc.primers import (
     analyze_primer,
     design_primers,
     calculate_tm_santalucia,
     calculate_tm_santaluicia,
+    calculate_dimer_dg,
+    calculate_hairpin_dg,
 )
 
 class TestPrimers(unittest.TestCase):
@@ -47,6 +51,34 @@ class TestPrimers(unittest.TestCase):
         p = pairs[0]
         self.assertLessEqual(p.tm_difference, 3.0)
         self.assertGreaterEqual(p.amplicon_length_bp, 100)
+        self.assertIsInstance(p.heterodimer_dg_kcal, float)
+
+    def test_thermodynamic_dimer_and_hairpin(self):
+        seq1 = "ATGCCGTCCAGGCTGCTGGTC"
+        seq2 = "GTAAAACGACGGCCAGT"
+        dg, align, tp_dg = calculate_dimer_dg(seq1, seq2)
+        self.assertIsInstance(dg, float)
+        self.assertIsInstance(align, str)
+        self.assertIn("5'", align)
+        self.assertIn("3'", align)
+        self.assertIsInstance(tp_dg, float)
+
+        h_dg, struct_str = calculate_hairpin_dg("CGCGAAACGCG")
+        self.assertIsInstance(h_dg, float)
+        self.assertIsInstance(struct_str, str)
+
+        res = analyze_primer(seq1)
+        self.assertIsInstance(res.self_dimer_dg_kcal, float)
+        self.assertIsInstance(res.hairpin_dg_kcal, float)
+        self.assertIsInstance(res.three_prime_dg_kcal, float)
+        self.assertIsInstance(res.alignment_ascii, str)
+
+    def test_frozen_immutability(self):
+        res = analyze_primer("GTAAAACGACGGCCAGT")
+        with self.assertRaises(FrozenInstanceError):
+            res.length = 99
+        with self.assertRaises(FrozenInstanceError):
+            res.self_dimer_dg_kcal = -100.0
 
 if __name__ == '__main__':
     unittest.main()

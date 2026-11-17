@@ -755,11 +755,17 @@ class Engine:
 
         if url.startswith("postgresql://") or url.startswith("postgres://"):
             if HAS_SQLALCHEMY:
-                self._sa_engine = sa_create_engine(url)
-                self.sa_engine = self._sa_engine
-                self.db_path = ""
-                self._shared_conn = None
-                return
+                try:
+                    self._sa_engine = sa_create_engine(url)
+                    self.sa_engine = self._sa_engine
+                    self.db_path = ""
+                    self._shared_conn = None
+                    return
+                except (Exception, ModuleNotFoundError) as e:
+                    raise ValueError(
+                        "PostgreSQL connections require SQLAlchemy and psycopg2-binary. "
+                        "Install with 'pip install \"biolabcalc[eln]\"' or run with default SQLite database."
+                    ) from e
             else:
                 raise ValueError(
                     "PostgreSQL connections require SQLAlchemy and psycopg2-binary. "

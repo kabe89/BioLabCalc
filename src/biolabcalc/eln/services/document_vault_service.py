@@ -293,6 +293,7 @@ class DocumentVaultService:
     add_document = ingest_document
     store_document = ingest_document
     upload_document = ingest_document
+    register_document = ingest_document
 
     def get_document(self, doc_id: str) -> Optional[DocumentRecord]:
         """
@@ -326,6 +327,8 @@ class DocumentVaultService:
             if not doc:
                 raise KeyError(f"Document with ID '{doc_id}' not found in vault catalog.")
             return self._blob_store.get_bytes(doc.sha256)
+
+    get_document_payload = get_document_bytes
 
     def get_document_path(self, doc_id: str) -> str:
         """
@@ -625,3 +628,158 @@ def get_document_vault_service() -> DocumentVaultService:
         DocumentVaultService: Global singleton instance.
     """
     return _global_document_vault_service
+
+
+# ============================================================================
+# ELN Consortium RO-Crate Archive Export & Import
+# ============================================================================
+
+def export_eln_rocrate(campaign_id: str, output_zip_path: str) -> str:
+    """
+    Export an ELN campaign and associated vault files as a standards-compliant
+    RO-Crate 1.1 ZIP archive compatible with eLabFTW and The ELN Consortium.
+    
+    Generates 'ro-crate-metadata.json' conforming to:
+    @context: "https://w3id.org/ro/crate/1.1/context"
+    """
+    import zipfile
+
+    vault = get_document_vault_service()
+    docs = vault.list_documents()
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    out_p = Path(output_zip_path)
+    out_p.parent.mkdir(parents=True, exist_ok=True)
+
+    zip_entries: List[Tuple[str, bytes]] = []
+
+    # Manifest metadata graph
+    graph: List[Dict[str, Any]] = [
+        {
+            "@type": "CreativeWork",
+            "@id": "ro-crate-metadata.json",
+            "conformsTo": {
+                "@id": "https://w3id.org/ro/crate/1.1"
+            },
+            "about": {
+                "@id": "./"
+            }
+        },
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": f"BioLabCalc Campaign Archive: {campaign_id}",
+            "description": "Standards-compliant RO-Crate export conforming to The ELN Consortium specification",
+            "datePublished": now_iso,
+            "hasPart": []
+        }
+    ]
+
+    # Add campaign.json metadata
+    campaign_info = {
+        "campaign_id": campaign_id,
+        "exported_at": now_iso,
+        "generator": "BioLabCalc v0.6.0",
+        "conformance": "The ELN Consortium / eLabFTW RO-Crate Interoperability Specification",
+    }
+    camp_bytes = json.dumps(campaign_info, indent=2).encode("utf-8")
+    zip_entries.append(("campaign.json", camp_bytes))
+    graph[1]["hasPart"].append({"@id": "campaign.json"})
+    graph.append({
+        "@id": "campaign.json",
+        "@type": "File",
+        "name": "Campaign Metadata Record",
+        "encodingFormat": "application/json"
+    })
+
+    # Include registered document vault records
+    for doc in docs:
+        file_entry_name = f"files/{doc.filename}"
+        payload = vault.get_document_payload(doc.id) or b""
+        zip_entries.append((file_entry_name, payload))
+        graph[1]["hasPart"].append({"@id": file_entry_name})
+        graph.append({
+            "@id": file_entry_name,
+            "@type": "File",
+            "name": doc.title,
+            "contentSize": doc.file_size_bytes,
+            "sha256": doc.sha256,
+            "encodingFormat": doc.mime_type,
+            "dateCreated": doc.created_at,
+        })
+
+    ro_crate_metadata = {
+        "@context": "https://w3id.org/ro/crate/1.1/context",
+        "@graph": graph
+    }
+    zip_entries.append(("ro-crate-metadata.json", json.dumps(ro_crate_metadata, indent=2).encode("utf-8")))
+
+    with zipfile.ZipFile(str(out_p), "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for fname, b_data in zip_entries:
+            zf.writestr(fname, b_data)
+
+    return str(out_p)
+
+
+def import_eln_rocrate(zip_path: str) -> Dict[str, Any]:
+    """
+    Import and validate an RO-Crate (.eln or .zip) archive conforming to
+    The ELN Consortium / eLabFTW specification.
+    
+    Validates 'ro-crate-metadata.json', ingests contained files into the
+    document vault CAS, and returns campaign and extraction metrics.
+    """
+    import zipfile
+
+    p = Path(zip_path)
+    if not p.is_file():
+        raise FileNotFoundError(f"RO-Crate archive not found: {zip_path}")
+
+    vault = get_document_vault_service()
+    imported_files: List[str] = []
+    campaign_id = "UNKNOWN"
+
+    with zipfile.ZipFile(str(p), "r") as zf:
+        # Validate against Zip Slip path traversal
+        for zinfo in zf.infolist():
+            member = zinfo.filename
+            if ".." in Path(member).parts or os.path.isabs(member):
+                raise ValueError(f"Malicious path traversal detected in RO-Crate member: {member}")
+
+        names = zf.namelist()
+        if "ro-crate-metadata.json" not in names:
+            raise ValueError("Invalid RO-Crate archive: 'ro-crate-metadata.json' is missing from root.")
+
+        meta_bytes = zf.read("ro-crate-metadata.json")
+        meta_json = json.loads(meta_bytes.decode("utf-8"))
+
+        if "@context" not in meta_json or "ro/crate" not in meta_json["@context"]:
+            raise ValueError("Invalid RO-Crate metadata: missing valid ro/crate @context.")
+
+        # Ingest files into vault
+        for name in names:
+            if name in ("ro-crate-metadata.json", "campaign.json") or name.endswith("/"):
+                continue
+            f_bytes = zf.read(name)
+            doc_name = Path(name).name
+            doc_rec = vault.ingest_document(
+                data=f_bytes,
+                title=doc_name,
+                category="Protocol",
+                filename=doc_name,
+                tags=["ro-crate", "import"],
+                uploaded_by="rocrate_importer",
+            )
+            imported_files.append(doc_rec.id)
+
+        if "campaign.json" in names:
+            camp_data = json.loads(zf.read("campaign.json").decode("utf-8"))
+            campaign_id = camp_data.get("campaign_id", campaign_id)
+
+    return {
+        "status": "imported",
+        "campaign_id": campaign_id,
+        "files_imported_count": len(imported_files),
+        "imported_document_ids": imported_files,
+        "archive_path": str(p),
+    }

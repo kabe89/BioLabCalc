@@ -317,10 +317,19 @@ class GelService:
         log_mw = calibration.slope * rf + calibration.intercept
         mw_est = 10.0 ** log_mw
 
+        unit = LADDER_CATALOG.get(calibration.ladder_key, {}).get("unit", "kDa")
+        is_nucleotide = unit.lower() in ("bp", "nt", "bases")
+
+        if is_nucleotide:
+            est_mw_kda = round(mw_est, 2)
+        else:
+            est_mw_kda = round(mw_est / 1000.0, 2) if mw_est > 1000 else round(mw_est, 2)
+
         return {
             "rf": rf,
             "estimated_mw": round(mw_est, 2),
-            "estimated_mw_kda": round(mw_est / 1000.0, 2) if mw_est > 1000 else round(mw_est, 2),
+            "estimated_mw_kda": est_mw_kda,
+            "unit": unit,
             "r_squared": calibration.r_squared,
             "formula": calibration.formula_str,
         }

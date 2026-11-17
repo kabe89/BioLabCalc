@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/biolabcalc/)
 [![Security: CodeQL](https://img.shields.io/badge/security-CodeQL%20passed-success.svg)](https://github.com/kabe89/BioLabCalc/security)
 [![Wiki: 26 Guides](https://img.shields.io/badge/wiki-26%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
-[![Tests](https://img.shields.io/badge/tests-473%20passed-brightgreen.svg)](#-running-tests)
+[![Tests](https://img.shields.io/badge/tests-543%20passed-brightgreen.svg)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -766,10 +766,10 @@ pytest tests/
 ```
 
 ```text
-======================= 473 passed, 6 skipped in 3.35s =======================
+======================= 543 passed, 6 skipped in 3.35s =======================
 ```
 
-All 473 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
+All 543 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
 
 ```bash
 # Run Git Security & PII Compliance Audit

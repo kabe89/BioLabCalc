@@ -949,6 +949,39 @@ def handle_gibson(args: argparse.Namespace) -> None:
 
 
 def handle_buffer(args: argparse.Namespace) -> None:
+    if getattr(args, "equil", None):
+        from .buffers import solve_buffer_equilibrium
+        res = solve_buffer_equilibrium(
+            components=args.equil,
+            target_ph=getattr(args, "ph", 7.4),
+            temperature_celsius=getattr(args, "temp", 25.0),
+            output_temp_celsius=getattr(args, "output_temp", getattr(args, "temp", 37.0)),
+        )
+        if getattr(args, "json", False):
+            import dataclasses
+            print(json.dumps(dataclasses.asdict(res), indent=2))
+            return
+        print("=" * 70)
+        print("  BUFFER EQUILIBRIUM & COMPETITIVE SPECIATION ANALYSIS")
+        print("=" * 70)
+        print(f"Target pH:            {res.target_ph:.2f}")
+        print(f"Temperature:          {res.temperature_celsius:.1f} °C")
+        print(f"Ionic Strength (I):   {res.ionic_strength_m:.4f} M")
+        print(f"Buffer Capacity (β):  {res.buffer_capacity_beta:.4f} M/pH")
+        print(f"Free Mg2+:            {res.free_mg_conc_m * 1000.0:.3f} mM")
+        print(f"Free Ca2+:            {res.free_ca_conc_m * 1000.0:.3f} mM")
+        print(f"Free ATP:             {res.free_atp_conc_m * 1000.0:.3f} mM")
+        print("\nPredicted Species Concentrations:")
+        for sp in res.species:
+            print(f"  - {sp.name:<28s}: {sp.concentration_m * 1000.0:8.3f} mM ({sp.fraction_of_total * 100.0:5.1f}%) [z={sp.charge:+d}]")
+        if res.precipitation_risks:
+            print("\nPrecipitation Screening:")
+            for p in res.precipitation_risks:
+                status = "⚠️ PRECIPITATION RISK" if p.will_precipitate else "✓ Soluble"
+                print(f"  - {p.salt_name}: SI={p.saturation_index:.2f} ({status})")
+        print("=" * 70)
+        return
+
     if args.list or args.list_custom:
         if not getattr(args, "quiet", False):
             print("=" * 65)
@@ -1998,6 +2031,201 @@ def handle_interactive_plasmid(args: argparse.Namespace) -> None:
     launch_plasmid_workbench(port=port, open_browser=open_b)
 
 
+def handle_aptamer(args: argparse.Namespace) -> None:
+    from .aptamers import evaluate_rna_hairpin_thermo, analyze_counter_selex
+    if getattr(args, "seq", None):
+        res = evaluate_rna_hairpin_thermo(args.seq, temperature_celsius=getattr(args, "temp", 37.0))
+        if getattr(args, "json", False):
+            import dataclasses
+            print(json.dumps(dataclasses.asdict(res), indent=2))
+            return
+        print("=" * 70)
+        print("  RNA/DNA APTAMER SECONDARY STRUCTURE THERMODYNAMICS (TURNER 2004)")
+        print("=" * 70)
+        print(f"Sequence:           {res.sequence}")
+        print(f"Dot-Bracket:        {res.structure_dot_bracket}")
+        print(f"Free Energy (ΔG°):  {res.delta_g_37:.2f} kcal/mol")
+        print(f"Enthalpy (ΔH°):     {res.delta_h:.2f} kcal/mol")
+        print(f"Entropy (ΔS°):      {res.delta_s:.2f} cal/(mol*K)")
+        print(f"Melting Temp (Tm):  {res.tm_celsius:.1f} °C")
+        if res.stems:
+            print(f"Stems:              {res.stems}")
+        if res.loops:
+            print(f"Loops:              {res.loops}")
+        print("=" * 70)
+        return
+
+    if getattr(args, "target_counts", None) and getattr(args, "counter_counts", None):
+        def parse_counts(s: str) -> Dict[str, int]:
+            d = {}
+            for item in s.replace(";", ",").split(","):
+                if ":" in item:
+                    k, v = item.split(":", 1)
+                    d[k.strip()] = int(v.strip())
+                elif "=" in item:
+                    k, v = item.split("=", 1)
+                    d[k.strip()] = int(v.strip())
+            return d
+
+        t_counts = parse_counts(args.target_counts)
+        c_counts = parse_counts(args.counter_counts)
+        selex = analyze_counter_selex(
+            target_counts=t_counts,
+            counter_counts=c_counts,
+            alpha_smoothing=getattr(args, "alpha", 1.0),
+            fdr_threshold=getattr(args, "fdr", 0.05),
+        )
+        if getattr(args, "json", False):
+            import dataclasses
+            print(json.dumps(dataclasses.asdict(selex), indent=2))
+            return
+        print("=" * 70)
+        print("  COUNTER-SELEX ENRICHMENT & SUBUNIT SELECTIVITY")
+        print("=" * 70)
+        print(f"Total Candidates:   {selex.total_candidates}")
+        print(f"Mean Fold Enrich:   {selex.mean_enrichment:.2f}x")
+        print(f"FDR Threshold:      {selex.fdr_threshold:.2f}")
+        print("\nTop Candidate Rankings:")
+        for cand in selex.top_candidates[:10]:
+            sig_badge = "✓ SIG" if cand.is_significant else "  ns"
+            print(f"  {cand.candidate_id}: {cand.sequence:<20s} Enrich={cand.fold_enrichment:6.2f}x  Adj-P={cand.p_value_adjusted:.4e}  Rank={cand.composite_rank_score:6.2f}  [{sig_badge}]")
+        print("=" * 70)
+        return
+
+    print("Please specify an aptamer sequence with --seq or counts with --target-counts and --counter-counts.")
+
+
+def handle_plate(args: argparse.Namespace) -> None:
+    from .automation import (
+        design_serial_dilution_plate,
+        design_pcr_setup_plate,
+        export_echo_csv,
+        export_opentrons_protocol,
+        export_pylabrobot_json,
+    )
+
+    plate_type = getattr(args, "type", "96-well") or "96-well"
+
+    if getattr(args, "pcr_reactions", None):
+        n_rxns = int(args.pcr_reactions)
+        worklist = design_pcr_setup_plate(num_reactions=n_rxns, plate_type=plate_type)
+    else:
+        factor_raw = str(getattr(args, "dilution", "2.0") or "2.0")
+        if ":" in factor_raw:
+            factor_val = float(factor_raw.split(":")[-1])
+        else:
+            factor_val = float(factor_raw)
+
+        start_conc = float(getattr(args, "start_conc", 100.0) or 100.0)
+        points = int(getattr(args, "points", 8) or 8)
+        replicates = int(getattr(args, "replicates", 3) or 3)
+        worklist = design_serial_dilution_plate(
+            start_conc=start_conc,
+            dilution_factor=factor_val,
+            num_points=points,
+            replicates=replicates,
+            plate_type=plate_type,
+        )
+
+    if getattr(args, "json", False):
+        print(export_pylabrobot_json(worklist))
+        return
+
+    if getattr(args, "export_echo", None):
+        export_echo_csv(worklist, args.export_echo)
+        print(f"Exported Labcyte Echo pick list to: {args.export_echo}")
+
+    if getattr(args, "export_opentrons", None):
+        export_opentrons_protocol(worklist, args.export_opentrons)
+        print(f"Exported Opentrons protocol script to: {args.export_opentrons}")
+
+    if getattr(args, "export_pylabrobot", None):
+        export_pylabrobot_json(worklist, args.export_pylabrobot)
+        print(f"Exported PyLabRobot JSON worklist to: {args.export_pylabrobot}")
+
+    print("=" * 70)
+    print(f"  MICROPLATE AUTOMATION WORKLIST: {worklist.name}")
+    print(f"  Format: {plate_type} | Total Transfers: {len(worklist.transfers)} | Volume: {worklist.total_volume_ul:.1f} µL")
+    print("=" * 70)
+    for note in worklist.notes:
+        print(f"  • {note}")
+    print(f"\n  First 5 Transfer Steps:")
+    for t in worklist.transfers[:5]:
+        print(f"    - {t.source_plate}:{t.source_well} -> {t.dest_plate}:{t.dest_well} ({t.volume_ul:.1f} µL) [{t.reagent_name}]")
+    if len(worklist.transfers) > 5:
+        print(f"    ... and {len(worklist.transfers) - 5} more transfer operations.")
+    print("=" * 70)
+
+
+def handle_scn(args: argparse.Namespace) -> None:
+    from .eln.parsers.biorad_parser import BioRadParser
+
+    input_path = args.input
+    if not input_path:
+        raise ValueError("--input argument is required for the scn subcommand.")
+
+    with open(input_path, "rb") as f:
+        raw_data = f.read()
+
+    img = BioRadParser.parse(
+        raw_data,
+        auto_contrast=not getattr(args, "no_auto_contrast", False),
+        invert=getattr(args, "invert", False),
+        gamma=getattr(args, "gamma", 1.0),
+    )
+
+    if getattr(args, "output_png", None):
+        out_png_dir = os.path.dirname(os.path.abspath(args.output_png))
+        if out_png_dir and not os.path.exists(out_png_dir):
+            os.makedirs(out_png_dir, exist_ok=True)
+        with open(args.output_png, "wb") as f:
+            f.write(img.preview_png_bytes)
+
+    if getattr(args, "output_tiff", None):
+        BioRadParser.export_tiff_16bit(img, args.output_tiff)
+
+    lanes_data = []
+    if getattr(args, "lanes", None) or getattr(args, "detect_bands", False):
+        num_lanes = args.lanes or 6
+        for l_idx in range(1, num_lanes + 1):
+            lane_info: Dict[str, Any] = {
+                "lane_index": l_idx,
+                "profile": BioRadParser.extract_lane_profile(img, lane_index=l_idx, num_lanes=num_lanes),
+            }
+            if getattr(args, "detect_bands", False):
+                lane_info["bands"] = BioRadParser.detect_lane_bands(img, lane_index=l_idx, num_lanes=num_lanes)
+            lanes_data.append(lane_info)
+
+    if getattr(args, "json", False):
+        res = {
+            "format": img.file_format,
+            "width": img.width,
+            "height": img.height,
+            "bit_depth": img.bit_depth,
+            "exposure_time_s": img.exposure.exposure_time_seconds,
+            "instrument": img.exposure.instrument_model,
+            "gain": img.exposure.gain,
+            "saturated_pixels": img.saturated_pixel_count,
+            "saturation_warning": img.saturation_warning,
+        }
+        if lanes_data:
+            res["lanes"] = lanes_data
+        _dump_json(res, getattr(args, "compact", False))
+    else:
+        print(f"Bio-Rad {img.file_format} Image: {img.width}x{img.height} (16-bit)")
+        print(f"  Instrument: {img.exposure.instrument_model}")
+        print(f"  Exposure Time: {img.exposure.exposure_time_seconds:.2f} s")
+        print(f"  Application / Gain: {img.exposure.gain}")
+        sat_warn = " ⚠️ WARNING: Signal saturated" if img.saturation_warning else ""
+        print(f"  Saturated Pixels: {img.saturated_pixel_count}{sat_warn}")
+        if getattr(args, "output_png", None):
+            print(f"  Preview PNG exported to: {args.output_png}")
+        if getattr(args, "output_tiff", None):
+            print(f"  16-bit TIFF exported to: {args.output_tiff}")
+        if lanes_data and getattr(args, "detect_bands", False):
+            for l in lanes_data:
+                print(f"  Lane {l['lane_index']}: {len(l['bands'])} bands detected")
+
 
 COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
     "dilute": handle_dilute,
@@ -2042,6 +2270,9 @@ COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
     "plasmid": handle_plasmid,
     "clone-gene": handle_clone_gene,
     "interactive-plasmid": handle_interactive_plasmid,
+    "aptamer": handle_aptamer,
+    "plate": handle_plate,
+    "scn": handle_scn,
 }
 
 
@@ -2240,6 +2471,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_buf.add_argument("--custom", action="store_true", help="Launch interactive custom buffer builder")
     p_buf.add_argument("--list", action="store_true", help="List all standard and custom buffers in the catalog")
     p_buf.add_argument("--list-custom", action="store_true", help="List custom buffers saved on disk")
+    p_buf.add_argument("--equil", default=None, help="Solve competitive buffer speciation (e.g. 'Tris=50mM,EGTA=5mM,MgCl2=10mM,ATP=4mM')")
+    p_buf.add_argument("--ph", type=float, default=7.4, help="Target pH for equilibrium speciation (default: 7.4)")
+    p_buf.add_argument("--temp", type=float, default=25.0, help="Formulation temperature in Celsius (default: 25.0)")
+    p_buf.add_argument("--output-temp", type=float, default=37.0, help="Output temperature in Celsius (default: 37.0)")
+    p_buf.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     # 19. precipitate
     p_prec = subparsers.add_parser("precipitate", parents=[common], help="Calculate ethanol/isopropanol nucleic acid precipitation recipe")
@@ -2471,6 +2707,42 @@ def build_parser() -> argparse.ArgumentParser:
     p_iplas.add_argument("--open-browser", action="store_true", default=True, help="Open browser on launch")
     p_iplas.add_argument("--no-browser", action="store_true", help="Do not open browser")
     p_iplas.add_argument("--export-html", "-o", default=None, help="Export standalone HTML workbench file without running server")
+
+    # 37. aptamer (Aptamer Thermodynamics & Counter-SELEX)
+    p_apt = subparsers.add_parser("aptamer", parents=[common], help="Evaluate RNA/DNA aptamer thermodynamics and Counter-SELEX sequencing enrichment")
+    p_apt.add_argument("-s", "--seq", default=None, help="Aptamer sequence to fold and evaluate")
+    p_apt.add_argument("-t", "--temp", type=float, default=37.0, help="Assay temperature in Celsius (default: 37.0)")
+    p_apt.add_argument("--target-counts", default=None, help="Target subunit counts (e.g. 'seq1:120,seq2:45')")
+    p_apt.add_argument("--counter-counts", default=None, help="Counter-target counts (e.g. 'seq1:10,seq2:80')")
+    p_apt.add_argument("--alpha", type=float, default=1.0, help="Dirichlet smoothing parameter (default: 1.0)")
+    p_apt.add_argument("--fdr", type=float, default=0.05, help="FDR threshold for Benjamini-Hochberg (default: 0.05)")
+    p_apt.add_argument("--json", action="store_true", help="Output results in JSON format")
+
+    # 38. plate (96/384-Well Microplate Automation & Liquid Handlers)
+    p_plate = subparsers.add_parser("plate", parents=[common], help="Design 96/384-well microplate liquid handling worklists and export Echo/Opentrons protocols")
+    p_plate.add_argument("--type", choices=["96-well", "384-well"], default="96-well", help="Microplate format (default: 96-well)")
+    p_plate.add_argument("--dilution", default="2.0", help="Serial dilution factor or ratio (e.g. 2.0 or 1:2, default: 2.0)")
+    p_plate.add_argument("--points", type=int, default=8, help="Number of dilution points (default: 8)")
+    p_plate.add_argument("--replicates", type=int, default=3, help="Number of replicate rows (default: 3)")
+    p_plate.add_argument("--start-conc", type=float, default=100.0, help="Initial stock concentration (default: 100.0)")
+    p_plate.add_argument("--pcr-reactions", type=int, default=None, help="Design PCR setup plate for N reactions")
+    p_plate.add_argument("--export-echo", default=None, help="Output file path for Labcyte Echo CSV pick list")
+    p_plate.add_argument("--export-opentrons", default=None, help="Output file path for Opentrons Python protocol")
+    p_plate.add_argument("--export-pylabrobot", default=None, help="Output file path for PyLabRobot JSON worklist")
+    p_plate.add_argument("--json", action="store_true", help="Output worklist in JSON format")
+
+    # 39. scn (Bio-Rad Image Lab .scn and Quantity One .1sc Gel Imager Parser)
+    p_scn = subparsers.add_parser("scn", parents=[common], help="Parse Bio-Rad Image Lab (.scn) and Quantity One (.1sc) gel files, export PNG/TIFF, and run lane densitometry")
+    p_scn.add_argument("-i", "--input", required=True, help="Input .scn or .1sc file path")
+    p_scn.add_argument("--output-png", default=None, help="Output PNG preview file path")
+    p_scn.add_argument("--output-tiff", default=None, help="Output 16-bit uncompressed TIFF file path")
+    p_scn.add_argument("--lanes", type=int, default=None, help="Number of lanes for 1D densitometry profiling")
+    p_scn.add_argument("--detect-bands", action="store_true", help="Perform band peak detection along each lane profile")
+    p_scn.add_argument("--invert", action="store_true", help="Invert pixel intensities")
+    p_scn.add_argument("--gamma", type=float, default=1.0, help="Gamma correction factor (default: 1.0)")
+    p_scn.add_argument("--no-auto-contrast", action="store_true", help="Disable min-max percentile auto-contrast stretch")
+    p_scn.add_argument("--json", action="store_true", help="Output metadata and densitometry results in JSON format")
+    p_scn.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
 
     return parser
 

@@ -18,7 +18,11 @@ class TransferConditionsResult:
     voltage_or_current: str
     duration_minutes: int
     temperature_conditions: str
-    expert_tips: List[str]
+    expert_tips: Tuple[str, ...]
+
+    def __post_init__(self):
+        if isinstance(self.expert_tips, (list, set, tuple)):
+            object.__setattr__(self, "expert_tips", tuple(self.expert_tips))
 
 
 @dataclass(frozen=True)
@@ -35,7 +39,11 @@ class LysateLoadingResult:
     denaturation_temperature_celsius: int
     denaturation_time_minutes: int
     normalization_recommendation: str
-    notes: List[str]
+    notes: Tuple[str, ...]
+
+    def __post_init__(self):
+        if isinstance(self.notes, (list, set, tuple)):
+            object.__setattr__(self, "notes", tuple(self.notes))
 
 
 @dataclass(frozen=True)
@@ -52,7 +60,11 @@ class AntibodyDilutionResult:
     secondary_incubation: str
     wash_buffer: str
     wash_schedule: str
-    compatibility_warnings: List[str]
+    compatibility_warnings: Tuple[str, ...]
+
+    def __post_init__(self):
+        if isinstance(self.compatibility_warnings, (list, set, tuple)):
+            object.__setattr__(self, "compatibility_warnings", tuple(self.compatibility_warnings))
 
 
 @dataclass(frozen=True)
@@ -66,15 +78,25 @@ class WesternBlotPlanResult:
     immunodetection: AntibodyDilutionResult
     detection_substrate: str
     imaging_guidelines: str
-    critical_checkpoints: List[str]
+    critical_checkpoints: Tuple[str, ...]
+
+    def __post_init__(self):
+        if isinstance(self.critical_checkpoints, (list, set, tuple)):
+            object.__setattr__(self, "critical_checkpoints", tuple(self.critical_checkpoints))
 
 
 @dataclass(frozen=True)
 class WesternTroubleshootingResult:
     symptom: str
-    likely_causes: List[str]
-    corrective_actions: List[str]
+    likely_causes: Tuple[str, ...]
+    corrective_actions: Tuple[str, ...]
     preventative_protocol: str
+
+    def __post_init__(self):
+        for f in ("likely_causes", "corrective_actions"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 TROUBLESHOOTING_DATABASE: Dict[str, WesternTroubleshootingResult] = {

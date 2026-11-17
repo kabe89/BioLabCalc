@@ -288,7 +288,11 @@ class DigestSetupResult:
     heat_inactivation: str
     reagent_volumes: Dict[str, float]
     star_activity_warning: bool
-    notes: List[str]
+    notes: Tuple[str, ...]
+
+    def __post_init__(self):
+        if isinstance(self.notes, (list, set, tuple)):
+            object.__setattr__(self, "notes", tuple(self.notes))
 
 
 @dataclass(frozen=True)
@@ -307,12 +311,18 @@ class LigationSetupResult:
 @dataclass(frozen=True)
 class GibsonAssemblyResult:
     vector_length_bp: int
-    insert_lengths_bp: List[int]
+    insert_lengths_bp: Tuple[int, ...]
     vector_mass_ng: float
-    insert_masses_ng: List[float]
+    insert_masses_ng: Tuple[float, ...]
     total_dna_pmol: float
     reagent_volumes: Dict[str, float]
     incubation_protocol: str
+
+    def __post_init__(self):
+        for f in ("insert_lengths_bp", "insert_masses_ng"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 def plan_restriction_digest(
@@ -610,17 +620,23 @@ def register_custom_enzyme(enzyme: RestrictionEnzyme) -> None:
 class GoldenGateResult:
     enzyme: str
     vector_length_bp: int
-    insert_lengths_bp: List[int]
+    insert_lengths_bp: Tuple[int, ...]
     vector_mass_ng: float
     vector_fmol: float
-    insert_masses_ng: List[float]
-    insert_fmols: List[float]
+    insert_masses_ng: Tuple[float, ...]
+    insert_fmols: Tuple[float, ...]
     insert_to_vector_ratio: float
     total_dna_mass_ng: float
     reaction_volume_ul: float
     reagent_volumes: Dict[str, float]
-    thermocycling_protocol: List[str]
-    notes: List[str]
+    thermocycling_protocol: Tuple[str, ...]
+    notes: Tuple[str, ...]
+
+    def __post_init__(self):
+        for f in ("insert_lengths_bp", "insert_masses_ng", "insert_fmols", "thermocycling_protocol", "notes"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
 
 
 def calculate_golden_gate_assembly(
@@ -746,3 +762,143 @@ def calculate_golden_gate_assembly(
         thermocycling_protocol=cycling,
         notes=notes,
     )
+
+
+# ============================================================================
+# Type IIS Golden Gate Overhang Fidelity Matrix (GoldenHinges Benchmark)
+# ============================================================================
+
+@dataclass(frozen=True)
+class GoldenGateFidelityResult:
+    overhangs: Tuple[str, ...]
+    enzyme: str
+    assembly_fidelity_percent: float
+    collision_pairs: Tuple[Tuple[str, str], ...]
+    palindromic_overhangs: Tuple[str, ...]
+    mismatch_risks: Tuple[Tuple[str, str, float], ...]  # (overhang1, overhang2, risk_pct)
+    recommended_overhangs: Tuple[str, ...] = ()
+
+    def __post_init__(self):
+        for f in ("overhangs", "collision_pairs", "palindromic_overhangs", "mismatch_risks", "recommended_overhangs"):
+            val = getattr(self, f, ())
+            if isinstance(val, (list, set, tuple)):
+                object.__setattr__(self, f, tuple(val))
+
+
+# High-fidelity orthogonal 4-bp overhang catalog (Potapov et al. 2018, Pryor et al. 2020, MoClo standards)
+STANDARD_GOLDEN_GATE_OVERHANGS: Tuple[str, ...] = (
+    "GGAG",  # Promoters / 5' UTR (MoClo fusion site A)
+    "TACT",  # Signal peptide / Start (MoClo fusion site B)
+    "AATG",  # CDS / N-terminal tag (MoClo fusion site C)
+    "AGGT",  # Internal domain / CDS continuation
+    "GCTT",  # C-terminal tag (MoClo fusion site D)
+    "CGCT",  # Terminator / 3' UTR (MoClo fusion site E)
+    "TGCC",  # Resistance / Backbone junction (MoClo fusion site F)
+    "ACTA",  # Orthogonal junction 7
+    "TTAC",  # Orthogonal junction 8
+    "CCAA",  # Orthogonal junction 9
+    "ATCC",  # Orthogonal junction 10
+    "CTGA",  # Orthogonal junction 11
+)
+
+
+def recommend_golden_gate_overhangs(n_junctions: int) -> Tuple[str, ...]:
+    """
+    Recommend a high-fidelity orthogonal set of 4-bp Type IIS Golden Gate overhangs.
+    
+    Parameters:
+        n_junctions (int): Number of assembly junctions needed (typically 2 to 12).
+        
+    Returns:
+        Tuple[str, ...]: Orthogonal, non-palindromic 4-bp overhangs.
+    """
+    if n_junctions <= 0:
+        return ()
+    return STANDARD_GOLDEN_GATE_OVERHANGS[: min(n_junctions, len(STANDARD_GOLDEN_GATE_OVERHANGS))]
+
+
+def evaluate_golden_gate_fidelity(
+    overhangs: Sequence[str],
+    enzyme: str = "BsaI-HFv2",
+) -> GoldenGateFidelityResult:
+    """
+    Evaluate Type IIS Golden Gate assembly fidelity across a set of 4-bp overhangs.
+    
+    Scores set for:
+    1. Palindromic self-ligation (e.g. AATT, AGCT, GATC, CATG).
+    2. Reverse-complement collisions between distinct junctions.
+    3. T4 DNA ligase single-mismatch or G:T wobble cross-talk.
+    4. Overall predicted assembly fidelity percentage (0-100%).
+    """
+    clean_ohs = tuple(oh.upper().strip() for oh in overhangs if oh.strip())
+    n = len(clean_ohs)
+
+    palindromes: List[str] = []
+    collisions: List[Tuple[str, str]] = []
+    mismatch_risks: List[Tuple[str, str, float]] = []
+
+    comp_map = {"A": "T", "T": "A", "C": "G", "G": "C"}
+
+    def rc(s: str) -> str:
+        return "".join(comp_map.get(b, "N") for b in reversed(s))
+
+    def hamming_dist(s1: str, s2: str) -> int:
+        return sum(1 for a, b in zip(s1, s2) if a != b)
+
+    penalty = 0.0
+
+    # 1. Check palindromes
+    for oh in clean_ohs:
+        if len(oh) == 4 and oh == rc(oh):
+            palindromes.append(oh)
+            penalty += 35.0  # Severe penalty: self-ligates in reverse orientation
+
+    # 2. Check RC collisions and mismatches
+    seen_rc: Dict[str, str] = {}
+    for i in range(n):
+        oh_i = clean_ohs[i]
+        rc_i = rc(oh_i)
+
+        for j in range(i + 1, n):
+            oh_j = clean_ohs[j]
+            rc_j = rc(oh_j)
+
+            # Direct duplicate
+            if oh_i == oh_j:
+                collisions.append((oh_i, oh_j))
+                penalty += 45.0
+            # Reverse-complement collision
+            elif oh_i == rc_j:
+                collisions.append((oh_i, oh_j))
+                penalty += 40.0
+            else:
+                # Mismatch cross-talk
+                d_direct = hamming_dist(oh_i, oh_j)
+                d_rc = hamming_dist(oh_i, rc_j)
+                min_d = min(d_direct, d_rc)
+
+                if min_d == 1:
+                    # 1-bp mismatch cross-talk (e.g. G:T wobble or single transition)
+                    risk_pct = 12.5
+                    mismatch_risks.append((oh_i, oh_j, risk_pct))
+                    penalty += 8.0
+                elif min_d == 2:
+                    risk_pct = 2.0
+                    if (oh_i, oh_j) not in [(m[0], m[1]) for m in mismatch_risks]:
+                        mismatch_risks.append((oh_i, oh_j, risk_pct))
+                    penalty += 1.5
+
+    fidelity = max(0.0, min(100.0, 100.0 - penalty))
+
+    rec = recommend_golden_gate_overhangs(n)
+
+    return GoldenGateFidelityResult(
+        overhangs=clean_ohs,
+        enzyme=enzyme,
+        assembly_fidelity_percent=round(fidelity, 1),
+        collision_pairs=tuple(collisions),
+        palindromic_overhangs=tuple(palindromes),
+        mismatch_risks=tuple(mismatch_risks),
+        recommended_overhangs=rec,
+    )
+

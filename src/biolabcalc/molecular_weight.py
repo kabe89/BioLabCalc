@@ -116,6 +116,32 @@ class MolecularWeightResult:
     backbone: str = "monophosphate"
     formula_delta: str = ""
 
+    def _repr_html_(self) -> str:
+        """Render clean HTML summary for Jupyter notebooks."""
+        import html
+        counts_html = "".join(f"<td style='padding: 3px 6px;'><strong>{html.escape(k)}</strong>: {v}</td>" for k, v in sorted(self.base_counts.items()))
+        seq_display = html.escape(self.sequence[:40] + ("..." if len(self.sequence) > 40 else "")) if self.sequence else f"Length {self.length} (sequence omitted)"
+        return (
+            f'<div style="font-family: system-ui, -apple-system, sans-serif; border: 1px solid #E2E8F0; '
+            f'border-radius: 8px; padding: 14px; max-width: 580px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; font-size: 15px; color: #0F172A;">Molecular Weight Analysis</h3>'
+            f'<span style="background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;">{html.escape(self.seq_type.upper())}</span>'
+            f'</div>'
+            f'<div style="font-family: monospace; font-size: 12px; background: #F8FAFC; padding: 6px 10px; border-radius: 4px; color: #334155; margin-bottom: 12px;">{seq_display}</div>'
+            f'<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px;">'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Length</td><td style="text-align: right; font-weight: 600;">{self.length:,} bp/nt</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Average MW</td><td style="text-align: right; font-weight: 600; color: #2563EB;">{self.average_mw:,.2f} Da</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">Monoisotopic MW</td><td style="text-align: right; font-weight: 600;">{self.monoisotopic_mw:,.4f} Da</td></tr>'
+            f'<tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 4px 0; color: #64748B;">GC Content</td><td style="text-align: right; font-weight: 600;">{self.gc_content:.1f}%</td></tr>'
+            f'<tr><td style="padding: 4px 0; color: #64748B;">Terminal Ends</td><td style="text-align: right;">5\'-{html.escape(self.end_5)} • 3\'-{html.escape(self.end_3)}</td></tr>'
+            f'</table>'
+            f'<table style="width: 100%; font-size: 12px; color: #475569; background: #F8FAFC; border-radius: 4px; padding: 4px;">'
+            f'<tr>{counts_html}</tr>'
+            f'</table>'
+            f'</div>'
+        )
+
 
 def calculate_dna_mw(
     seq: Optional[str] = None,

@@ -284,10 +284,13 @@ def _load_user_records(filepath: Optional[str] = None) -> Dict[str, SequenceReco
     target_path = filepath if filepath is not None else DEFAULT_SEQUENCES_PATH
     if not os.path.exists(target_path):
         return {}
-    if os.path.getsize(target_path) == 0:
+    try:
+        if os.path.getsize(target_path) == 0:
+            return {}
+        with open(target_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, PermissionError):
         return {}
-    with open(target_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
     records: Dict[str, SequenceRecord] = {}
     if isinstance(data, list):
         for item in data:
@@ -310,6 +313,8 @@ def _save_user_records(records: Dict[str, SequenceRecord], filepath: Optional[st
     try:
         with open(temp_fd, "w", encoding="utf-8") as f:
             json.dump(serialized, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(temp_file, target_path)
     except Exception:
         if os.path.exists(temp_file):

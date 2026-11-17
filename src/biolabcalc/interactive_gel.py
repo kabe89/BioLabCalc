@@ -9,7 +9,7 @@ import threading
 import webbrowser
 from typing import Dict, List, Optional, Tuple
 
-HTML_TEMPLATE = """<!DOCTYPE html>
+HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -191,7 +191,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
           <span style="font-size:1.5rem;">📥</span>
           <p>Drop Gel Image Here or Click to Browse</p>
-          <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+          <input type="file" id="fileInput" accept="image/*,.scn,.1sc" style="display:none;" onchange="handleFileSelect(event)">
         </div>
         <div class="form-group" style="margin-top: 10px;">
           <label>Contrast</label>
@@ -328,19 +328,128 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }
     }
 
-    function loadImageFile(file) {
-      let reader = new FileReader();
-      reader.onload = (evt) => {
-        let img = new Image();
-        img.onload = () => {
-          gelImg = img;
-          canvas.width = Math.max(850, img.width);
-          canvas.height = Math.max(680, img.height);
-          render();
-        };
-        img.src = evt.target.result;
+    function parseBioRadSCNBuffer(buffer) {
+      const u8 = new Uint8Array(buffer);
+      let text = "";
+      const scanLen = Math.min(u8.length, 32768);
+      for (let i = 0; i < scanLen; i++) {
+        text += String.fromCharCode(u8[i]);
+      }
+
+      let width = 0, height = 0, exposureTime = 0, model = "Bio-Rad Imager";
+      const sizeMatch = text.match(/<size_pix\\s+width=["'](\\d+)["']\\s+height=["'](\\d+)["']/i);
+      if (sizeMatch) {
+        width = parseInt(sizeMatch[1]);
+        height = parseInt(sizeMatch[2]);
+      }
+      const expMatch = text.match(/<exposure_time>([\\d.]+)<\/exposure_time>/i);
+      if (expMatch) exposureTime = parseFloat(expMatch[1]);
+      const modMatch = text.match(/<imager\s+value=["']([^"']+)["']/i);
+      if (modMatch) model = modMatch[1];
+
+      let pixelOffset = -1;
+      const octetIdx = text.indexOf("application/octet-stream");
+      if (octetIdx !== -1) {
+        const sub = text.substring(octetIdx);
+        const headerEnd = sub.indexOf("\r\n\r\n");
+        if (headerEnd !== -1) {
+          pixelOffset = octetIdx + headerEnd + 4;
+        } else {
+          const nlEnd = sub.indexOf("\n\n");
+          if (nlEnd !== -1) pixelOffset = octetIdx + nlEnd + 2;
+        }
+      }
+
+      if (pixelOffset === -1 && u8.length > 512) {
+        if (u8[0] === 0x31 && u8[1] === 0x73 && u8[2] === 0x63) {
+          const dv = new DataView(buffer);
+          width = dv.getUint16(34, true);
+          height = dv.getUint16(36, true);
+          pixelOffset = 512;
+        }
+      }
+
+      if (width <= 0 || height <= 0 || pixelOffset < 0 || pixelOffset + width * height * 2 > u8.length) {
+        if (width <= 0 || height <= 0) {
+          width = 800;
+          height = 600;
+        }
+        if (pixelOffset < 0) pixelOffset = Math.max(0, u8.length - width * height * 2);
+      }
+
+      const totalPx = width * height;
+      const dv = new DataView(buffer, pixelOffset);
+      let minVal = 65535, maxVal = 0, satCount = 0;
+      const px16 = new Uint16Array(totalPx);
+      for (let i = 0; i < totalPx; i++) {
+        const val = dv.getUint16(i * 2, true);
+        px16[i] = val;
+        if (val < minVal) minVal = val;
+        if (val > maxVal) maxVal = val;
+        if (val >= 65530) satCount++;
+      }
+
+      const offCanvas = document.createElement("canvas");
+      offCanvas.width = width;
+      offCanvas.height = height;
+      const offCtx = offCanvas.getContext("2d");
+      const imgData = offCtx.createImageData(width, height);
+      const span = Math.max(1, maxVal - minVal);
+
+      for (let i = 0; i < totalPx; i++) {
+        const norm = Math.min(255, Math.max(0, Math.floor(((px16[i] - minVal) / span) * 255)));
+        const idx = i * 4;
+        imgData.data[idx] = norm;
+        imgData.data[idx + 1] = norm;
+        imgData.data[idx + 2] = norm;
+        imgData.data[idx + 3] = 255;
+      }
+      offCtx.putImageData(imgData, 0, 0);
+
+      return {
+        dataUrl: offCanvas.toDataURL(),
+        width: width,
+        height: height,
+        exposureTime: exposureTime,
+        model: model,
+        satCount: satCount
       };
-      reader.readAsDataURL(file);
+    }
+
+    function loadImageFile(file) {
+      const fname = file.name.toLowerCase();
+      if (fname.endsWith(".scn") || fname.endsWith(".1sc")) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const scn = parseBioRadSCNBuffer(evt.target.result);
+            const img = new Image();
+            img.onload = () => {
+              gelImg = img;
+              canvas.width = Math.max(850, img.width);
+              canvas.height = Math.max(680, img.height);
+              render();
+            };
+            img.src = scn.dataUrl;
+          } catch (err) {
+            alert("Error parsing Bio-Rad .scn file: " + err);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const img = new Image();
+          img.onload = () => {
+            gelImg = img;
+            canvas.width = Math.max(850, img.width);
+            canvas.height = Math.max(680, img.height);
+            render();
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
     function loadDemoGel() {
