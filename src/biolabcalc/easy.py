@@ -738,8 +738,15 @@ def load_plasmid(name_or_gb: str) -> PlasmidRecord:
     if name_or_gb in STANDARD_PLASMID_CATALOG:
         return STANDARD_PLASMID_CATALOG[name_or_gb]
 
-    if os.path.exists(name_or_gb) or name_or_gb.strip().startswith("LOCUS"):
+    if name_or_gb.strip().startswith("LOCUS") or "ORIGIN" in name_or_gb:
         return parse_genbank(name_or_gb)
+
+    if "\n" not in name_or_gb and "\r" not in name_or_gb and len(name_or_gb) < 260:
+        try:
+            if os.path.exists(name_or_gb):
+                return parse_genbank(name_or_gb)
+        except OSError:
+            pass
 
     try:
         return get_plasmid(name_or_gb)

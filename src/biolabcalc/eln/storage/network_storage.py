@@ -947,8 +947,19 @@ class NetworkShareStorageManager:
         """
         blobs_dir, tmp_dir = self._ensure_cas_dirs()
 
-        # Handle Path or str pointing to existing file
-        if isinstance(data, (Path, str)) and os.path.isfile(str(data)):
+        is_file_source = False
+        if isinstance(data, Path):
+            try:
+                is_file_source = data.is_file()
+            except OSError:
+                is_file_source = False
+        elif isinstance(data, str) and "\n" not in data and "\r" not in data and len(data) < 260:
+            try:
+                is_file_source = os.path.isfile(data)
+            except OSError:
+                is_file_source = False
+
+        if is_file_source:
             source_file = Path(data)
             return self.store_blob_from_file(source_file, expected_hash=expected_hash)
 

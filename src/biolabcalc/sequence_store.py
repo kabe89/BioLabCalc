@@ -436,9 +436,16 @@ def import_fasta(
     filepath : Optional[str]
         If provided, the imported records are saved to this JSON store file.
     """
-    if os.path.isfile(fasta_text_or_path):
-        with open(fasta_text_or_path, "r", encoding="utf-8") as f:
-            content = f.read()
+    content: str
+    if "\n" not in fasta_text_or_path and "\r" not in fasta_text_or_path and len(fasta_text_or_path) < 260:
+        try:
+            if os.path.isfile(fasta_text_or_path):
+                with open(fasta_text_or_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            else:
+                content = fasta_text_or_path
+        except OSError:
+            content = fasta_text_or_path
     else:
         content = fasta_text_or_path
 

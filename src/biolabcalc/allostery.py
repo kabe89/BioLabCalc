@@ -72,11 +72,27 @@ def parse_pdb_ca_coordinates(pdb_text_or_path: Union[str, Path]) -> Tuple[Residu
     Parse C-alpha (CA) atom coordinates from PDB text content or a file path.
     """
     content: str
-    p = Path(str(pdb_text_or_path))
-    if p.is_file():
-        content = p.read_text(encoding="utf-8", errors="replace")
+    if isinstance(pdb_text_or_path, Path):
+        try:
+            if pdb_text_or_path.is_file():
+                content = pdb_text_or_path.read_text(encoding="utf-8", errors="replace")
+            else:
+                content = str(pdb_text_or_path)
+        except OSError:
+            content = str(pdb_text_or_path)
     else:
-        content = str(pdb_text_or_path)
+        raw_s = str(pdb_text_or_path)
+        if "\n" not in raw_s and "\r" not in raw_s and len(raw_s) < 260:
+            try:
+                p = Path(raw_s)
+                if p.is_file():
+                    content = p.read_text(encoding="utf-8", errors="replace")
+                else:
+                    content = raw_s
+            except OSError:
+                content = raw_s
+        else:
+            content = raw_s
 
     nodes: List[ResidueNode] = []
     seen_res: Set[Tuple[str, int]] = set()

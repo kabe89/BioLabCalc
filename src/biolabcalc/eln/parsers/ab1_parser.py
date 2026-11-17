@@ -68,13 +68,28 @@ class AB1Parser:
         raw: bytes
         sample_name = "Sanger_Trace"
 
-        if isinstance(data_or_path, (str, Path)):
-            p = Path(str(data_or_path))
-            if p.is_file():
-                sample_name = p.stem
-                raw = p.read_bytes()
-            else:
+        if isinstance(data_or_path, Path):
+            try:
+                if data_or_path.is_file():
+                    sample_name = data_or_path.stem
+                    raw = data_or_path.read_bytes()
+                else:
+                    raw = str(data_or_path).encode("latin1")
+            except OSError:
                 raw = str(data_or_path).encode("latin1")
+        elif isinstance(data_or_path, str):
+            if "\n" not in data_or_path and "\r" not in data_or_path and len(data_or_path) < 260:
+                try:
+                    p = Path(data_or_path)
+                    if p.is_file():
+                        sample_name = p.stem
+                        raw = p.read_bytes()
+                    else:
+                        raw = data_or_path.encode("latin1")
+                except OSError:
+                    raw = data_or_path.encode("latin1")
+            else:
+                raw = data_or_path.encode("latin1")
         elif isinstance(data_or_path, (bytes, bytearray)):
             raw = bytes(data_or_path)
         else:

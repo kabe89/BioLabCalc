@@ -739,9 +739,16 @@ def parse_genbank(gb_text_or_path: str) -> PlasmidRecord:
     FEATURES table (feature_type, coordinates, qualifiers: label/gene/notes/color),
     and ORIGIN sequence. Correctly handles circular origin-spanning join() coordinates.
     """
-    if os.path.isfile(gb_text_or_path):
-        with open(gb_text_or_path, "r", encoding="utf-8") as f:
-            content = f.read()
+    content: str
+    if "\n" not in gb_text_or_path and "\r" not in gb_text_or_path and len(gb_text_or_path) < 260:
+        try:
+            if os.path.isfile(gb_text_or_path):
+                with open(gb_text_or_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            else:
+                content = gb_text_or_path
+        except OSError:
+            content = gb_text_or_path
     else:
         content = gb_text_or_path
 
@@ -1156,13 +1163,28 @@ def parse_snapgene_dna(data_or_path: Union[bytes, str, Path]) -> PlasmidRecord:
 
     name = "SnapGene_Construct"
 
-    if isinstance(data_or_path, (str, Path)):
-        p = Path(str(data_or_path))
-        if p.is_file():
-            name = p.stem
-            raw_bytes = p.read_bytes()
-        else:
+    if isinstance(data_or_path, Path):
+        try:
+            if data_or_path.is_file():
+                name = data_or_path.stem
+                raw_bytes = data_or_path.read_bytes()
+            else:
+                raw_bytes = str(data_or_path).encode("latin1")
+        except OSError:
             raw_bytes = str(data_or_path).encode("latin1")
+    elif isinstance(data_or_path, str):
+        if "\n" not in data_or_path and "\r" not in data_or_path and len(data_or_path) < 260:
+            try:
+                p = Path(data_or_path)
+                if p.is_file():
+                    name = p.stem
+                    raw_bytes = p.read_bytes()
+                else:
+                    raw_bytes = data_or_path.encode("latin1")
+            except OSError:
+                raw_bytes = data_or_path.encode("latin1")
+        else:
+            raw_bytes = data_or_path.encode("latin1")
     elif isinstance(data_or_path, (bytes, bytearray)):
         raw_bytes = bytes(data_or_path)
     else:

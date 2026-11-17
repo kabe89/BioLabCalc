@@ -218,7 +218,19 @@ class DocumentVaultService:
             data_bytes: bytes
             resolved_filename = filename
 
-            if isinstance(data, Path) or (isinstance(data, str) and os.path.isfile(data)):
+            is_file_target = False
+            if isinstance(data, Path):
+                try:
+                    is_file_target = data.is_file()
+                except OSError:
+                    is_file_target = False
+            elif isinstance(data, str) and "\n" not in data and "\r" not in data and len(data) < 260:
+                try:
+                    is_file_target = os.path.isfile(data)
+                except OSError:
+                    is_file_target = False
+
+            if is_file_target:
                 p = Path(data)
                 if not resolved_filename:
                     resolved_filename = p.name
@@ -540,12 +552,25 @@ class DocumentVaultService:
         with self._lock:
             # Normalize manifest input
             parsed_data: Any = manifest_data
-            if isinstance(manifest_data, (Path, str)):
-                if os.path.isfile(str(manifest_data)):
-                    with open(manifest_data, "r", encoding="utf-8") as f:
-                        parsed_data = json.load(f)
-                elif isinstance(manifest_data, str) and manifest_data.strip().startswith(("{", "[")):
+            if isinstance(manifest_data, str) and manifest_data.strip().startswith(("{", "[")):
+                try:
                     parsed_data = json.loads(manifest_data)
+                except Exception:
+                    parsed_data = {}
+            elif isinstance(manifest_data, Path):
+                try:
+                    if manifest_data.is_file():
+                        with open(manifest_data, "r", encoding="utf-8") as f:
+                            parsed_data = json.load(f)
+                except OSError:
+                    pass
+            elif isinstance(manifest_data, str) and "\n" not in manifest_data and "\r" not in manifest_data and len(manifest_data) < 260:
+                try:
+                    if os.path.isfile(manifest_data):
+                        with open(manifest_data, "r", encoding="utf-8") as f:
+                            parsed_data = json.load(f)
+                except OSError:
+                    pass
 
             doc_items: List[Dict[str, Any]] = []
             if isinstance(parsed_data, dict):

@@ -505,9 +505,16 @@ class LabReport:
     @classmethod
     def from_json(cls, json_str_or_path: str) -> LabReport:
         """Load a LabReport and its records from a JSON string or file path."""
-        if os.path.exists(json_str_or_path):
-            with open(json_str_or_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+        data: Dict[str, Any]
+        if "\n" not in json_str_or_path and "\r" not in json_str_or_path and len(json_str_or_path) < 260:
+            try:
+                if os.path.exists(json_str_or_path):
+                    with open(json_str_or_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                else:
+                    data = json.loads(json_str_or_path)
+            except OSError:
+                data = json.loads(json_str_or_path)
         else:
             data = json.loads(json_str_or_path)
 
@@ -537,34 +544,50 @@ class LabReport:
     def from_csv(cls, filepath_or_str: str) -> LabReport:
         """Load a LabReport and its records from a CSV file or string."""
         rep = cls()
-        if os.path.exists(filepath_or_str):
-            with open(filepath_or_str, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    val = float(row.get("Value", 0.0))
-                    tgt_raw = row.get("Target / Expected")
-                    tgt = float(tgt_raw) if tgt_raw and tgt_raw != "-" else None
-                    tol_raw = row.get("Tolerance (%)")
-                    tol = float(tol_raw) if tol_raw and tol_raw != "-" else None
-                    rep.records.append(MeasurementRecord(
-                        sample_id=row.get("Sample ID", "Sample-1"),
-                        parameter=row.get("Parameter", "Measurement"),
-                        value=val,
-                        unit=row.get("Unit", ""),
-                        target_or_expected=tgt,
-                        tolerance_pct=tol,
-                        status=row.get("Status", "PASS"),
-                        timestamp=row.get("Timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                        notes=row.get("Notes", ""),
-                    ))
+        reader = None
+        if "\n" not in filepath_or_str and "\r" not in filepath_or_str and len(filepath_or_str) < 260:
+            try:
+                if os.path.exists(filepath_or_str):
+                    with open(filepath_or_str, "r", encoding="utf-8") as f:
+                        reader = list(csv.DictReader(f))
+            except OSError:
+                pass
+        if reader is None:
+            import io
+            reader = list(csv.DictReader(io.StringIO(filepath_or_str)))
+
+        for row in reader:
+            val = float(row.get("Value", 0.0))
+            tgt_raw = row.get("Target / Expected")
+            tgt = float(tgt_raw) if tgt_raw and tgt_raw != "-" else None
+            tol_raw = row.get("Tolerance (%)")
+            tol = float(tol_raw) if tol_raw and tol_raw != "-" else None
+            rep.records.append(MeasurementRecord(
+                sample_id=row.get("Sample ID", "Sample-1"),
+                parameter=row.get("Parameter", "Measurement"),
+                value=val,
+                unit=row.get("Unit", ""),
+                target_or_expected=tgt,
+                tolerance_pct=tol,
+                status=row.get("Status", "PASS"),
+                timestamp=row.get("Timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                notes=row.get("Notes", ""),
+            ))
         return rep
 
     @classmethod
     def from_markdown(cls, filepath_or_str: str) -> LabReport:
         """Load a LabReport and its records from a Markdown report file or string."""
-        if os.path.exists(filepath_or_str):
-            with open(filepath_or_str, "r", encoding="utf-8") as f:
-                content = f.read()
+        content: str
+        if "\n" not in filepath_or_str and "\r" not in filepath_or_str and len(filepath_or_str) < 260:
+            try:
+                if os.path.exists(filepath_or_str):
+                    with open(filepath_or_str, "r", encoding="utf-8") as f:
+                        content = f.read()
+                else:
+                    content = filepath_or_str
+            except OSError:
+                content = filepath_or_str
         else:
             content = filepath_or_str
 
