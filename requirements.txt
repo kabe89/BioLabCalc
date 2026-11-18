@@ -49,4 +49,4 @@ biopython>=1.88             # Advanced sequence analysis, file formats (FASTA/Ge
 # ------------------------------------------------------------------------------
 # PostgreSQL 16+ adapter for enterprise high-concurrency production deployments.
 # Uncomment if deploying with an external PostgreSQL database:
-# psycopg2-binary>=2.9.0    # PostgreSQL database adapter with pgvector compatibility
+# psycopg2-binary>=2.9.13   # PostgreSQL database adapter with pgvector compatibility
