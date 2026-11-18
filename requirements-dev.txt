@@ -24,4 +24,4 @@ flake8>=5.0.0               # PEP 8 style guide enforcement and syntax checker (
 # ------------------------------------------------------------------------------
 setuptools>=61.0            # Build backend and package distribution metadata (pyproject.toml [build-system])
 wheel>=0.38.0               # Binary wheel distribution format builder (pyproject.toml [build-system], scripts/release.py)
-twine>=4.0.0                # PyPI distribution validation and secure uploading utility (scripts/release.py)
+twine>=7.0.0                # PyPI distribution validation and secure uploading utility (scripts/release.py)
