@@ -961,6 +961,84 @@ def plate_serial_dilution(
     )
 
 
+def print_protocol(
+    title: str = "Benchtop Protocol",
+    reactions: int = 16,
+    overage: float = 10.0,
+    reagents: Optional[List[Dict[str, Any]]] = None,
+    samples: Optional[List[str]] = None,
+    plate_type: str = "96-well",
+    trim_size: str = "8x10",
+    output_html_path: Optional[str] = "bench_protocol.html",
+) -> str:
+    """Generate a printable HTML benchtop protocol and plate layout for physical lab notebook tape-in.
+
+    Follows the 7-stage thermodynamic 'Enzyme-Last' addition hierarchy, calculates master mix overage,
+    and assigns recommended air-displacement pipetting tools (P2 to P1000).
+
+    Args:
+        title: Protocol header title.
+        reactions: Total number of reaction wells.
+        overage: Master mix excess percentage (default: 10.0%).
+        reagents: Optional list of reagent dicts with name, stock, final, volume_ul, category.
+        samples: Optional list of sample identifiers to map onto the plate grid.
+        plate_type: '96-well', '384-well', '24-tube', or '8-strip'.
+        trim_size: '8x10', '7.5x9.5', or 'full-page'.
+        output_html_path: File path to save the self-contained HTML document.
+
+    Returns:
+        HTML string of the complete printable protocol.
+    """
+    from .printable_protocol import (
+        build_bench_master_mix,
+        generate_plate_bench_sheet,
+        render_bench_companion_html,
+        GLPSignOffBlock,
+    )
+
+    if reagents is None:
+        reagents = [
+            {"name": "Nuclease-Free Water", "stock_conc": "100%", "final_conc": "QS", "vol_ul": 14.0, "category": "water"},
+            {"name": "5X Reaction Buffer", "stock_conc": "5X", "final_conc": "1X", "vol_ul": 5.0, "category": "buffer"},
+            {"name": "dNTP Mix (10 mM each)", "stock_conc": "10 mM", "final_conc": "200 µM", "vol_ul": 0.5, "category": "dntp"},
+            {"name": "Forward Primer (10 µM)", "stock_conc": "10 µM", "final_conc": "0.5 µM", "vol_ul": 1.25, "category": "primer"},
+            {"name": "Reverse Primer (10 µM)", "stock_conc": "10 µM", "final_conc": "0.5 µM", "vol_ul": 1.25, "category": "primer"},
+            {"name": "Template DNA (Separate)", "stock_conc": "50 ng/µL", "final_conc": "50 ng", "vol_ul": 2.5, "category": "template"},
+            {"name": "DNA Polymerase", "stock_conc": "2 U/µL", "final_conc": "0.02 U/µL", "vol_ul": 0.5, "category": "enzyme"},
+        ]
+
+    if samples is None:
+        samples = [f"Sample-{i+1}" for i in range(reactions)]
+
+    mix = build_bench_master_mix(
+        components=reagents,
+        total_reactions=reactions,
+        reaction_volume_ul=25.0,
+        excess_percent=overage,
+        separate_template=True,
+    )
+
+    plate = generate_plate_bench_sheet(
+        samples=samples,
+        plate_type=plate_type,
+    )
+
+    html_out = render_bench_companion_html(
+        title=title,
+        master_mix=mix,
+        plate_map=plate,
+        sign_off=GLPSignOffBlock(),
+        page_trim=trim_size,
+    )
+
+    if output_html_path:
+        os.makedirs(os.path.dirname(os.path.abspath(output_html_path)), exist_ok=True)
+        with open(output_html_path, "w", encoding="utf-8") as f:
+            f.write(html_out)
+
+    return html_out
+
+
 def read_scn(
     source: Union[bytes, str, Path],
     auto_contrast: bool = True,

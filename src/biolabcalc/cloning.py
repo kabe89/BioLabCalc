@@ -294,6 +294,31 @@ class DigestSetupResult:
         if isinstance(self.notes, (list, set, tuple)):
             object.__setattr__(self, "notes", tuple(self.notes))
 
+    @property
+    def volume_ul(self) -> float:
+        """Alias for reaction_volume_ul."""
+        return self.reaction_volume_ul
+
+    @property
+    def mass_ug(self) -> float:
+        """Alias for dna_mass_ug."""
+        return self.dna_mass_ug
+
+    @property
+    def buffer(self) -> str:
+        """Alias for recommended_buffer."""
+        return self.recommended_buffer
+
+    @property
+    def temp_celsius(self) -> int:
+        """Alias for incubation_temp_celsius."""
+        return self.incubation_temp_celsius
+
+    @property
+    def time_min(self) -> int:
+        """Alias for incubation_time_min."""
+        return self.incubation_time_min
+
 
 @dataclass(frozen=True)
 class LigationSetupResult:
@@ -306,6 +331,31 @@ class LigationSetupResult:
     insert_pmol: float
     reagent_volumes: Dict[str, float]
     incubation_guidelines: str
+
+    @property
+    def vector_bp(self) -> int:
+        """Alias for vector_length_bp."""
+        return self.vector_length_bp
+
+    @property
+    def insert_bp(self) -> int:
+        """Alias for insert_length_bp."""
+        return self.insert_length_bp
+
+    @property
+    def vector_ng(self) -> float:
+        """Alias for vector_mass_ng."""
+        return self.vector_mass_ng
+
+    @property
+    def insert_ng(self) -> float:
+        """Alias for insert_mass_ng."""
+        return self.insert_mass_ng
+
+    @property
+    def ratio(self) -> float:
+        """Alias for molar_ratio_insert_to_vector."""
+        return self.molar_ratio_insert_to_vector
 
 
 @dataclass(frozen=True)
@@ -323,6 +373,31 @@ class GibsonAssemblyResult:
             val = getattr(self, f, ())
             if isinstance(val, (list, set, tuple)):
                 object.__setattr__(self, f, tuple(val))
+
+    @property
+    def vector_bp(self) -> int:
+        """Alias for vector_length_bp."""
+        return self.vector_length_bp
+
+    @property
+    def vector_ng(self) -> float:
+        """Alias for vector_mass_ng."""
+        return self.vector_mass_ng
+
+    @property
+    def insert_bp(self) -> Tuple[int, ...]:
+        """Alias for insert_lengths_bp."""
+        return self.insert_lengths_bp
+
+    @property
+    def insert_ng(self) -> Tuple[float, ...]:
+        """Alias for insert_masses_ng."""
+        return self.insert_masses_ng
+
+    @property
+    def total_pmol(self) -> float:
+        """Alias for total_dna_pmol."""
+        return self.total_dna_pmol
 
 
 def plan_restriction_digest(
@@ -637,6 +712,45 @@ class GoldenGateResult:
             val = getattr(self, f, ())
             if isinstance(val, (list, set, tuple)):
                 object.__setattr__(self, f, tuple(val))
+
+    @property
+    def vector_ng(self) -> float:
+        """Alias for vector mass in ng."""
+        return self.vector_mass_ng
+
+    @property
+    def insert_ng(self) -> Tuple[float, ...]:
+        """Alias for insert masses in ng."""
+        return self.insert_masses_ng
+
+    @property
+    def total_ng(self) -> float:
+        """Alias for total DNA mass in ng."""
+        return self.total_dna_mass_ng
+
+    @property
+    def vector_bp(self) -> int:
+        """Alias for vector length in base pairs."""
+        return self.vector_length_bp
+
+    @property
+    def insert_bp(self) -> Tuple[int, ...]:
+        """Alias for insert lengths in base pairs."""
+        return self.insert_lengths_bp
+
+    @property
+    def volume_ul(self) -> float:
+        """Alias for reaction_volume_ul."""
+        return self.reaction_volume_ul
+
+    @property
+    def ratio(self) -> float:
+        """Alias for insert_to_vector_ratio."""
+        return self.insert_to_vector_ratio
+
+
+# Ergonomic alias
+GoldenGatePlan = GoldenGateResult
 
 
 def calculate_golden_gate_assembly(

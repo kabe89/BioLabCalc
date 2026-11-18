@@ -47,6 +47,31 @@ class PrimerAnalysis:
     three_prime_dg_kcal: float = 0.0
     alignment_ascii: str = ""
 
+    @property
+    def length_nt(self) -> int:
+        """Alias for length in nucleotides."""
+        return self.length
+
+    @property
+    def tm(self) -> float:
+        """Alias for melting temperature in Celsius."""
+        return self.tm_celsius
+
+    @property
+    def gc(self) -> float:
+        """Alias for GC content percentage."""
+        return self.gc_percent
+
+    @property
+    def gc_pct(self) -> float:
+        """Alias for GC content percentage."""
+        return self.gc_percent
+
+    @property
+    def seq(self) -> str:
+        """Alias for primer sequence."""
+        return self.sequence
+
     def _repr_html_(self) -> str:
         """Render clean HTML summary for Jupyter notebooks."""
         import html
@@ -87,6 +112,41 @@ class PrimerPair:
     heterodimer_dg_kcal: float = 0.0
     three_prime_dg_kcal: float = 0.0
     alignment_ascii: str = ""
+
+    @property
+    def forward(self) -> PrimerAnalysis:
+        """Alias for forward primer analysis."""
+        return self.forward_primer
+
+    @property
+    def reverse(self) -> PrimerAnalysis:
+        """Alias for reverse primer analysis."""
+        return self.reverse_primer
+
+    @property
+    def fwd(self) -> PrimerAnalysis:
+        """Convenience alias for forward primer."""
+        return self.forward_primer
+
+    @property
+    def rev(self) -> PrimerAnalysis:
+        """Convenience alias for reverse primer."""
+        return self.reverse_primer
+
+    @property
+    def amplicon_bp(self) -> int:
+        """Alias for expected amplicon length in base pairs."""
+        return self.amplicon_length_bp
+
+    @property
+    def length_bp(self) -> int:
+        """Alias for expected amplicon length in base pairs."""
+        return self.amplicon_length_bp
+
+    @property
+    def delta_tm(self) -> float:
+        """Alias for melting temperature difference."""
+        return self.tm_difference
 
     def _repr_html_(self) -> str:
         """Render clean HTML summary for Jupyter notebooks."""

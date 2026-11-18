@@ -758,7 +758,6 @@ def handle_annotate_gel(args: argparse.Namespace) -> None:
     lad_choice = LADDER_ALIAS_MAP.get(args.ladder, args.ladder)
     ann.add_ladder(lane_index=args.ladder_lane, ladder_type=lad_choice, side=args.ladder_side)
 
-
     if args.bands:
         band_items = args.bands.split(",")
         for item in band_items:
@@ -769,12 +768,114 @@ def handle_annotate_gel(args: argparse.Namespace) -> None:
                 lbl = parts[2] if len(parts) > 2 else f"{s_val}"
                 ann.add_band(lane_index=l_idx, size_bp_or_kda=s_val, label=lbl)
 
-    img_out = ann.render(args.output, dpi=250)
+    from .gels import GelTypographyConfig
+
+    typography = GelTypographyConfig(
+        font_family=getattr(args, "font_family", "Arial, Helvetica, sans-serif"),
+        font_scale=getattr(args, "font_scale", 1.0),
+        show_lane_numbers=getattr(args, "show_lane_numbers", True),
+        lane_number_style=getattr(args, "lane_number_style", "circle"),
+        lane_number_format=getattr(args, "lane_number_format", "numeric"),
+    )
+
+    include_tbl = getattr(args, "include_table", False)
+    img_out = ann.render(args.output, dpi=250, style=typography, include_table=include_tbl)
     print(f"Annotated gel figure saved to: {img_out}")
 
     if args.excel:
-        xl_out = ann.embed_in_excel(args.excel, sheet_name="Annotated_Gel")
+        xl_out = ann.embed_in_excel(args.excel, sheet_name="Annotated_Gel", style=typography)
         print(f"Gel figure and lane summary table embedded into Excel at: {xl_out}")
+
+
+def handle_print_protocol(args: argparse.Namespace) -> None:
+    from .printable_protocol import (
+        build_bench_master_mix,
+        generate_plate_bench_sheet,
+        render_bench_companion_html,
+        GLPSignOffBlock,
+    )
+
+    rxn_count = args.reactions
+    overage_pct = args.overage
+
+    samples = [s.strip() for s in args.samples.split(",") if s.strip()] if getattr(args, "samples", None) else []
+    if not samples:
+        samples = [f"Sample-{i+1}" for i in range(rxn_count)]
+
+    template_type = getattr(args, "template", "pcr").lower()
+    if template_type in ("pcr", "qpcr"):
+        mix = build_bench_master_mix(
+            components=[
+                {"name": "Nuclease-Free Water", "stock_conc": "100%", "final_conc": "QS", "vol_ul": 14.0, "category": "water"},
+                {"name": "5X Q5 Reaction Buffer", "stock_conc": "5X", "final_conc": "1X", "vol_ul": 5.0, "category": "buffer"},
+                {"name": "dNTP Mix (10 mM each)", "stock_conc": "10 mM", "final_conc": "200 µM", "vol_ul": 0.5, "category": "dntp"},
+                {"name": "Forward Primer (10 µM)", "stock_conc": "10 µM", "final_conc": "0.5 µM", "vol_ul": 1.25, "category": "primer"},
+                {"name": "Reverse Primer (10 µM)", "stock_conc": "10 µM", "final_conc": "0.5 µM", "vol_ul": 1.25, "category": "primer"},
+                {"name": "Template DNA (Separate)", "stock_conc": "50 ng/µL", "final_conc": "50 ng", "vol_ul": 2.5, "category": "template"},
+                {"name": "Q5 High-Fidelity Polymerase", "stock_conc": "2 U/µL", "final_conc": "0.02 U/µL", "vol_ul": 0.5, "category": "enzyme"},
+            ],
+            total_reactions=rxn_count,
+            reaction_volume_ul=25.0,
+            excess_percent=overage_pct,
+            separate_template=True,
+        )
+    elif template_type in ("digest", "restriction"):
+        mix = build_bench_master_mix(
+            components=[
+                {"name": "Nuclease-Free Water", "stock_conc": "100%", "final_conc": "QS", "vol_ul": 38.0, "category": "water"},
+                {"name": "10X rCutSmart Buffer", "stock_conc": "10X", "final_conc": "1X", "vol_ul": 5.0, "category": "buffer"},
+                {"name": "Plasmid DNA (Separate)", "stock_conc": "200 ng/µL", "final_conc": "1 µg", "vol_ul": 5.0, "category": "template"},
+                {"name": "Restriction Enzyme 1", "stock_conc": "20 U/µL", "final_conc": "20 U", "vol_ul": 1.0, "category": "enzyme"},
+                {"name": "Restriction Enzyme 2", "stock_conc": "20 U/µL", "final_conc": "20 U", "vol_ul": 1.0, "category": "enzyme"},
+            ],
+            total_reactions=rxn_count,
+            reaction_volume_ul=50.0,
+            excess_percent=overage_pct,
+            separate_template=True,
+        )
+    else:
+        mix = build_bench_master_mix(
+            components=[
+                {"name": "Nuclease-Free Water", "stock_conc": "100%", "final_conc": "QS", "vol_ul": 15.0, "category": "water"},
+                {"name": "2X Master Mix Buffer", "stock_conc": "2X", "final_conc": "1X", "vol_ul": 10.0, "category": "buffer"},
+            ],
+            total_reactions=rxn_count,
+            reaction_volume_ul=25.0,
+            excess_percent=overage_pct,
+            separate_template=False,
+        )
+
+    plate = generate_plate_bench_sheet(
+        samples=samples,
+        plate_type=args.plate_type,
+    )
+
+    sign_off = GLPSignOffBlock(
+        operator_name=getattr(args, "operator", "") or "",
+        project_id=getattr(args, "project", "") or "",
+        protocol_id=getattr(args, "protocol_id", "") or "SOP-BIO-01",
+    )
+
+    html_content = render_bench_companion_html(
+        title=args.title,
+        master_mix=mix,
+        plate_map=plate,
+        sign_off=sign_off,
+        page_trim=args.trim_size,
+    )
+
+    out_file = args.output or "bench_protocol.html"
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    print(f"Printable benchtop protocol & plate sheet generated: {out_file}")
+    print(f"  • Formulation: {rxn_count} reactions (+{overage_pct}% overage) -> {mix.master_mix_total_volume_ul:g} µL total mix ({mix.pipette_for_master_mix})")
+    print(f"  • Plate Grid: {args.plate_type} with {plate.used_wells_count} wells mapped")
+    print(f"  • Notebook Trim: {args.trim_size} with tamper-evident paste seams and GLP sign-off block")
+
+    if getattr(args, "open_browser", False):
+        import webbrowser
+        webbrowser.open(f"file://{os.path.abspath(out_file)}")
 
 
 def handle_interactive_gel(args: argparse.Namespace) -> None:
@@ -2273,6 +2374,7 @@ COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
     "aptamer": handle_aptamer,
     "plate": handle_plate,
     "scn": handle_scn,
+    "print-protocol": handle_print_protocol,
 }
 
 
@@ -2425,12 +2527,34 @@ def build_parser() -> argparse.ArgumentParser:
     p_ann.add_argument("-o", "--output", default="annotated_gel.png", help="Output annotated image path (.png)")
     p_ann.add_argument("--excel", default=None, help="Optional Excel file to embed annotated image and lane table")
     p_ann.add_argument("--invert", action="store_true", help="Invert colors (dark bands on light background)")
+    p_ann.add_argument("--font-family", default="Arial, Helvetica, sans-serif", help="Font family for figure labels")
+    p_ann.add_argument("--font-scale", type=float, default=1.0, help="Font scaling factor (default: 1.0)")
+    p_ann.add_argument("--show-lane-numbers", action="store_true", default=True, help="Display lane number indicators (default: True)")
+    p_ann.add_argument("--hide-lane-numbers", action="store_false", dest="show_lane_numbers", help="Hide lane number indicators")
+    p_ann.add_argument("--lane-number-style", default="circle", choices=["circle", "square", "plain"], help="Style of lane number badge")
+    p_ann.add_argument("--lane-number-format", default="numeric", choices=["numeric", "prefixed_L", "prefixed_lane", "alpha", "roman"], help="Numbering format scheme")
+    p_ann.add_argument("--include-table", action="store_true", help="Render formatted lane sample designation table below the gel figure")
 
     # 13. interactive-gel
     p_int = subparsers.add_parser("interactive-gel", parents=[common], help="Launch the interactive drag-and-drop gel annotator and molecular weight calculator in browser")
     p_int.add_argument("-p", "--port", type=int, default=8501, help="Local port (default: 8501)")
     p_int.add_argument("--save-html", default=None, help="Save standalone HTML5 application file without running server")
     p_int.add_argument("--no-browser", action="store_true", help="Do not open web browser automatically")
+
+    # 13b. print-protocol
+    p_proto = subparsers.add_parser("print-protocol", parents=[common], help="Generate printable benchtop protocol with master mix overage, pipette tool recommendations, and plate map")
+    p_proto.add_argument("-t", "--title", default="Q5 High-Fidelity PCR Amplification", help="Protocol or experiment title")
+    p_proto.add_argument("-n", "--reactions", type=int, default=24, help="Total number of experimental reactions")
+    p_proto.add_argument("--overage", type=float, default=10.0, help="Master mix overage percentage (default: 10.0)")
+    p_proto.add_argument("--template", default="pcr", choices=["pcr", "qpcr", "digest", "custom"], help="Reaction template preset")
+    p_proto.add_argument("--plate-type", default="96-well", choices=["96-well", "384-well", "24-tube", "8-strip"], help="Benchware plate/rack layout")
+    p_proto.add_argument("-s", "--samples", default=None, help="Comma-separated sample names to map onto plate")
+    p_proto.add_argument("--trim-size", default="8x10", choices=["8x10", "7.5x9.5", "full-page"], help="Laboratory notebook page trim guide")
+    p_proto.add_argument("-o", "--output", default="bench_protocol.html", help="Output HTML document path")
+    p_proto.add_argument("--operator", default="", help="Operator name for GLP compliance sign-off")
+    p_proto.add_argument("--project", default="", help="Project or grant ID")
+    p_proto.add_argument("--protocol-id", default="SOP-BIO-01", help="Internal SOP/protocol ID")
+    p_proto.add_argument("--open-browser", action="store_true", help="Automatically open generated protocol in web browser")
 
     # 14. batch-excel
     p_batch = subparsers.add_parser("batch-excel", parents=[common], help="Batch process sequence tables from an Excel spreadsheet")

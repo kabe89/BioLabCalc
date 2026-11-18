@@ -274,12 +274,17 @@ For graphical interaction, BioLabCalc includes a zero-dependency HTML5 Canvas ap
 ### Key Capabilities
 
 1. **Client-Side Image Manipulation**:
-   - Drag-and-drop ingestion of standard image formats (TIFF, PNG, JPEG).
+   - Drag-and-drop ingestion of standard image formats (TIFF, PNG, JPEG, Bio-Rad `.scn`/`.1sc`).
    - Real-time adjustment of brightness (50%–200%) and contrast (50%–250%).
    - Monochromatic inversion toggle (`invertGelColors`) to alternate between UV transilluminator (white bands on dark background) and colorimetric/Coomassie (dark bands on clear background) modes.
-2. **Interactive Lane Geometry**:
+2. **Interactive Lane Geometry & Typography Customization**:
    - Dynamic lane division (2 to 24 lanes) mapped across the image width.
    - Per-lane sample name editing and automatic numbered lane pill placement.
+   - Comprehensive font family configuration (`Arial / Helvetica`, `'Times New Roman'`, `Consolas / Monospace`, `Inter`).
+   - Fluid font scaling (70% to 180%) updating all canvas text dynamically.
+   - Lane numbering customization: badge styles (`circle`, `square`, `plain text`) and formats (`numeric`, `prefixed_L` e.g. L1, `prefixed_lane` e.g. Lane 1, `alpha` e.g. A, B, C, or `roman` e.g. I, II, III).
+   - Independent bold toggling for lane titles, badge numbers, molecular weight ladder markings, and annotated band tags.
+   - Lane header rotation angle adjustment (45° angled, 0° horizontal, or 90° vertical).
 3. **Logarithmic Standard Curve Calibration**:
    - Assigns any lane as the molecular weight ladder.
    - Computes standard curve regression parameters:
@@ -290,10 +295,53 @@ For graphical interaction, BioLabCalc includes a zero-dependency HTML5 Canvas ap
    - Solves for molecular weight using the fitted linear regression:
      $$\text{MW}_{\text{est}} = 10^{(m \cdot R_f + c)}$$
    - Displays calculated size and $R_f$ in the readout panel.
-5. **Callout Tagging & Export**:
+5. **Draggable Band Callouts & Tagging**:
    - Renders draggable callout badges with connecting pointer arrows.
    - Double-click to rename or delete band tags.
-   - Single-click export to high-resolution PNG (`exportGelPNG`) or structured CSV (`exportTableCSV`).
+6. **Lane Sample Designation Table & Combined Figure Export**:
+   - A synchronized bench table located directly beneath the gel canvas.
+   - Live fields: Lane #, Sample Name, Sample Type (`sample`, `ladder`, `control`, `blank`), Loading Mass/Volume (e.g. 10 µL, 150 ng), Reaction Mix (e.g. Q5 Mix), Observed Bands (auto-populated from picked bands), and Notes.
+   - **One-Click Markdown Copy**: Instant conversion into clean GitHub-flavored Markdown for pasting into digital lab notebooks (ELN).
+   - **Export Combined Figure**: Renders the complete annotated gel alongside the formatted sample designation table into a single high-resolution PNG figure for manuscripts, thesis dissertations, and slide presentations.
+   - **Structured CSV Export**: Exports comprehensive sample metadata, mobility values, and molecular weights.
+
+---
+
+## 6. Python Typography API (`GelTypographyConfig` & `LaneMetadata`)
+
+Programmatic figure generation via `gel_annotator.py` or SVG export via `gels.py` fully honors the unified typography configuration:
+
+```python
+import biolabcalc as blc
+from biolabcalc.gels import GelTypographyConfig, LaneMetadata
+from biolabcalc.gel_annotator import GelAnnotator
+
+# Configure typography styling
+typography = GelTypographyConfig(
+    font_family="Arial, Helvetica, sans-serif",
+    font_scale=1.1,
+    show_lane_numbers=True,
+    lane_number_style="circle",
+    lane_number_format="prefixed_L",  # L1, L2, L3...
+    bold_lane_names=True,
+    bold_lane_numbers=True,
+    bold_band_tags=True,
+)
+
+# Set up annotator with sample designations
+ann = GelAnnotator.synthetic(num_lanes=4, title="Colony PCR Validation")
+ann.set_lane_metadata([
+    LaneMetadata(lane_index=1, name="1 kb DNA Ladder", sample_type="ladder", loading_amount="5 µL", reaction_mix="NEB 1kb", notes="Standard"),
+    LaneMetadata(lane_index=2, name="No Template Control", sample_type="control", loading_amount="10 µL", reaction_mix="Q5 Master Mix", notes="Negative"),
+    LaneMetadata(lane_index=3, name="Clone #1", sample_type="sample", loading_amount="10 µL", reaction_mix="Q5 Master Mix", notes="Positive clone"),
+    LaneMetadata(lane_index=4, name="Clone #2", sample_type="sample", loading_amount="10 µL", reaction_mix="Q5 Master Mix", notes="Failed colony"),
+])
+ann.add_ladder(1, "1kb_dna")
+ann.add_band(3, 850, "850 bp Amplicon")
+
+# Render combined figure with synchronized sample table below
+ann.render("annotated_gel_figure.png", dpi=300, style=typography, include_table=True)
+```
 
 ### Running the Interactive Web Application
 

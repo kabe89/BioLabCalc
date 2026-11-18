@@ -95,7 +95,9 @@ from .pcr import (
     build_master_mix,
     optimize_pcr_protocol,
     PCRResult,
+    PCRReaction,
     MasterMixItem,
+    PCRMasterMix,
     PCROptimizationResult,
 )
 
@@ -141,6 +143,21 @@ from .gels import (
     GelLaneSimulation,
     GelBand,
     LADDER_CATALOG,
+    GelTypographyConfig,
+    LaneMetadata,
+    format_lane_number,
+)
+
+from .printable_protocol import (
+    determine_pipette_tool,
+    build_bench_master_mix,
+    generate_plate_bench_sheet,
+    render_bench_companion_html,
+    BenchReagent,
+    MasterMixFormulation,
+    BenchWell,
+    BenchPlateMap,
+    GLPSignOffBlock,
 )
 
 from .ecoli_growth import (
@@ -167,6 +184,7 @@ from .cloning import (
     LigationSetupResult,
     GibsonAssemblyResult,
     GoldenGateResult,
+    GoldenGatePlan,
 )
 
 from .buffers import (
@@ -268,7 +286,10 @@ from .plasmid import (
 from .restriction_engine import (
     RestrictionCutSite,
     DigestedFragment,
+    RestrictionFragment,
     RestrictionDigestPrediction,
+    DigestionPrediction,
+    RestrictionDigestResult,
     EnzymeScreenResult,
     find_restriction_sites,
     predict_restriction_digest,
@@ -406,7 +427,9 @@ __all__ = [
     "build_master_mix",
     "optimize_pcr_protocol",
     "PCRResult",
+    "PCRReaction",
     "MasterMixItem",
+    "PCRMasterMix",
     "PCROptimizationResult",
     "calculate_tm_santalucia",
     "calculate_tm_santaluicia",
@@ -440,6 +463,9 @@ __all__ = [
     "GelLaneSimulation",
     "GelBand",
     "LADDER_CATALOG",
+    "GelTypographyConfig",
+    "LaneMetadata",
+    "format_lane_number",
     # E. coli Growth & Expression
     "calculate_ecoli_growth",
     "calculate_inoculation_volume",
@@ -455,6 +481,7 @@ __all__ = [
     "calculate_gibson_assembly",
     "calculate_golden_gate_assembly",
     "GoldenGateResult",
+    "GoldenGatePlan",
     "are_overhangs_compatible",
     "register_custom_enzyme",
     "ENZYME_DATABASE",
@@ -548,7 +575,10 @@ __all__ = [
     # v0.4.0: Restriction Engine & In-Silico Digest
     "RestrictionCutSite",
     "DigestedFragment",
+    "RestrictionFragment",
     "RestrictionDigestPrediction",
+    "DigestionPrediction",
+    "RestrictionDigestResult",
     "EnzymeScreenResult",
     "find_restriction_sites",
     "predict_restriction_digest",
@@ -600,4 +630,14 @@ __all__ = [
     "export_opentrons_protocol",
     "export_pylabrobot_json",
     "plate_serial_dilution",
+    # Printable Protocol & Bench Companion
+    "determine_pipette_tool",
+    "build_bench_master_mix",
+    "generate_plate_bench_sheet",
+    "render_bench_companion_html",
+    "BenchReagent",
+    "MasterMixFormulation",
+    "BenchWell",
+    "BenchPlateMap",
+    "GLPSignOffBlock",
 ]

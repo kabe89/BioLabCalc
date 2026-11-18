@@ -236,6 +236,119 @@ When multiple researchers access the protocol library over a shared network driv
 
 ---
 
+## 🖨️ Printable Benchtop Companion & Physical Lab Notebook Sheets
+
+In wet-lab environments, biosafety cabinets, radioisotope suites, and cleanrooms, scientists frequently cannot operate laptops or touchscreens while wearing PPE. Furthermore, many academic, clinical, and industrial laboratories enforce physical paper laboratory notebooks (e.g., Boorum & Pease archival bound notebooks) for patent documentation and regulatory compliance.
+
+BioLabCalc's `printable_protocol.py` engine generates standalone, print-optimized HTML5/CSS documents (`@media print`) that can be printed on benchtop laser printers and pasted directly into physical lab notebooks.
+
+### 1. 7-Stage Thermodynamic Addition Priority (Enzyme-Last Hierarchy)
+
+Master mixes are automatically structured following the thermodynamic order of addition to prevent osmotic shock, buffer precipitation, or premature enzymatic degradation:
+
+| Stage | Component Category | Examples | Bench Directive & Handling |
+| :---: | :--- | :--- | :--- |
+| **1** | **Water & Solvents** | Nuclease-free $\text{ddH}_2\text{O}$, DEPC water | Ambient; provides bulk thermal and ionic dilution buffer |
+| **2** | **Salts & Reaction Buffers** | 10X Taq Buffer, 5X Q5 Buffer, $\text{MgCl}_2$ | Vortex and thaw completely before adding |
+| **3** | **Reaction Additives & Enhancers** | DMSO, Betaine, Glycerol, BSA, DTT | Thaw gently; mix thoroughly |
+| **4** | **Nucleotides** | dNTP mix (10 mM each), rNTPs | Keep chilled; avoid freeze-thaw cycles |
+| **5** | **Oligos & Primers** | Forward / Reverse PCR primers, probes | Pulse spin before opening caps |
+| **6** | **Template DNA / RNA** | Plasmid DNA, cDNA, gDNA | Added individually to reaction wells (separate addition) |
+| **7** | **Active Enzymes** | DNA Polymerase, Reverse Transcriptase, Ligase | **[❄️ 4°C ICE]** Keep on ice; add last; flick/invert gently to mix |
+
+### 2. Overage Calculations & Pipette Tool Sizing
+
+Formulations automatically compute surplus reaction volume to absorb pipetting loss across viscous components:
+
+$$\text{Total Multiplier} = N_{\text{rxn}} \cdot \left(1 + \frac{\text{Overage \%}}{100}\right)$$
+
+Every component line item displays:
+- Stock concentration and desired final reaction concentration.
+- Single reaction volume ($\mu\text{L}$) and total master mix volume ($\mu\text{L}$).
+- Recommended calibrated air-displacement pipette tool:
+  - $\le 2.0\,\mu\text{L} \rightarrow \mathbf{P2}$
+  - $2.1 - 10.0\,\mu\text{L} \rightarrow \mathbf{P10}$
+  - $10.1 - 20.0\,\mu\text{L} \rightarrow \mathbf{P20}$
+  - $20.1 - 200.0\,\mu\text{L} \rightarrow \mathbf{P200}$
+  - $> 200.0\,\mu\text{L} \rightarrow \mathbf{P1000}$
+
+### 3. Visual Benchware Plate & Tube Maps
+
+The printable sheet formats visual loading maps with physical orientation indicators:
+- **96-Well & 384-Well Grids**: Features a high-contrast chamfer notch indicator at coordinate **A1** matching physical microplate geometry.
+- **Tube & Strip Racks**: Formatted for 24-tube bench racks or 8-strip PCR tubes.
+- **Benchtop Well Checkboxes**: Each well contains a circular checkbox allowing operators to physically check off wells as samples or master mix aliquots are dispensed.
+
+### 4. Physical Lab Notebook Trim Guides & Archival Sign-Off
+
+The output CSS renders cutting and pasting guides designed specifically for physical laboratory notebook tape-ins:
+- **Notebook Trim Guides**: Pre-calibrated margins for $8'' \times 10''$ standard notebooks or $7.5'' \times 9.5''$ composition notebooks.
+- **Tamper-Evident Paste Seams**: Corner tabs and cross-boundary witness lines across the paper margin (`[Initials / Date Across Seam]`) ensuring compliance with intellectual property and legal patent filing guidelines.
+- **GLP/GMP Archival Sign-Off Block**: Pre-formatted tables capturing Operator Name, Signature, Date Executed, Project ID, SOP ID, Notebook & Page Number, and Witness/PI Counter-Signature.
+
+### 5. Python API & CLI Generation
+
+```bash
+# Generate a 24-reaction PCR bench sheet with 10% overage and 96-well plate map
+biolabcalc print-protocol \
+  --title "Q5 Colony PCR Screening" \
+  --reactions 24 \
+  --overage 10 \
+  --template pcr \
+  --plate-type 96-well \
+  --trim-size 8x10 \
+  --output "colony_pcr_protocol.html"
+```
+
+Via Python:
+
+```python
+import biolabcalc as blc
+from biolabcalc.printable_protocol import (
+    build_bench_master_mix,
+    generate_plate_bench_sheet,
+    render_bench_companion_html,
+    GLPSignOffBlock,
+)
+
+# 1. Formulate master mix with 10% overage
+mix = build_bench_master_mix(
+    num_reactions=16,
+    excess_percent=10.0,
+    reagents_per_rxn=[
+        {"name": "Nuclease-Free Water", "stock": "-", "final": "-", "volume_ul": 14.5, "category": "water"},
+        {"name": "5X Q5 Reaction Buffer", "stock": "5X", "final": "1X", "volume_ul": 5.0, "category": "buffer"},
+        {"name": "10 mM dNTPs", "stock": "10 mM", "final": "200 µM", "volume_ul": 0.5, "category": "dntp"},
+        {"name": "Fwd Primer (10 µM)", "stock": "10 µM", "final": "0.5 µM", "volume_ul": 1.25, "category": "primer"},
+        {"name": "Rev Primer (10 µM)", "stock": "10 µM", "final": "0.5 µM", "volume_ul": 1.25, "category": "primer"},
+        {"name": "Plasmid DNA", "stock": "50 ng/µL", "final": "50 ng", "volume_ul": 2.0, "category": "template", "is_separate": True},
+        {"name": "Q5 High-Fidelity DNA Polymerase", "stock": "2 U/µL", "final": "0.02 U/µL", "volume_ul": 0.5, "category": "enzyme"},
+    ],
+    single_rxn_total_vol_ul=25.0,
+    aliquot_per_well_ul=23.0,
+)
+
+# 2. Map samples across a 96-well plate
+plate = generate_plate_bench_sheet(
+    sample_names=[f"Colony-{i+1}" for i in range(16)],
+    plate_type="96-well",
+)
+
+# 3. Render HTML document
+html_doc = render_bench_companion_html(
+    title="pUC19 Insert Verification Colony PCR",
+    master_mix=mix,
+    plate_map=plate,
+    sign_off=GLPSignOffBlock(operator_name="Dr. Jane Smith", project_id="PRJ-SYNTH-04"),
+    page_trim="8x10",
+)
+
+with open("bench_protocol.html", "w", encoding="utf-8") as f:
+    f.write(html_doc)
+```
+
+---
+
 ## 🔗 Related Documentation
 * [Electronic Lab Notebook (ELN)](Electronic-Lab-Notebook-(ELN)) — System architecture and web SPA overview.
 * [GxP Compliance & Audit Trails](GxP-Compliance-&-Audit-Trails) — Audit ledger hashing, 21 CFR Part 11, and electronic signatures.

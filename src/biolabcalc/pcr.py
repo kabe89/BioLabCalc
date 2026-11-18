@@ -28,6 +28,51 @@ class PCRResult:
     theoretical_max_amplicon_ug: float
     limiting_reagent: str = "dNTPs"
 
+    @property
+    def length_bp(self) -> int:
+        """Alias for amplicon length in base pairs."""
+        return self.amplicon_length_bp
+
+    @property
+    def size_bp(self) -> int:
+        """Alias for amplicon length in base pairs."""
+        return self.amplicon_length_bp
+
+    @property
+    def length(self) -> int:
+        """Alias for amplicon length in base pairs."""
+        return self.amplicon_length_bp
+
+    @property
+    def size(self) -> int:
+        """Alias for amplicon length in base pairs."""
+        return self.amplicon_length_bp
+
+    @property
+    def mw(self) -> float:
+        """Alias for amplicon molecular weight in Daltons."""
+        return self.amplicon_mw
+
+    @property
+    def molecular_weight(self) -> float:
+        """Alias for amplicon molecular weight in Daltons."""
+        return self.amplicon_mw
+
+    @property
+    def yield_ng(self) -> float:
+        """Alias for amplicon yield in ng."""
+        return self.amplicon_yield_ng
+
+    @property
+    def yield_pmol(self) -> float:
+        """Alias for amplicon yield in pmol."""
+        return self.amplicon_yield_pmol
+
+    @property
+    def cycles(self) -> int:
+        """Alias for cycles_run."""
+        return self.cycles_run
+
     def _repr_html_(self) -> str:
         """Render clean HTML summary for Jupyter notebooks."""
         import html
@@ -55,6 +100,36 @@ class MasterMixItem:
     volume_per_reaction_ul: float
     total_volume_ul: float
     final_concentration: str
+
+    @property
+    def name(self) -> str:
+        """Alias for component name."""
+        return self.component
+
+    @property
+    def volume_ul(self) -> float:
+        """Alias for volume_per_reaction_ul."""
+        return self.volume_per_reaction_ul
+
+    @property
+    def per_rxn_ul(self) -> float:
+        """Alias for volume_per_reaction_ul."""
+        return self.volume_per_reaction_ul
+
+    @property
+    def total_ul(self) -> float:
+        """Alias for total_volume_ul."""
+        return self.total_volume_ul
+
+    @property
+    def conc(self) -> str:
+        """Alias for final_concentration."""
+        return self.final_concentration
+
+
+# Ergonomic class aliases
+PCRReaction = PCRResult
+PCRMasterMix = MasterMixItem
 
 
 def calculate_qpcr_efficiency(slope: float) -> tuple[float, float]:

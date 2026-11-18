@@ -116,6 +116,56 @@ class MolecularWeightResult:
     backbone: str = "monophosphate"
     formula_delta: str = ""
 
+    @property
+    def molecular_weight(self) -> float:
+        """Alias for average molecular weight in Daltons."""
+        return self.average_mw
+
+    @property
+    def mw(self) -> float:
+        """Short alias for average molecular weight in Daltons."""
+        return self.average_mw
+
+    @property
+    def molecular_weight_da(self) -> float:
+        """Explicit Dalton-unit alias for average molecular weight."""
+        return self.average_mw
+
+    @property
+    def mw_da(self) -> float:
+        """Short explicit Dalton-unit alias for average molecular weight."""
+        return self.average_mw
+
+    @property
+    def avg_mw(self) -> float:
+        """Alias for average molecular weight in Daltons."""
+        return self.average_mw
+
+    @property
+    def mono_mw(self) -> float:
+        """Alias for monoisotopic molecular weight in Daltons."""
+        return self.monoisotopic_mw
+
+    @property
+    def monoisotopic_mw_da(self) -> float:
+        """Explicit Dalton-unit alias for monoisotopic molecular weight."""
+        return self.monoisotopic_mw
+
+    @property
+    def gc(self) -> float:
+        """Alias for GC content percentage."""
+        return self.gc_content
+
+    @property
+    def gc_pct(self) -> float:
+        """Alias for GC content percentage."""
+        return self.gc_content
+
+    @property
+    def seq(self) -> str:
+        """Alias for sequence."""
+        return self.sequence
+
     def _repr_html_(self) -> str:
         """Render clean HTML summary for Jupyter notebooks."""
         import html

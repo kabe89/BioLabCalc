@@ -33,6 +33,36 @@ class ProteinYieldResult:
     extinction_coeff_m_cm: Optional[int] = None
     molecular_weight: Optional[float] = None
 
+    @property
+    def conc_mg_ml(self) -> float:
+        """Alias for concentration in mg/mL."""
+        return self.concentration_mg_ml
+
+    @property
+    def conc_ug_ml(self) -> float:
+        """Alias for concentration in µg/mL."""
+        return self.concentration_ug_ml
+
+    @property
+    def mw(self) -> Optional[float]:
+        """Alias for molecular weight in Da."""
+        return self.molecular_weight
+
+    @property
+    def yield_mg(self) -> float:
+        """Alias for total yield in mg."""
+        return self.total_yield_mg
+
+    @property
+    def yield_ug(self) -> float:
+        """Alias for total yield in µg."""
+        return self.total_yield_ug
+
+    @property
+    def yield_ng(self) -> float:
+        """Alias for total yield in ng."""
+        return self.total_yield_ng
+
 
 @dataclass(frozen=True)
 class StandardCurveResult:
@@ -41,6 +71,21 @@ class StandardCurveResult:
     intercept: float
     r_squared: float
     formula_str: str
+
+    @property
+    def r2(self) -> float:
+        """Alias for r_squared correlation coefficient."""
+        return self.r_squared
+
+    @property
+    def m(self) -> float:
+        """Alias for slope (y = mx + b)."""
+        return self.slope
+
+    @property
+    def b(self) -> float:
+        """Alias for y-intercept (y = mx + b)."""
+        return self.intercept
 
     def predict(
         self,

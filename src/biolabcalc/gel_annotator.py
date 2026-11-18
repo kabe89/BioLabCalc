@@ -36,7 +36,7 @@ except ImportError:
     Side = None  # type: ignore
     OpenpyxlImage = None  # type: ignore
 
-from .gels import LADDER_CATALOG, calculate_rf, GelBand
+from .gels import LADDER_CATALOG, calculate_rf, GelBand, GelTypographyConfig, format_lane_number, LaneMetadata
 
 NAVY_HEADER = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid") if PatternFill else None
 WHITE_BOLD_FONT = Font(name="Calibri", size=11, bold=True, color="FFFFFF") if Font else None
@@ -111,6 +111,41 @@ class GelAnnotator:
         self.ladder_type: str = "1kb_dna"
         self.ladder_side: str = "left"
         self.bands: List[Dict[str, Any]] = []
+        self.lane_metadata: Dict[int, LaneMetadata] = {}
+
+    def set_lane_metadata(self, lane_index: int, metadata: LaneMetadata) -> GelAnnotator:
+        """Assign structured experimental metadata to a specific lane."""
+        self.lane_metadata[lane_index] = metadata
+        return self
+
+    def add_lane_info(
+        self,
+        lane_index: int,
+        sample_name: str,
+        sample_type: str = "sample",
+        template_mass_ng: Optional[float] = None,
+        loading_volume_ul: Optional[float] = None,
+        reaction_conditions: str = "",
+        expected_sizes: Any = (),
+        notes: str = "",
+        custom_columns: Optional[Dict[str, str]] = None,
+    ) -> GelAnnotator:
+        """Convenience method to set metadata for a lane."""
+        meta = LaneMetadata(
+            lane_index=lane_index,
+            sample_name=sample_name,
+            sample_type=sample_type,  # type: ignore
+            template_mass_ng=template_mass_ng,
+            loading_volume_ul=loading_volume_ul,
+            reaction_conditions=reaction_conditions,
+            expected_sizes_bp_or_kda=tuple(expected_sizes),
+            notes=notes,
+            custom_columns=custom_columns or {},
+        )
+        self.lane_metadata[lane_index] = meta
+        if 1 <= lane_index <= len(self.lanes):
+            self.lanes[lane_index - 1] = sample_name
+        return self
 
     @classmethod
     def from_image(
@@ -199,8 +234,10 @@ class GelAnnotator:
         dpi: int = 300,
         show_ticks: bool = True,
         header_rotation: int = 40,
+        style: Optional[GelTypographyConfig] = None,
+        include_table: bool = False,
     ) -> str:
-        """Render the fully annotated gel figure with lane labels, MW ladders, and callout arrows."""
+        """Render the fully annotated gel figure with customizable typography and optional lane table."""
         num_lanes = len(self.lanes)
         ladder_info = LADDER_CATALOG.get(self.ladder_type, LADDER_CATALOG["1kb_dna"])
         ladder_bands = sorted(ladder_info["bands"], reverse=True)
@@ -208,15 +245,20 @@ class GelAnnotator:
         max_size = max(ladder_bands)
         unit = ladder_info["unit"]
 
-        fig_width = max(7.0, num_lanes * 1.3 + 2.5)
-        fig_height = 8.5
+        st = style or GelTypographyConfig(header_rotation=header_rotation)
+        f_scale = max(0.7, min(2.5, st.font_scale))
+        rot = st.header_rotation
+
+        extra_table_h = (num_lanes * 0.35 + 1.2) if include_table else 0.0
+        fig_width = max(7.5, num_lanes * 1.35 + 2.5)
+        fig_height = 8.5 + extra_table_h
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
 
         # Plot background
         gel_left = 1.8
         gel_right = fig_width - 1.2
-        gel_top = 7.0
-        gel_bottom = 1.0
+        gel_top = 7.0 + extra_table_h
+        gel_bottom = 1.0 + extra_table_h
         gel_w = gel_right - gel_left
         gel_h = gel_top - gel_bottom
 
@@ -285,20 +327,37 @@ class GelAnnotator:
         lane_spacing = gel_w / num_lanes
         for i, lane_name in enumerate(self.lanes):
             lane_x = gel_left + (i + 0.5) * lane_spacing
+            lane_idx_val = i + st.lane_number_start
+            lane_num_str = format_lane_number(lane_idx_val, st)
 
-            # Lane number pill
-            ax.text(
-                lane_x, gel_top + 0.15, f"{i+1}",
-                ha="center", va="center", fontsize=9, fontweight="bold",
-                color="#FFFFFF",
-                bbox=dict(boxstyle="circle,pad=0.25", facecolor="#1F4E79", edgecolor="none")
-            )
+            # Lane number badge / text
+            if st.show_lane_numbers:
+                b_weight = "bold" if st.bold_lane_numbers else "normal"
+                num_size = st.lane_number_size * f_scale
+                if st.lane_number_style == "circle":
+                    bbox_dict = dict(boxstyle="circle,pad=0.25", facecolor="#1F4E79", edgecolor="none")
+                    text_color = "#FFFFFF"
+                elif st.lane_number_style == "square":
+                    bbox_dict = dict(boxstyle="square,pad=0.25", facecolor="#1F4E79", edgecolor="none")
+                    text_color = "#FFFFFF"
+                else:  # "plain"
+                    bbox_dict = None
+                    text_color = "#1F4E79"
+
+                ax.text(
+                    lane_x, gel_top + 0.15, lane_num_str,
+                    ha="center", va="center", fontsize=num_size, fontweight=b_weight,
+                    color=text_color, bbox=bbox_dict
+                )
 
             # Lane sample label
+            lane_label_y = gel_top + (0.45 if st.show_lane_numbers else 0.20)
+            name_size = st.lane_font_size * f_scale
+            name_weight = "bold" if st.bold_lane_names else "normal"
             ax.text(
-                lane_x, gel_top + 0.45, lane_name,
-                ha="left", va="bottom", fontsize=10, fontweight="bold",
-                rotation=header_rotation, color="#111827"
+                lane_x, lane_label_y, lane_name,
+                ha="left", va="bottom", fontsize=name_size, fontweight=name_weight,
+                rotation=rot, color="#111827"
             )
 
         # Draw Ladder Molecular Weight Labels
@@ -310,7 +369,7 @@ class GelAnnotator:
             # Ladder Title
             ax.text(
                 tick_x, gel_top + 0.1, f"MW ({unit})",
-                ha=ha_align, va="bottom", fontsize=9, fontweight="bold", color="#1F4E79"
+                ha=ha_align, va="bottom", fontsize=st.ladder_font_size * f_scale, fontweight="bold", color="#1F4E79"
             )
 
             for b_size in ladder_bands:
@@ -329,10 +388,11 @@ class GelAnnotator:
 
                 # Line connecting ladder band to text
                 ax.plot([tick_x + (0.08 if self.ladder_side == "left" else -0.08), tick_x], [by, by], color="#9CA3AF", linewidth=0.8, linestyle=":")
+                tick_weight = "bold" if (is_ref or st.bold_ladder_labels) else "normal"
                 ax.text(
                     tick_x, by, lbl_str,
-                    ha=ha_align, va="center", fontsize=8.5,
-                    fontweight="bold" if is_ref else "normal",
+                    ha=ha_align, va="center", fontsize=st.ladder_font_size * f_scale,
+                    fontweight=tick_weight,
                     color="#1F4E79" if is_ref else "#4B5563"
                 )
 
@@ -349,12 +409,13 @@ class GelAnnotator:
                     # Place callout offset to the right or above
                     target_x = s_x + (lane_spacing * 0.35)
                     text_x = s_x + (lane_spacing * 0.65)
+                    tag_weight = "bold" if st.bold_band_callouts else "normal"
                     ax.annotate(
                         callout_text,
                         xy=(s_x, by), xycoords="data",
                         xytext=(text_x, by + 0.15), textcoords="data",
                         arrowprops=dict(arrowstyle="->", color=b_spec["color"], lw=1.5),
-                        ha="left", va="center", fontsize=8.5, fontweight="bold",
+                        ha="left", va="center", fontsize=st.tag_font_size * f_scale, fontweight=tag_weight,
                         bbox=dict(boxstyle="round,pad=0.2", facecolor="#FEF3C7", edgecolor="#D97706", alpha=0.95),
                         color="#92400E"
                     )
@@ -362,12 +423,59 @@ class GelAnnotator:
         # Title and Gel Info
         ax.text(
             (gel_left + gel_right) / 2, fig_height - 0.45, self.title,
-            ha="center", va="top", fontsize=14, fontweight="bold", color="#1F4E79"
+            ha="center", va="top", fontsize=st.title_font_size * f_scale, fontweight="bold", color="#1F4E79"
         )
         ax.text(
             (gel_left + gel_right) / 2, fig_height - 0.85, self.gel_info,
-            ha="center", va="top", fontsize=10, fontstyle="italic", color="#4B5563"
+            ha="center", va="top", fontsize=st.subtitle_font_size * f_scale, fontstyle="italic", color="#4B5563"
         )
+
+        # Draw Customized Lane Metadata Table below the gel if requested
+        if include_table:
+            table_rows = []
+            col_labels = ["Lane #", "Sample Name", "Sample Type", "Mass / Vol", "Reaction Mix", "Observed Bands", "Notes"]
+            for i in range(num_lanes):
+                l_idx = i + 1
+                lane_num_fmt = format_lane_number(l_idx + st.lane_number_start - 1, st)
+                s_name = self.lanes[i]
+                meta = self.lane_metadata.get(l_idx)
+                s_type = meta.sample_type if meta else ("Ladder" if l_idx == self.ladder_lane else "Sample")
+                mass_vol = ""
+                if meta and (meta.template_mass_ng is not None or meta.loading_volume_ul is not None):
+                    parts = []
+                    if meta.template_mass_ng is not None:
+                        parts.append(f"{meta.template_mass_ng:g} ng")
+                    if meta.loading_volume_ul is not None:
+                        parts.append(f"{meta.loading_volume_ul:g} µL")
+                    mass_vol = " / ".join(parts)
+                else:
+                    mass_vol = "—"
+                rxn = meta.reaction_conditions if (meta and meta.reaction_conditions) else "—"
+                lane_bands = [b["label"] for b in self.bands if b["lane"] == l_idx]
+                if meta and meta.observed_bands:
+                    lane_bands.extend(meta.observed_bands)
+                obs_str = ", ".join(lane_bands) if lane_bands else "—"
+                notes_str = meta.notes if (meta and meta.notes) else "—"
+                table_rows.append([lane_num_fmt, s_name, s_type, mass_vol, rxn, obs_str, notes_str])
+
+            table_y_bottom = 0.35
+            t_ax = ax.table(
+                cellText=table_rows,
+                colLabels=col_labels,
+                cellLoc="left",
+                loc="bottom",
+                bbox=[0.05, table_y_bottom / fig_height, 0.90, (extra_table_h - 0.45) / fig_height]
+            )
+            t_ax.auto_set_font_size(False)
+            t_ax.set_fontsize(max(7.5, 8.5 * f_scale))
+            for (r, c), cell in t_ax.get_celld().items():
+                if r == 0:
+                    cell.set_facecolor("#1F4E79")
+                    cell.set_text_props(color="#FFFFFF", fontweight="bold")
+                else:
+                    if r % 2 == 0:
+                        cell.set_facecolor("#F8FAFC")
+                    cell.set_edgecolor("#D1D5DB")
 
         ax.set_xlim(0, fig_width)
         ax.set_ylim(0, fig_height)
@@ -380,10 +488,18 @@ class GelAnnotator:
 
         return output_path
 
-    def embed_in_excel(self, excel_path: str, sheet_name: str = "Annotated_Gel") -> str:
+    def embed_in_excel(
+        self,
+        excel_path: str,
+        sheet_name: str = "Annotated_Gel",
+        style: Optional[GelTypographyConfig] = None,
+    ) -> str:
         """Render gel figure and embed it along with an annotation data table into an Excel workbook."""
         if openpyxl is None or OpenpyxlImage is None:
             raise ImportError("Excel embedding requires openpyxl and Pillow. Install with pip install 'biolabcalc[excel,gel]'.")
+
+        st = style or GelTypographyConfig()
+        f_name = "Calibri" if "sans" in st.font_family_category else ("Times New Roman" if "serif" in st.font_family_category else "Consolas")
 
         wb = openpyxl.load_workbook(excel_path) if os.path.exists(excel_path) else openpyxl.Workbook()
         try:
@@ -393,16 +509,16 @@ class GelAnnotator:
                 ws = wb.create_sheet(title=sheet_name)
 
             ws.views.sheetView[0].showGridLines = True
-            ws.cell(row=1, column=1, value=self.title).font = Font(name="Calibri", size=16, bold=True, color="1F4E79")
-            ws.cell(row=2, column=1, value=f"{self.gel_info} | Generated via BioLabCalc Gel Annotator").font = Font(name="Calibri", size=9, italic=True, color="595959")
+            ws.cell(row=1, column=1, value=self.title).font = Font(name=f_name, size=16, bold=True, color="1F4E79")
+            ws.cell(row=2, column=1, value=f"{self.gel_info} | Generated via BioLabCalc Gel Annotator").font = Font(name=f_name, size=9, italic=True, color="595959")
 
             # Table of Lanes and Bands
-            ws.cell(row=4, column=1, value="Lane Annotation Summary").font = Font(name="Calibri", size=12, bold=True, color="1F4E79")
-            headers = ["Lane #", "Sample Name / Identity", "Type", "Observed Bands", "Target Size", "Notes"]
+            ws.cell(row=4, column=1, value="Lane Annotation Summary").font = Font(name=f_name, size=12, bold=True, color="1F4E79")
+            headers = ["Lane #", "Sample Name / Identity", "Type", "Loading Mass / Vol", "Reaction Conditions", "Observed Bands", "Notes"]
             for c_idx, h in enumerate(headers, 1):
                 c = ws.cell(row=5, column=c_idx, value=h)
                 c.fill = NAVY_HEADER
-                c.font = WHITE_BOLD_FONT
+                c.font = Font(name=f_name, size=11, bold=True, color="FFFFFF") if Font else None
                 c.alignment = Alignment(horizontal="center")
 
             ladder_info = LADDER_CATALOG.get(self.ladder_type, LADDER_CATALOG["1kb_dna"])
@@ -410,29 +526,43 @@ class GelAnnotator:
             for idx, lane_name in enumerate(self.lanes, 1):
                 row_idx = 5 + idx
                 is_lad = (idx == self.ladder_lane)
-                l_type = "MW Ladder" if is_lad else "Experimental Sample"
+                meta = self.lane_metadata.get(idx)
+                l_type = meta.sample_type if meta else ("MW Ladder" if is_lad else "Experimental Sample")
+                lane_num_fmt = format_lane_number(idx + st.lane_number_start - 1, st)
+
+                mass_vol = ""
+                if meta and (meta.template_mass_ng is not None or meta.loading_volume_ul is not None):
+                    parts = []
+                    if meta.template_mass_ng is not None:
+                        parts.append(f"{meta.template_mass_ng:g} ng")
+                    if meta.loading_volume_ul is not None:
+                        parts.append(f"{meta.loading_volume_ul:g} µL")
+                    mass_vol = " / ".join(parts)
+                else:
+                    mass_vol = "—"
+                rxn = meta.reaction_conditions if (meta and meta.reaction_conditions) else "—"
 
                 # Find matching bands
                 matched = [b for b in self.bands if b["lane"] == idx]
-                bands_str = ", ".join(f"{b['size']} {ladder_info['unit']}" for b in matched) if matched else ("Ladder series" if is_lad else "-")
-                target_str = ", ".join(b["label"] for b in matched) if matched else ("Standard markers" if is_lad else "Unannotated")
+                bands_str = ", ".join(f"{b['size']} {ladder_info['unit']}" for b in matched) if matched else ("Ladder series" if is_lad else "—")
+                notes_str = meta.notes if (meta and meta.notes) else (ladder_info["name"] if is_lad else "—")
 
-                vals = [idx, lane_name, l_type, bands_str, target_str, ladder_info["name"] if is_lad else ""]
+                vals = [lane_num_fmt, lane_name, l_type, mass_vol, rxn, bands_str, notes_str]
                 for c_idx, val in enumerate(vals, 1):
                     cell = ws.cell(row=row_idx, column=c_idx, value=val)
-                    cell.font = REGULAR_FONT
+                    cell.font = Font(name=f_name, size=10) if Font else None
                     cell.border = THIN_BORDER
                     cell.alignment = Alignment(horizontal="center" if c_idx in (1, 3) else "left")
 
-                # Render image to temporary directory and embed
+            # Render image to temporary directory and embed
             with tempfile.TemporaryDirectory() as tmp_dir:
                 temp_img = os.path.join(tmp_dir, "temp_gel_render.png")
-                self.render(temp_img, dpi=180)
+                self.render(temp_img, dpi=180, style=st, include_table=False)
 
                 img_obj = OpenpyxlImage(temp_img)
                 # Position image below table
                 img_start_row = 8 + len(self.lanes)
-                ws.cell(row=img_start_row - 1, column=1, value="Electrophoresis Gel Figure").font = Font(name="Calibri", size=12, bold=True, color="1F4E79")
+                ws.cell(row=img_start_row - 1, column=1, value="Electrophoresis Gel Figure").font = Font(name=f_name, size=12, bold=True, color="1F4E79")
                 ws.add_image(img_obj, f"A{img_start_row}")
 
                 wb.save(excel_path)

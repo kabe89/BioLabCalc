@@ -125,17 +125,76 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       flex: 1;
       background: #0F172A;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       position: relative;
-      overflow: auto;
-      padding: 20px;
+      overflow-y: auto;
+      padding: 24px;
+      gap: 20px;
     }
     #gelCanvas {
       background: #1E293B;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       border-radius: 6px;
       cursor: crosshair;
+      flex-shrink: 0;
+    }
+    .lane-table-card {
+      width: 100%;
+      max-width: 850px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+      overflow: hidden;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    .lane-table-header {
+      background: #F8FAFC;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .lane-table-header h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0;
+    }
+    .lane-table-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .styled-lane-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .styled-lane-table th {
+      background: #1F4E79;
+      color: white;
+      padding: 8px 10px;
+      font-weight: 600;
+      text-align: left;
+    }
+    .styled-lane-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #E2E8F0;
+      vertical-align: middle;
+    }
+    .styled-lane-table tr:nth-child(even) {
+      background: #F8FAFC;
+    }
+    .styled-lane-table input, .styled-lane-table select {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 0.78rem;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
     }
     .lane-list {
       max-height: 140px;
@@ -255,11 +314,105 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
           Double-click any label on the gel to edit text or delete. Drag tags to reposition callouts.
         </div>
       </div>
+
+      <!-- 5. Typography & Formatting -->
+      <div class="panel-section">
+        <h3>5. Typography & Lane Styling</h3>
+        <div class="form-group">
+          <label>Font Family</label>
+          <select id="fontFamilySelect" onchange="render()">
+            <option value="Arial, Helvetica, sans-serif">Arial / Helvetica (Nature/Cell)</option>
+            <option value="'Times New Roman', serif">Times New Roman (ACS / Thesis)</option>
+            <option value="Consolas, monospace">Monospace (Aligned BP)</option>
+            <option value="Inter, sans-serif">Inter (Modern Clean)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Font Size Scale</label>
+          <div class="slider-row">
+            <input type="range" id="fontScaleRange" min="70" max="180" value="100" oninput="updateFontScale(this.value)">
+            <span id="fontScaleVal">100%</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Lane Numbering</label>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <input type="checkbox" id="showLaneNumbersCheck" checked onchange="render()" style="width:auto;">
+            <span style="font-size:0.8rem; font-weight:600;">Show Lane Numbers</span>
+          </div>
+          <select id="laneNumberStyleSelect" onchange="render()" style="margin-bottom:6px;">
+            <option value="circle">Circle Badge</option>
+            <option value="square">Square Badge</option>
+            <option value="plain">Plain Text</option>
+          </select>
+          <select id="laneNumberFormatSelect" onchange="render()" style="margin-bottom:6px;">
+            <option value="numeric">1, 2, 3...</option>
+            <option value="prefixed_L">L1, L2, L3...</option>
+            <option value="prefixed_lane">Lane 1, Lane 2...</option>
+            <option value="alpha">A, B, C...</option>
+            <option value="roman">I, II, III...</option>
+          </select>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.75rem; color:#64748B;">Start #:</span>
+            <input type="number" id="laneStartInput" min="1" max="99" value="1" onchange="render()" style="width:60px;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Lane Header Angle</label>
+          <select id="headerAngleSelect" onchange="render()">
+            <option value="45">Angled (45°)</option>
+            <option value="0">Horizontal (0°)</option>
+            <option value="90">Vertical (90°)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bold Styling</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <label style="font-size:0.75rem; display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" id="boldLaneNamesCheck" checked onchange="render()" style="width:auto;"> Lane Names
+            </label>
+            <label style="font-size:0.75rem; display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" id="boldNumbersCheck" checked onchange="render()" style="width:auto;"> Numbers
+            </label>
+            <label style="font-size:0.75rem; display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" id="boldTagsCheck" checked onchange="render()" style="width:auto;"> Band Tags
+            </label>
+            <label style="font-size:0.75rem; display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" id="boldLadderCheck" onchange="render()" style="width:auto;"> All Ladder
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Interactive Gel Canvas -->
+    <!-- Interactive Gel Canvas & Lane Designation Table -->
     <div class="canvas-container">
       <canvas id="gelCanvas" width="850" height="680"></canvas>
+
+      <div class="lane-table-card" id="laneTableCard">
+        <div class="lane-table-header">
+          <h4>📋 Lane Sample Designation Table</h4>
+          <div class="lane-table-actions">
+            <button onclick="copyTableMarkdown()">📋 Copy Markdown</button>
+            <button onclick="exportTableCSV()">📊 Export CSV</button>
+            <button class="primary" onclick="exportCombinedFigure()">🖼️ Export Gel + Table</button>
+          </div>
+        </div>
+        <table class="styled-lane-table" id="laneTable">
+          <thead>
+            <tr>
+              <th style="width:70px;">Lane #</th>
+              <th>Sample Name</th>
+              <th style="width:110px;">Type</th>
+              <th style="width:130px;">Loading Mass / Vol</th>
+              <th style="width:150px;">Reaction / Mix</th>
+              <th style="width:140px;">Observed Bands</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="laneTableBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -297,10 +450,77 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     let bands = [];
     let draggingBand = null;
     let dragOffsetX = 0, dragOffsetY = 0;
+    let laneMetadata = [];
 
     // Standard curve parameters (Rf vs log10(MW))
     let calibSlope = -1.25;
     let calibIntercept = 4.15;
+
+    function updateFontScale(val) {
+      const el = document.getElementById("fontScaleVal");
+      if (el) el.textContent = val + "%";
+      render();
+    }
+
+    function getFont(basePx, forceBold) {
+      const scaleEl = document.getElementById("fontScaleRange");
+      const famEl = document.getElementById("fontFamilySelect");
+      const scale = (scaleEl ? parseInt(scaleEl.value) : 100) / 100;
+      const fam = famEl ? famEl.value : "Arial, Helvetica, sans-serif";
+      const px = Math.max(8, Math.round(basePx * scale));
+      const boldPrefix = forceBold ? "bold " : "";
+      return `${boldPrefix}${px}px ${fam}`;
+    }
+
+    function formatLaneNum(idx) {
+      const fmtEl = document.getElementById("laneNumberFormatSelect");
+      const scheme = fmtEl ? fmtEl.value : "numeric";
+      const startEl = document.getElementById("laneStartInput");
+      const startNum = parseInt(startEl ? startEl.value : "1") || 1;
+      const num = idx + startNum;
+
+      if (scheme === "prefixed_L") return `L${num}`;
+      if (scheme === "prefixed_lane") return `Lane ${num}`;
+      if (scheme === "alpha") {
+        let s = "";
+        let n = num - 1;
+        while (n >= 0) {
+          s = String.fromCharCode(65 + (n % 26)) + s;
+          n = Math.floor(n / 26) - 1;
+        }
+        return s || "A";
+      }
+      if (scheme === "roman") {
+        const romanMap = [
+          [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+          [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
+          [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]
+        ];
+        let val = num;
+        let res = "";
+        for (let [v, sym] of romanMap) {
+          while (val >= v) { res += sym; val -= v; }
+        }
+        return res || "I";
+      }
+      return `${num}`;
+    }
+
+    function syncLaneMetadata() {
+      while (laneMetadata.length < lanes.length) {
+        let idx = laneMetadata.length;
+        let isLadder = (idx + 1 === ladderLane);
+        laneMetadata.push({
+          type: isLadder ? "ladder" : (idx === 1 ? "control" : "sample"),
+          loading: isLadder ? "5 μL" : "10 μL (150 ng)",
+          mix: isLadder ? "NEB 1kb Ladder" : "Q5 PCR Master Mix",
+          notes: isLadder ? "Ladder Std" : ""
+        });
+      }
+      if (laneMetadata.length > lanes.length) {
+        laneMetadata = laneMetadata.slice(0, lanes.length);
+      }
+    }
 
     function init() {
       setupDropZone();
@@ -473,6 +693,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         newLanes.push(lanes[i] || (i === 0 ? "Ladder" : `Sample ${i}`));
       }
       lanes = newLanes;
+      syncLaneMetadata();
       updateLaneUI();
       render();
     }
@@ -480,6 +701,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     function updateLaneUI() {
       let list = document.getElementById("laneList");
       let sel = document.getElementById("ladderLaneSelect");
+      if (!list || !sel) return;
       list.innerHTML = "";
       sel.innerHTML = "";
 
@@ -510,6 +732,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     function setLadderLane(val) {
       ladderLane = parseInt(val);
+      syncLaneMetadata();
       render();
     }
 
@@ -559,6 +782,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
 
     function render() {
+      renderGelCanvas();
+      updateLaneTable();
+    }
+
+    function renderGelCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       let contrast = document.getElementById("contrastRange").value;
@@ -620,28 +848,59 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
       ctx.filter = "none";
 
+      // Typography settings from UI
+      const showLaneNumbers = document.getElementById("showLaneNumbersCheck") ? document.getElementById("showLaneNumbersCheck").checked : true;
+      const badgeStyle = document.getElementById("laneNumberStyleSelect") ? document.getElementById("laneNumberStyleSelect").value : "circle";
+      const angleDeg = parseFloat(document.getElementById("headerAngleSelect") ? document.getElementById("headerAngleSelect").value : "45");
+      const boldLaneNames = document.getElementById("boldLaneNamesCheck") ? document.getElementById("boldLaneNamesCheck").checked : true;
+      const boldNumbers = document.getElementById("boldNumbersCheck") ? document.getElementById("boldNumbersCheck").checked : true;
+      const boldTags = document.getElementById("boldTagsCheck") ? document.getElementById("boldTagsCheck").checked : true;
+      const boldLadder = document.getElementById("boldLadderCheck") ? document.getElementById("boldLadderCheck").checked : false;
+
       // Draw Lane Numbers and Headers
       let laneW = gelW / lanes.length;
       ctx.textAlign = "center";
       for (let i = 0; i < lanes.length; i++) {
         let lx = gelX + (i + 0.5) * laneW;
+        let formattedNum = formatLaneNum(i);
 
-        // Lane number circle
-        ctx.fillStyle = "#1F4E79";
-        ctx.beginPath();
-        ctx.arc(lx, gelY - 32, 11, 0, Math.PI * 2);
-        ctx.fill();
+        // Lane Number Badge
+        if (showLaneNumbers) {
+          if (badgeStyle === "circle") {
+            ctx.fillStyle = "#1F4E79";
+            ctx.beginPath();
+            ctx.arc(lx, gelY - 32, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = getFont(11, boldNumbers);
+            ctx.fillText(formattedNum, lx, gelY - 28);
+          } else if (badgeStyle === "square") {
+            ctx.fillStyle = "#1F4E79";
+            ctx.beginPath();
+            ctx.roundRect(lx - 12, gelY - 43, 24, 22, [3]);
+            ctx.fill();
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = getFont(11, boldNumbers);
+            ctx.fillText(formattedNum, lx, gelY - 28);
+          } else {
+            // plain text
+            ctx.fillStyle = inverted ? "#0F172A" : "#F8FAFC";
+            ctx.font = getFont(12, boldNumbers);
+            ctx.fillText(formattedNum, lx, gelY - 30);
+          }
+        }
 
-        ctx.fillStyle = "#FFFFFF";
-        ctx.font = "bold 11px sans-serif";
-        ctx.fillText(i + 1, lx, gelY - 28);
-
-        // Lane name rotated
+        // Lane Name with rotation angle
         ctx.save();
         ctx.translate(lx, gelY - 14);
+        if (angleDeg !== 0) {
+          ctx.rotate((-angleDeg * Math.PI) / 180);
+          ctx.textAlign = angleDeg > 0 ? "left" : "right";
+        } else {
+          ctx.textAlign = "center";
+        }
         ctx.fillStyle = inverted ? "#0F172A" : "#F8FAFC";
-        ctx.font = "bold 11px sans-serif";
-        ctx.textAlign = "center";
+        ctx.font = getFont(11, boldLaneNames);
         ctx.fillText(lanes[i], 0, 0);
         ctx.restore();
 
@@ -666,7 +925,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         if (isRef) lbl += " *";
 
         ctx.fillStyle = isRef ? "#2563EB" : (inverted ? "#475569" : "#94A3B8");
-        ctx.font = isRef ? "bold 11px sans-serif" : "10px sans-serif";
+        ctx.font = getFont(isRef ? 11 : 10, isRef || boldLadder);
         ctx.textAlign = "right";
         ctx.fillText(lbl, gelX - 10, by + 3);
 
@@ -692,7 +951,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         ctx.stroke();
 
         // Tag Pill
-        ctx.font = "bold 11px sans-serif";
+        ctx.font = getFont(11, boldTags);
         let txt = `${b.label} (${b.mw} ${lad.unit})`;
         let tw = ctx.measureText(txt).width;
 
@@ -817,6 +1076,203 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       });
     }
 
+    function updateLaneTable() {
+      const tbody = document.getElementById("laneTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      syncLaneMetadata();
+
+      const lad = LADDERS[ladderType];
+      lanes.forEach((name, idx) => {
+        const meta = laneMetadata[idx] || { type: "sample", loading: "", mix: "", notes: "" };
+        const laneId = idx + 1;
+        const formattedNum = formatLaneNum(idx);
+
+        // Compute observed bands from bands array
+        const laneBands = bands.filter(b => b.lane === laneId);
+        let bandSummary = "None";
+        if (laneId === ladderLane) {
+          bandSummary = `${lad.name} (${lad.bands.length} bands)`;
+        } else if (laneBands.length > 0) {
+          bandSummary = laneBands.map(b => `${b.mw} ${lad.unit} (${b.label})`).join(", ");
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="font-weight:700; text-align:center; color:#1F4E79;">${formattedNum}</td>
+          <td><input type="text" value="${name}" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="lanes[${idx}]=this.value; renderCanvasOnly(); updateLaneUIOnly();"></td>
+          <td>
+            <select style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px; font-size:0.75rem;" onchange="laneMetadata[${idx}].type=this.value;">
+              <option value="sample" ${meta.type==='sample'?'selected':''}>Sample</option>
+              <option value="ladder" ${meta.type==='ladder'?'selected':''}>Ladder</option>
+              <option value="control" ${meta.type==='control'?'selected':''}>Control</option>
+              <option value="blank" ${meta.type==='blank'?'selected':''}>Blank</option>
+            </select>
+          </td>
+          <td><input type="text" value="${meta.loading || ''}" placeholder="e.g. 10 μL" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].loading=this.value;"></td>
+          <td><input type="text" value="${meta.mix || ''}" placeholder="e.g. Q5 Mix" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].mix=this.value;"></td>
+          <td style="font-size:0.75rem; color:#475569;">${bandSummary}</td>
+          <td><input type="text" value="${meta.notes || ''}" placeholder="Notes" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].notes=this.value;"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderCanvasOnly() {
+      renderGelCanvas();
+    }
+
+    function updateLaneUIOnly() {
+      let list = document.getElementById("laneList");
+      let sel = document.getElementById("ladderLaneSelect");
+      if (!list || !sel) return;
+      list.innerHTML = "";
+      sel.innerHTML = "";
+      lanes.forEach((name, idx) => {
+        let lNum = idx + 1;
+        let item = document.createElement("div");
+        item.className = "lane-item";
+        item.innerHTML = `<span><strong>L${lNum}:</strong> ${name}</span><button style="padding:2px 6px; font-size:0.7rem;" onclick="renameLane(${idx})">Edit</button>`;
+        list.appendChild(item);
+
+        let opt = document.createElement("option");
+        opt.value = lNum;
+        opt.textContent = `Lane ${lNum} (${name})`;
+        if (lNum === ladderLane) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function copyTableMarkdown() {
+      syncLaneMetadata();
+      const lad = LADDERS[ladderType];
+      let md = `| Lane | Sample Name | Type | Loading Amount | Reaction / Mix | Observed Bands | Notes |\n`;
+      md += `|:---|:---|:---|:---|:---|:---|:---|\n`;
+      lanes.forEach((name, idx) => {
+        const meta = laneMetadata[idx] || { type: "sample", loading: "", mix: "", notes: "" };
+        const laneId = idx + 1;
+        const laneBands = bands.filter(b => b.lane === laneId);
+        let bandSummary = "None";
+        if (laneId === ladderLane) {
+          bandSummary = `${lad.name} (${lad.bands.length} bands)`;
+        } else if (laneBands.length > 0) {
+          bandSummary = laneBands.map(b => `${b.mw} ${lad.unit} (${b.label})`).join(", ");
+        }
+        md += `| ${formatLaneNum(idx)} | ${name} | ${meta.type} | ${meta.loading || "-"} | ${meta.mix || "-"} | ${bandSummary} | ${meta.notes || "-"} |\n`;
+      });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(md).then(() => {
+          alert("Lane designation table copied to clipboard as Markdown!");
+        }).catch(() => {
+          prompt("Copy Markdown table:", md);
+        });
+      } else {
+        prompt("Copy Markdown table:", md);
+      }
+    }
+
+    function exportCombinedFigure() {
+      syncLaneMetadata();
+      const lad = LADDERS[ladderType];
+
+      // Measure layout
+      const rowHeight = 28;
+      const headerHeight = 36;
+      const titleHeight = 44;
+      const tableHeight = titleHeight + headerHeight + lanes.length * rowHeight + 30;
+
+      const outW = Math.max(canvas.width, 920);
+      const outH = canvas.height + tableHeight;
+
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = outW;
+      outCanvas.height = outH;
+      const octx = outCanvas.getContext("2d");
+
+      // Background
+      octx.fillStyle = "#FFFFFF";
+      octx.fillRect(0, 0, outW, outH);
+
+      // Draw gel canvas centered at top
+      const gelOffsetX = Math.round((outW - canvas.width) / 2);
+      octx.drawImage(canvas, gelOffsetX, 0);
+
+      // Draw table below gel
+      const tableY = canvas.height + 10;
+      octx.fillStyle = "#1E293B";
+      octx.font = "bold 15px Arial, sans-serif";
+      octx.textAlign = "left";
+      octx.fillText("Lane Sample Designation Table", 40, tableY + 22);
+
+      const colWidths = [70, 180, 85, 120, 160, 140, 125];
+      const headers = ["Lane", "Sample Name", "Type", "Loading", "Reaction / Mix", "Observed", "Notes"];
+      const startX = 40;
+      let currY = tableY + titleHeight;
+
+      // Header row
+      octx.fillStyle = "#F1F5F9";
+      octx.fillRect(startX, currY, outW - 80, headerHeight);
+      octx.fillStyle = "#1E293B";
+      octx.font = "bold 12px Arial, sans-serif";
+
+      let curX = startX;
+      headers.forEach((h, i) => {
+        octx.fillText(h, curX + 8, currY + 22);
+        curX += colWidths[i];
+      });
+
+      currY += headerHeight;
+
+      // Table rows
+      lanes.forEach((name, idx) => {
+        const meta = laneMetadata[idx] || { type: "sample", loading: "", mix: "", notes: "" };
+        const laneId = idx + 1;
+        const laneBands = bands.filter(b => b.lane === laneId);
+        let bandSummary = "None";
+        if (laneId === ladderLane) {
+          bandSummary = `${lad.name}`;
+        } else if (laneBands.length > 0) {
+          bandSummary = laneBands.map(b => `${b.mw} ${lad.unit}`).join(", ");
+        }
+
+        if (idx % 2 === 1) {
+          octx.fillStyle = "#F8FAFC";
+          octx.fillRect(startX, currY, outW - 80, rowHeight);
+        }
+
+        octx.strokeStyle = "#E2E8F0";
+        octx.strokeRect(startX, currY, outW - 80, rowHeight);
+
+        octx.fillStyle = "#334155";
+        octx.font = "11px Arial, sans-serif";
+
+        const rowData = [
+          formatLaneNum(idx),
+          name,
+          meta.type,
+          meta.loading || "-",
+          meta.mix || "-",
+          bandSummary,
+          meta.notes || "-"
+        ];
+
+        let cx = startX;
+        rowData.forEach((val, i) => {
+          octx.fillText(val, cx + 8, currY + 18);
+          cx += colWidths[i];
+        });
+
+        currY += rowHeight;
+      });
+
+      // Export as PNG
+      const link = document.createElement("a");
+      link.download = "gel_figure_with_table.png";
+      link.href = outCanvas.toDataURL("image/png");
+      link.click();
+    }
+
     function exportGelPNG() {
       let link = document.createElement("a");
       link.download = "annotated_gel_figure.png";
@@ -826,17 +1282,29 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     function exportTableCSV() {
       let lad = LADDERS[ladderType];
-      let rows = [["Lane_Number", "Lane_Name", "Band_Size_" + lad.unit, "Label", "Relative_Mobility_Rf"]];
-      bands.forEach(b => {
-        let gelY = 70, gelH = canvas.height - 110;
-        let rf = calculateRf(b.y, gelY + 40, gelY + gelH - 40);
-        rows.push([b.lane, lanes[b.lane - 1], b.mw, b.label, rf.toFixed(3)]);
+      let rows = [["Lane_Number", "Lane_Name", "Sample_Type", "Loading_Amount", "Reaction_Mix", "Band_Size_" + lad.unit, "Label", "Relative_Mobility_Rf", "Notes"]];
+      syncLaneMetadata();
+
+      lanes.forEach((name, idx) => {
+        let laneId = idx + 1;
+        let meta = laneMetadata[idx] || { type: "sample", loading: "", mix: "", notes: "" };
+        let laneBands = bands.filter(b => b.lane === laneId);
+        if (laneBands.length === 0) {
+          rows.push([formatLaneNum(idx), name, meta.type, meta.loading || "", meta.mix || "", "", "", "", meta.notes || ""]);
+        } else {
+          laneBands.forEach(b => {
+            let gelY = 70, gelH = canvas.height - 110;
+            let rf = calculateRf(b.y, gelY + 40, gelY + gelH - 40);
+            rows.push([formatLaneNum(idx), name, meta.type, meta.loading || "", meta.mix || "", b.mw, b.label, rf.toFixed(3), meta.notes || ""]);
+          });
+        }
       });
-      let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+
+      let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
       let encodedUri = encodeURI(csvContent);
       let link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "gel_annotations.csv");
+      link.setAttribute("download", "gel_lane_designation_table.csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

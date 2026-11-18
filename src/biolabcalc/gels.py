@@ -2,8 +2,82 @@
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple, Literal
+
+@dataclass(frozen=True)
+class GelTypographyConfig:
+    """Universal typography and lane numbering formatting configuration across BioLabCalc."""
+    font_family: str = "Arial, Helvetica, sans-serif"
+    font_family_category: Literal["sans", "serif", "mono", "system"] = "sans"
+    font_scale: float = 1.0
+    show_lane_numbers: bool = True
+    lane_number_style: Literal["circle", "square", "plain", "none"] = "circle"
+    lane_number_format: Literal["numeric", "prefixed_L", "prefixed_lane", "alpha", "roman"] = "numeric"
+    lane_number_start: int = 1
+    bold_lane_numbers: bool = True
+    bold_lane_names: bool = True
+    bold_ladder_labels: bool = False
+    bold_band_callouts: bool = True
+    header_rotation: int = 45
+    lane_font_size: float = 10.0
+    lane_number_size: float = 9.0
+    ladder_font_size: float = 8.5
+    tag_font_size: float = 8.5
+    title_font_size: float = 14.0
+    subtitle_font_size: float = 10.0
+
+
+def format_lane_number(index: int, style: Optional[GelTypographyConfig] = None) -> str:
+    """Format a lane index according to GelTypographyConfig numbering scheme."""
+    fmt = style.lane_number_format if style else "numeric"
+    idx = index
+    if fmt == "prefixed_L":
+        return f"L{idx}"
+    elif fmt == "prefixed_lane":
+        return f"Lane {idx}"
+    elif fmt == "alpha":
+        res = ""
+        n = idx
+        while n > 0:
+            n, rem = divmod(n - 1, 26)
+            res = chr(65 + rem) + res
+        return res or str(idx)
+    elif fmt == "roman":
+        val_map = [
+            (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+            (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+            (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
+        ]
+        res = ""
+        n = idx
+        for val, rom in val_map:
+            while n >= val:
+                res += rom
+                n -= val
+        return res or str(idx)
+    return str(idx)
+
+
+@dataclass
+class LaneMetadata:
+    """Laboratory sample and reaction metadata for an electrophoresis gel lane."""
+    lane_index: int
+    sample_name: str
+    sample_type: Literal["sample", "ladder", "negative_ctrl", "positive_ctrl", "blank"] = "sample"
+    template_mass_ng: Optional[float] = None
+    loading_volume_ul: Optional[float] = None
+    reaction_conditions: str = ""
+    expected_sizes_bp_or_kda: Tuple[float, ...] = ()
+    observed_bands: Tuple[str, ...] = ()
+    notes: str = ""
+    custom_columns: Dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if isinstance(self.expected_sizes_bp_or_kda, (list, set)):
+            self.expected_sizes_bp_or_kda = tuple(self.expected_sizes_bp_or_kda)
+        if isinstance(self.observed_bands, (list, set)):
+            self.observed_bands = tuple(self.observed_bands)
 
 LADDER_CATALOG: Dict[str, Dict[str, Any]] = {
     "1kb_dna": {
@@ -72,6 +146,22 @@ class GelBand:
     is_reference: bool
     label: str
 
+    @property
+    def rf(self) -> float:
+        """Alias for relative_migration_rf."""
+        return self.relative_migration_rf
+
+    @property
+    def size_bp(self) -> float:
+        """Alias for band size in base pairs."""
+        return self.size
+
+    @property
+    def length_bp(self) -> float:
+        """Alias for band size in base pairs."""
+        return self.size
+
+
 @dataclass(frozen=True)
 class GelLaneSimulation:
     ladder_name: str
@@ -87,14 +177,54 @@ class GelLaneSimulation:
             if isinstance(val, (list, set, tuple)):
                 object.__setattr__(self, field_name, tuple(val))
 
-    def _repr_svg_(self) -> str:
-        """Render high-contrast agarose/PAGE gel diagram for Jupyter notebook rich display."""
+    @property
+    def bands(self) -> Tuple[GelBand, ...]:
+        """Convenience alias for sample_bands."""
+        return self.sample_bands
+
+    @property
+    def ladder(self) -> Tuple[GelBand, ...]:
+        """Convenience alias for ladder_bands."""
+        return self.ladder_bands
+
+    @property
+    def ladder_key(self) -> str:
+        """Alias for ladder_name."""
+        return self.ladder_name
+
+    @property
+    def ascii(self) -> str:
+        """Alias for ascii_visualization."""
+        return self.ascii_visualization
+
+    @property
+    def gel_percentage(self) -> str:
+        """Alias for recommended_gel_percentage."""
+        return self.recommended_gel_percentage
+
+    def to_svg(self, style: Optional[GelTypographyConfig] = None) -> str:
+        """Render high-contrast agarose/PAGE gel diagram with customizable typography."""
         import html
-        width = 320
-        height = 420
-        gel_top = 65
-        gel_bottom = 395
+        st = style or GelTypographyConfig()
+        scale = max(0.7, min(2.5, st.font_scale))
+        font_family = html.escape(st.font_family)
+        
+        width = int(320 * scale)
+        height = int(420 * scale)
+        gel_top = int(65 * scale)
+        gel_bottom = height - int(25 * scale)
         gel_height = gel_bottom - gel_top
+        
+        title_size = st.title_font_size * scale
+        meta_size = st.subtitle_font_size * scale
+        lane_size = st.lane_font_size * scale
+        ladder_size = st.ladder_font_size * scale
+        
+        title_weight = "bold" if st.bold_lane_names else "600"
+        lane_weight = "bold" if st.bold_lane_names else "normal"
+        
+        ladder_hdr = f"Ladder ({format_lane_number(1, st)})" if st.show_lane_numbers else "Ladder"
+        sample_hdr = f"Sample ({format_lane_number(2, st)})" if st.show_lane_numbers else "Sample"
 
         svg = [
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
@@ -112,29 +242,35 @@ class GelLaneSimulation:
             '  </filter>',
             '</defs>',
             f'<rect x="10" y="10" width="{width - 20}" height="{height - 20}" rx="8" fill="url(#gelBg)" stroke="#3A506B" stroke-width="2"/>',
-            f'<text x="{width / 2}" y="32" fill="#E0E1DD" font-family="system-ui, sans-serif" font-size="12" font-weight="600" text-anchor="middle">{html.escape(self.ladder_name)}</text>',
-            f'<text x="{width / 2}" y="48" fill="#778DA9" font-family="system-ui, sans-serif" font-size="9.5" text-anchor="middle">Matrix: {html.escape(str(self.recommended_gel_percentage))}</text>',
-            '<rect x="50" y="58" width="60" height="8" rx="2" fill="#0D1B2A" stroke="#415A77" stroke-width="1"/>',
-            '<rect x="170" y="58" width="80" height="8" rx="2" fill="#0D1B2A" stroke="#415A77" stroke-width="1"/>',
-            '<text x="80" y="54" fill="#778DA9" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Ladder</text>',
-            '<text x="210" y="54" fill="#778DA9" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Sample</text>',
+            f'<text x="{width / 2}" y="{int(32 * scale)}" fill="#E0E1DD" font-family="{font_family}" font-size="{title_size:.1f}" font-weight="{title_weight}" text-anchor="middle">{html.escape(self.ladder_name)}</text>',
+            f'<text x="{width / 2}" y="{int(48 * scale)}" fill="#778DA9" font-family="{font_family}" font-size="{meta_size:.1f}" text-anchor="middle">Matrix: {html.escape(str(self.recommended_gel_percentage))}</text>',
+            f'<rect x="{int(50 * scale)}" y="{int(58 * scale)}" width="{int(60 * scale)}" height="{int(8 * scale)}" rx="2" fill="#0D1B2A" stroke="#415A77" stroke-width="1"/>',
+            f'<rect x="{int(170 * scale)}" y="{int(58 * scale)}" width="{int(80 * scale)}" height="{int(8 * scale)}" rx="2" fill="#0D1B2A" stroke="#415A77" stroke-width="1"/>',
+            f'<text x="{int(80 * scale)}" y="{int(54 * scale)}" fill="#778DA9" font-family="{font_family}" font-size="{lane_size:.1f}" font-weight="{lane_weight}" text-anchor="middle">{html.escape(ladder_hdr)}</text>',
+            f'<text x="{int(210 * scale)}" y="{int(54 * scale)}" fill="#778DA9" font-family="{font_family}" font-size="{lane_size:.1f}" font-weight="{lane_weight}" text-anchor="middle">{html.escape(sample_hdr)}</text>',
         ]
 
         for b in self.ladder_bands:
             y = gel_top + (b.relative_migration_rf * gel_height)
-            band_h = 3.5 if b.is_reference else 2.0
+            band_h = max(2.0, (3.5 if b.is_reference else 2.0) * scale)
             color = "#F43F5E" if b.is_reference else "#38BDF8"
             glow_attr = ' filter="url(#glow)"' if b.is_reference else ''
-            svg.append(f'<rect x="52" y="{y - band_h / 2:.1f}" width="56" height="{band_h}" rx="1" fill="{color}"{glow_attr}/>')
-            svg.append(f'<text x="46" y="{y + 3:.1f}" fill="{color}" font-family="monospace" font-size="8" text-anchor="end">{b.size} {html.escape(str(b.unit))}</text>')
+            b_weight = "bold" if (b.is_reference or st.bold_ladder_labels) else "normal"
+            svg.append(f'<rect x="{int(52 * scale)}" y="{y - band_h / 2:.1f}" width="{int(56 * scale)}" height="{band_h:.1f}" rx="1" fill="{color}"{glow_attr}/>')
+            svg.append(f'<text x="{int(46 * scale)}" y="{y + 3 * scale:.1f}" fill="{color}" font-family="{font_family}" font-size="{ladder_size:.1f}" font-weight="{b_weight}" text-anchor="end">{b.size} {html.escape(str(b.unit))}</text>')
 
         for b in self.sample_bands:
             y = gel_top + (b.relative_migration_rf * gel_height)
-            svg.append(f'<rect x="172" y="{y - 1.5:.1f}" width="76" height="3" rx="1" fill="#34D399" filter="url(#glow)"/>')
-            svg.append(f'<text x="254" y="{y + 3:.1f}" fill="#34D399" font-family="monospace" font-size="8">{b.size} {html.escape(str(b.unit))}</text>')
+            b_weight = "bold" if st.bold_band_callouts else "normal"
+            svg.append(f'<rect x="{int(172 * scale)}" y="{y - 1.5 * scale:.1f}" width="{int(76 * scale)}" height="{max(2.0, 3.0 * scale):.1f}" rx="1" fill="#34D399" filter="url(#glow)"/>')
+            svg.append(f'<text x="{int(254 * scale)}" y="{y + 3 * scale:.1f}" fill="#34D399" font-family="{font_family}" font-size="{ladder_size:.1f}" font-weight="{b_weight}">{b.size} {html.escape(str(b.unit))}</text>')
 
         svg.append('</svg>')
         return "\n".join(svg)
+
+    def _repr_svg_(self) -> str:
+        """Render high-contrast agarose/PAGE gel diagram for Jupyter notebook rich display."""
+        return self.to_svg()
 
 def calculate_rf(size: float, min_size: float, max_size: float) -> float:
     """Calculate relative mobility Rf using the logarithmic relationship Rf = a - b * log10(size)."""

@@ -845,33 +845,53 @@ Returned by `calculate_gibson_assembly`.
 | Field Name | Type | Description |
 | :--- | :--- | :--- |
 | `vector_length_bp` | `int` | Destination vector length in base pairs |
-| `insert_lengths_bp` | `List[int]` | Ordered list of insert fragment lengths in base pairs |
+| `insert_lengths_bp` | `Tuple[int, ...]` | Ordered list of insert fragment lengths in base pairs |
 | `vector_mass_ng` | `float` | Recommended vector mass input in nanograms |
-| `insert_masses_ng` | `List[float]` | Recommended mass inputs for each insert fragment in nanograms |
+| `insert_masses_ng` | `Tuple[float, ...]` | Recommended mass inputs for each insert fragment in nanograms |
 | `total_dna_pmol` | `float` | Total DNA input in picomoles (ideal range: $0.02\text{--}0.2\text{ pmol}$) |
 | `reagent_volumes` | `Dict[str, float]`| Pipetting recipe mapping reagents to volumes in $\mu\text{L}$ |
 | `incubation_protocol` | `str` | Incubation temperature and time guidelines |
 
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `vector_bp` | `int` | `self.vector_length_bp` | Vector size in base pairs |
+| `vector_ng` | `float` | `self.vector_mass_ng` | Vector mass in nanograms |
+| `insert_bp` | `Tuple[int, ...]` | `self.insert_lengths_bp` | Insert sizes in base pairs |
+| `insert_ng` | `Tuple[float, ...]` | `self.insert_masses_ng` | Insert masses in nanograms |
+| `total_pmol` | `float` | `self.total_dna_pmol` | Total DNA amount in picomoles |
+
 ---
 
 ### 3. `GoldenGateResult`
-Returned by `calculate_golden_gate_assembly`.
+Returned by `calculate_golden_gate_assembly`. Also accessible via class alias `GoldenGatePlan`.
 
 | Field Name | Type | Description |
 | :--- | :--- | :--- |
 | `enzyme` | `str` | Type IIS restriction enzyme (e.g., `'BsaI-HFv2'`) |
 | `vector_length_bp` | `int` | Vector length in base pairs |
-| `insert_lengths_bp` | `List[int]` | Lengths of all insert fragments in base pairs |
+| `insert_lengths_bp` | `Tuple[int, ...]` | Lengths of all insert fragments in base pairs |
 | `vector_mass_ng` | `float` | Vector mass input in nanograms |
 | `vector_fmol` | `float` | Vector molar quantity in femtomoles |
-| `insert_masses_ng` | `List[float]` | Insert mass inputs in nanograms |
-| `insert_fmols` | `List[float]` | Insert molar quantities in femtomoles |
+| `insert_masses_ng` | `Tuple[float, ...]` | Insert mass inputs in nanograms |
+| `insert_fmols` | `Tuple[float, ...]` | Insert molar quantities in femtomoles |
 | `insert_to_vector_ratio` | `float` | Configured molar ratio (typically $2:1$) |
 | `total_dna_mass_ng` | `float` | Cumulative DNA mass in reaction |
 | `reaction_volume_ul` | `float` | Total assembly reaction volume in $\mu\text{L}$ |
 | `reagent_volumes` | `Dict[str, float]`| Pipetting recipe mapping reagents to volumes |
-| `thermocycling_protocol` | `List[str]` | Digestion-ligation temperature cycling program |
-| `notes` | `List[str]` | Enzyme handling and reaction assembly guidance |
+| `thermocycling_protocol` | `Tuple[str, ...]` | Digestion-ligation temperature cycling program |
+| `notes` | `Tuple[str, ...]` | Enzyme handling and reaction assembly guidance |
+
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `vector_ng` | `float` | `self.vector_mass_ng` | Vector mass in nanograms |
+| `insert_ng` | `Tuple[float, ...]` | `self.insert_masses_ng` | Insert masses in nanograms |
+| `total_ng` | `float` | `self.total_dna_mass_ng` | Cumulative DNA mass in nanograms |
+| `vector_bp` | `int` | `self.vector_length_bp` | Vector size in base pairs |
+| `insert_bp` | `Tuple[int, ...]` | `self.insert_lengths_bp` | Insert sizes in base pairs |
+| `volume_ul` | `float` | `self.reaction_volume_ul` | Total reaction volume in $\mu\text{L}$ |
+| `ratio` | `float` | `self.insert_to_vector_ratio` | Insert-to-vector molar ratio |
 
 ---
 
@@ -890,7 +910,16 @@ Returned by `plan_restriction_digest`.
 | `heat_inactivation` | `str` | Heat inactivation temperature and time (or column clean-up) |
 | `reagent_volumes` | `Dict[str, float]`| Complete pipetting recipe |
 | `star_activity_warning` | `bool` | True if enzyme volume exceeds 10% of total reaction |
-| `notes` | `List[str]` | Star activity and methylation compatibility warnings |
+| `notes` | `Tuple[str, ...]` | Star activity and methylation compatibility warnings |
+
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `volume_ul` | `float` | `self.reaction_volume_ul` | Total digestion volume in $\mu\text{L}$ |
+| `mass_ug` | `float` | `self.dna_mass_ug` | Substrate DNA mass in $\mu\text{g}$ |
+| `buffer` | `str` | `self.recommended_buffer` | Recommended digestion buffer name |
+| `temp_celsius` | `int` | `self.incubation_temp_celsius` | Incubation temperature (°C) |
+| `time_min` | `int` | `self.incubation_time_min` | Incubation duration (minutes) |
 
 ---
 
@@ -908,6 +937,15 @@ Returned by `calculate_ligation`.
 | `insert_pmol` | `float` | Insert molar quantity in picomoles |
 | `reagent_volumes` | `Dict[str, float]`| Pipetting volumes for ligation reaction |
 | `incubation_guidelines` | `str` | Incubation protocol (16°C overnight or 22°C for 2h) |
+
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `vector_bp` | `int` | `self.vector_length_bp` | Vector size in base pairs |
+| `insert_bp` | `int` | `self.insert_length_bp` | Insert size in base pairs |
+| `vector_ng` | `float` | `self.vector_mass_ng` | Vector mass in nanograms |
+| `insert_ng` | `float` | `self.insert_mass_ng` | Insert mass in nanograms |
+| `ratio` | `float` | `self.molar_ratio_insert_to_vector` | Insert-to-vector molar ratio |
 
 ---
 
@@ -981,17 +1019,43 @@ Returned by `calculate_degree_of_labeling`.
 
 ---
 
-### 10. `GelLaneSimulation`
+### 10. `GelLaneSimulation` & `GelBand`
 Returned by `simulate_gel`.
 
+#### `GelLaneSimulation` Fields:
 | Field Name | Type | Description |
 | :--- | :--- | :--- |
 | `ladder_name` | `str` | Reference ladder name |
-| `sample_sizes` | `List[float]` | Input sample fragment sizes |
-| `ladder_bands` | `List[GelBand]`| Calibrated ladder bands with calculated $R_f$ |
-| `sample_bands` | `List[GelBand]`| Sample bands with calculated $R_f$ |
+| `sample_sizes` | `Tuple[float, ...]` | Input sample fragment sizes |
+| `ladder_bands` | `Tuple[GelBand, ...]`| Calibrated ladder bands with calculated $R_f$ |
+| `sample_bands` | `Tuple[GelBand, ...]`| Sample bands with calculated $R_f$ |
 | `recommended_gel_percentage` | `str` | Recommended matrix percentage (e.g., `'1.0%'` or `'10-12% SDS-PAGE'`) |
 | `ascii_visualization` | `str` | Multi-line formatted terminal ASCII graphic |
+
+**Ergonomic Property Aliases (`GelLaneSimulation`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `bands` | `Tuple[GelBand, ...]` | `self.sample_bands` | Sample bands on the simulated gel |
+| `ladder` | `Tuple[GelBand, ...]` | `self.ladder_bands` | Reference ladder bands |
+| `ladder_key` | `str` | `self.ladder_name` | Ladder catalog key |
+| `ascii` | `str` | `self.ascii_visualization` | ASCII gel migration graphic |
+| `gel_percentage` | `str` | `self.recommended_gel_percentage` | Recommended agarose/acrylamide matrix % |
+
+#### `GelBand` Fields & Aliases:
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `size` | `float` | DNA fragment or protein molecular weight |
+| `unit` | `str` | Unit string (`'bp'` or `'kDa'`) |
+| `relative_migration_rf` | `float` | Relative electrophoretic migration coefficient ($0.0\text{--}1.0$) |
+| `is_reference` | `bool` | True if this band serves as prominent ladder reference marker |
+| `label` | `str` | Formatted size label |
+
+**Ergonomic Property Aliases (`GelBand`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `rf` | `float` | `self.relative_migration_rf` | Relative migration distance $R_f$ |
+| `size_bp` | `float` | `self.size` | Band size in base pairs |
+| `length_bp` | `float` | `self.size` | Band size in base pairs |
 
 ---
 
@@ -1067,9 +1131,10 @@ Returned by `optimize_pcr_protocol`.
 
 ---
 
-### 15. `PCRResult`
-Returned by `calculate_pcr_kinetics`.
+### 15. `PCRResult` & `MasterMixItem`
+Returned by `calculate_pcr_kinetics` and `build_master_mix`. Also accessible via class aliases `PCRReaction = PCRResult` and `PCRMasterMix = MasterMixItem`.
 
+#### `PCRResult` Fields:
 | Field Name | Type | Description |
 | :--- | :--- | :--- |
 | `amplicon_length_bp` | `int` | Amplicon length in base pairs |
@@ -1089,6 +1154,36 @@ Returned by `calculate_pcr_kinetics`.
 | `dntp_exhaustion_cycle` | `Optional[int]` | Cycle number at which dNTP exhaustion triggers plateau |
 | `theoretical_max_amplicon_ug`| `float` | Maximum attainable yield under dNTP supply |
 | `limiting_reagent` | `str` | Identity of limiting reaction component |
+
+**Ergonomic Property Aliases (`PCRResult`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `length_bp` | `int` | `self.amplicon_length_bp` | Amplicon size in base pairs |
+| `size_bp` | `int` | `self.amplicon_length_bp` | Amplicon size in base pairs |
+| `length` | `int` | `self.amplicon_length_bp` | Amplicon size in base pairs |
+| `size` | `int` | `self.amplicon_length_bp` | Amplicon size in base pairs |
+| `mw` | `float` | `self.amplicon_mw` | Amplicon molecular weight in Da |
+| `molecular_weight` | `float` | `self.amplicon_mw` | Amplicon molecular weight in Da |
+| `yield_ng` | `float` | `self.amplicon_yield_ng` | Amplicon mass yield in ng |
+| `yield_pmol` | `float` | `self.amplicon_yield_pmol` | Amplicon molar yield in pmol |
+| `cycles` | `int` | `self.cycles_run` | Total cycles completed |
+
+#### `MasterMixItem` Fields & Aliases:
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `component` | `str` | Reaction component name (buffer, primers, dNTPs, enzyme, water) |
+| `volume_per_reaction_ul`| `float` | Volume required for a single reaction ($\mu\text{L}$) |
+| `total_volume_ul` | `float` | Scaled master mix volume including overage ($\mu\text{L}$) |
+| `final_concentration` | `str` | Target final reaction concentration string |
+
+**Ergonomic Property Aliases (`MasterMixItem`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `str` | `self.component` | Reagent name |
+| `volume_ul` | `float` | `self.volume_per_reaction_ul` | Volume per single reaction in $\mu\text{L}$ |
+| `per_rxn_ul` | `float` | `self.volume_per_reaction_ul` | Volume per single reaction in $\mu\text{L}$ |
+| `total_ul` | `float` | `self.total_volume_ul` | Total bulk master mix volume in $\mu\text{L}$ |
+| `conc` | `str` | `self.final_concentration` | Working concentration string |
 
 ---
 
@@ -1151,6 +1246,20 @@ Returned by `calculate_dna_mw`, `calculate_rna_mw`, and `calculate_protein_mw`.
 | `backbone` | `str` | Backbone linkage chemistry |
 | `formula_delta` | `str` | Mass shift summary relative to default standard |
 
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `molecular_weight` | `float` | `self.average_mw` | Average molecular weight in Daltons |
+| `mw` | `float` | `self.average_mw` | Short alias for molecular weight in Daltons |
+| `molecular_weight_da`| `float` | `self.average_mw` | Explicit Dalton-unit alias for molecular weight |
+| `mw_da` | `float` | `self.average_mw` | Short Dalton-unit alias for molecular weight |
+| `avg_mw` | `float` | `self.average_mw` | Average molecular weight in Daltons |
+| `mono_mw` | `float` | `self.monoisotopic_mw` | Monoisotopic molecular weight in Daltons |
+| `monoisotopic_mw_da`| `float` | `self.monoisotopic_mw` | Monoisotopic molecular weight in Daltons |
+| `gc` | `float` | `self.gc_content` | GC content percentage |
+| `gc_pct` | `float` | `self.gc_content` | GC content percentage |
+| `seq` | `str` | `self.sequence` | Cleaned sequence string |
+
 ---
 
 ### 18. `PrimerAnalysis`
@@ -1172,6 +1281,15 @@ Returned by `analyze_primer`.
 | `hairpin_score` | `int` | Stem-loop hairpin formation penalty score |
 | `quality_score` | `float` | Overall thermodynamic quality score ($0\text{--}100$) |
 
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `length_nt` | `int` | `self.length` | Primer length in nucleotides |
+| `tm` | `float` | `self.tm_celsius` | Melting temperature ($T_m$) in °C |
+| `gc` | `float` | `self.gc_percent` | GC content percentage |
+| `gc_pct` | `float` | `self.gc_percent` | GC content percentage |
+| `seq` | `str` | `self.sequence` | 5' to 3' primer sequence string |
+
 ---
 
 ### 19. `PrimerPair`
@@ -1189,6 +1307,17 @@ Returned by `design_primers`.
 | `heterodimer_score` | `int` | Cross-primer hybridization penalty score |
 | `three_prime_heterodimer_score`| `int` | Primer-dimer penalty specifically at $3'$ ends |
 | `heterodimer_warning` | `bool` | True if significant cross-dimer risk exists |
+
+**Ergonomic Property Aliases:**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `forward` | `PrimerAnalysis` | `self.forward_primer` | Forward primer analysis object |
+| `reverse` | `PrimerAnalysis` | `self.reverse_primer` | Reverse primer analysis object |
+| `fwd` | `PrimerAnalysis` | `self.forward_primer` | Forward primer convenience alias |
+| `rev` | `PrimerAnalysis` | `self.reverse_primer` | Reverse primer convenience alias |
+| `amplicon_bp` | `int` | `self.amplicon_length_bp` | Amplicon size in base pairs |
+| `length_bp` | `int` | `self.amplicon_length_bp` | Amplicon size in base pairs |
+| `delta_tm` | `float` | `self.tm_difference` | Difference in primer melting temperatures ($\Delta T_m$) |
 
 ---
 
@@ -1208,16 +1337,48 @@ Returned by `calculate_extinction_coefficient`.
 
 ---
 
-### 21. `StandardCurveResult`
-Returned by `fit_standard_curve`.
+### 21. `StandardCurveResult` & `ProteinYieldResult`
+Returned by `fit_standard_curve` and `StandardCurveResult.predict()`.
 
+#### `StandardCurveResult` Fields:
 | Field Name | Type | Description |
 | :--- | :--- | :--- |
 | `assay_type` | `str` | Assay name (`BCA`, `Bradford`, `Lowry`) |
 | `slope` | `float` | Linear regression slope ($m$) |
-| `intercept` | `float` | Linear regression y-intercept ($c$) |
+| `intercept` | `float` | Linear regression y-intercept ($b$) |
 | `r_squared` | `float` | Coefficient of determination ($R^2$) |
 | `formula_str` | `str` | Formatted equation string (e.g., `'y = 0.00115x + 0.0450'`) |
+
+**Ergonomic Property Aliases (`StandardCurveResult`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `r2` | `float` | `self.r_squared` | Coefficient of determination $R^2$ |
+| `m` | `float` | `self.slope` | Regression slope ($m$) |
+| `b` | `float` | `self.intercept` | Regression y-intercept ($b$) |
+
+#### `ProteinYieldResult` Fields & Aliases:
+Returned by `StandardCurveResult.predict(absorbance)`:
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `sample_name` | `str` | Sample identifier |
+| `concentration_mg_ml` | `float` | Predicted protein concentration in mg/mL |
+| `concentration_ug_ml` | `float` | Predicted protein concentration in $\mu\text{g/mL}$ |
+| `molarity_um` | `float` | Calculated molarity in $\mu\text{M}$ (if MW provided) |
+| `volume_ml` | `float` | Total sample volume in mL |
+| `total_yield_mg` | `float` | Total yield in milligrams |
+| `total_yield_ug` | `float` | Total yield in micrograms |
+| `total_yield_ng` | `float` | Total yield in nanograms |
+| `molecular_weight` | `Optional[float]` | Protein molecular weight in Da |
+
+**Ergonomic Property Aliases (`ProteinYieldResult`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `conc_mg_ml` | `float` | `self.concentration_mg_ml` | Concentration in mg/mL |
+| `conc_ug_ml` | `float` | `self.concentration_ug_ml` | Concentration in $\mu\text{g/mL}$ |
+| `mw` | `Optional[float]` | `self.molecular_weight` | Molecular weight in Da |
+| `yield_mg` | `float` | `self.total_yield_mg` | Total protein yield in mg |
+| `yield_ug` | `float` | `self.total_yield_ug` | Total protein yield in $\mu\text{g}$ |
+| `yield_ng` | `float` | `self.total_yield_ng` | Total protein yield in ng |
 
 ---
 
@@ -1389,18 +1550,87 @@ Returned by `biolabcalc.plasmid.get_plasmid`, `parse_genbank`, and `auto_annotat
 
 ---
 
-### 31. `DigestionPrediction` & `RestrictionCutSite`
-Returned by `biolabcalc.restriction_engine.simulate_restriction_digest`.
+### 31. `RestrictionDigestPrediction`, `DigestedFragment`, & `RestrictionCutSite`
+Returned by `biolabcalc.restriction_engine.predict_restriction_digest` and `biolabcalc.easy.digest_map`. Also accessible via class aliases `DigestionPrediction = RestrictionDigestPrediction`, `RestrictionDigestResult = RestrictionDigestPrediction`, and `RestrictionFragment = DigestedFragment`.
 
+#### `RestrictionDigestPrediction` Fields:
 | Field Name | Type | Description |
 | :--- | :--- | :--- |
-| `plasmid_name` | `str` | Target plasmid name |
+| `plasmid_name` | `str` | Target plasmid or DNA substrate name |
+| `total_length_bp` | `int` | Total construct length in base pairs |
+| `topology` | `str` | Construct topology (`'circular'` or `'linear'`) |
 | `enzymes` | `Tuple[str, ...]` | Restriction enzymes utilized in digestion |
 | `cut_sites` | `Tuple[RestrictionCutSite, ...]`| Cleavage coordinates, top/bottom offsets, and overhangs |
-| `fragments` | `Tuple[RestrictionFragment, ...]`| Cleaved DNA fragments with lengths and terminal ends |
+| `fragments` | `Tuple[DigestedFragment, ...]`| Cleaved DNA fragments with lengths and terminal ends |
 | `fragment_count` | `int` | Total number of fragments produced |
-| `is_linearized` | `bool` | True if circular vector cleaved exactly once |
-| `is_uncut` | `bool` | True if vector has zero recognition sites |
+| `uncut_conformations` | `Dict[str, int]` | Uncut plasmid topological migration sizes (supercoiled, nicked, concatemers) |
+| `gel_bands` | `Tuple[Dict[str, Any], ...]` | Virtual gel migration bands |
+| `pipetting_plan` | `Optional[Any]` | Pipetting recipe for reaction |
+
+**Ergonomic Property Aliases (`RestrictionDigestPrediction`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `count` | `int` | `self.fragment_count` | Total number of fragments |
+| `num_fragments` | `int` | `self.fragment_count` | Total number of fragments |
+| `length_bp` | `int` | `self.total_length_bp` | Total construct length in base pairs |
+| `size_bp` | `int` | `self.total_length_bp` | Total construct length in base pairs |
+| `length` | `int` | `self.total_length_bp` | Total construct length in base pairs |
+| `size` | `int` | `self.total_length_bp` | Total construct length in base pairs |
+| `is_linearized` | `bool` | computed | True if circular vector cleaved exactly once |
+| `is_uncut` | `bool` | computed | True if construct has zero recognition cut sites |
+
+#### `DigestedFragment` Fields & Aliases:
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `fragment_id` | `int` | Sequential 1-based fragment index |
+| `start_1based` | `int` | 1-based start nucleotide position on template |
+| `end_1based` | `int` | 1-based end nucleotide position on template |
+| `length_bp` | `int` | Fragment length in base pairs |
+| `molecular_weight_da`| `float` | Double-stranded molecular weight in Daltons |
+| `mass_ng` | `float` | Mass of this fragment in nanograms |
+| `relative_intensity` | `float` | Theoretical relative band intensity on gel ($0.0\text{--}1.0$) |
+| `left_enzyme` | `str` | Restriction enzyme generating the 5' cleavage |
+| `right_enzyme` | `str` | Restriction enzyme generating the 3' cleavage |
+| `left_overhang_type` | `str` | Terminal geometry (`"5' overhang"`, `"3' overhang"`, `"blunt"`) |
+| `right_overhang_type`| `str` | Terminal geometry (`"5' overhang"`, `"3' overhang"`, `"blunt"`) |
+| `left_overhang_seq` | `str` | Protruding single-stranded sequence on 5' side |
+| `right_overhang_seq`| `str` | Protruding single-stranded sequence on 3' side |
+| `wraps_origin` | `bool` | True if fragment spans across origin ($L \to 1$) |
+| `contained_features`| `Tuple[str, ...]` | List of annotated plasmid features carried by this fragment |
+
+**Ergonomic Property Aliases (`DigestedFragment`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `start_pos` | `int` | `self.start_1based` | 1-based start coordinate |
+| `end_pos` | `int` | `self.end_1based` | 1-based end coordinate |
+| `start` | `int` | `self.start_1based` | 1-based start coordinate |
+| `end` | `int` | `self.end_1based` | 1-based end coordinate |
+| `length` | `int` | `self.length_bp` | Fragment size in base pairs |
+| `size_bp` | `int` | `self.length_bp` | Fragment size in base pairs |
+| `size` | `int` | `self.length_bp` | Fragment size in base pairs |
+| `mw_da` | `float` | `self.molecular_weight_da` | Molecular weight in Daltons |
+| `mw` | `float` | `self.molecular_weight_da` | Molecular weight in Daltons |
+| `molecular_weight` | `float` | `self.molecular_weight_da` | Molecular weight in Daltons |
+
+#### `RestrictionCutSite` Fields & Aliases:
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| `enzyme` | `str` | Restriction endonuclease name |
+| `cut_pos_top` | `int` | 1-based coordinate of cleavage on top strand |
+| `cut_pos_bottom` | `int` | 1-based coordinate of cleavage on bottom strand |
+| `recognition_start` | `int` | 1-based start coordinate of recognition sequence |
+| `recognition_end` | `int` | 1-based end coordinate of recognition sequence |
+| `strand` | `int` | 1 for forward strand, -1 for reverse strand |
+| `overhang_type` | `str` | Overhang geometry (`"5' overhang"`, `"3' overhang"`, `"blunt"`) |
+| `overhang_seq` | `str` | Protruding overhang nucleotide sequence |
+
+**Ergonomic Property Aliases (`RestrictionCutSite`):**
+| Property Alias | Returns | Maps To | Description |
+| :--- | :--- | :--- | :--- |
+| `start` | `int` | `self.recognition_start` | 1-based start coordinate of recognition motif |
+| `end` | `int` | `self.recognition_end` | 1-based end coordinate of recognition motif |
+| `pos` | `int` | `self.cut_pos_top` | 1-based cut position on top strand |
+| `position` | `int` | `self.cut_pos_top` | 1-based cut position on top strand |
 
 ---
 

@@ -77,6 +77,7 @@ Subcommands performing biophysical or protocol calculations (`pcr`, `ivt`, `prot
 | [`plasmid`](#39-plasmid) | Cloning | Circular plasmid feature inspection, origin rotation, GenBank I/O |
 | [`clone-gene`](#40-clone-gene) | Cloning | Automated expression plasmid design with frame sync and 7-point audit |
 | [`interactive-plasmid`](#41-interactive-plasmid) | Visualization | Launches TEA interactive SVG circular plasmid workbench in browser |
+| [`print-protocol`](#42-print-protocol) | Protocols | Generates printable benchtop companion with master mix overage and plate map |
 
 ---
 
@@ -569,6 +570,13 @@ Renders publication-ready annotated gel figures (PNG) from raw gel images or syn
 | `-o` | `--output` | String | `annotated_gel.png` | Output figure path |
 | | `--excel` | String | `None` | Target Excel file to embed figure and lane table |
 | | `--invert` | Flag | `False` | Inverts image colors |
+| | `--font-family` | String | `Arial, Helvetica, sans-serif` | Font family for all canvas text and badges |
+| | `--font-scale` | Float | `1.0` | Font scaling factor ($0.7\text{--}1.8$) |
+| | `--show-lane-numbers` | Flag | `True` | Displays lane number badge indicators |
+| | `--hide-lane-numbers` | Flag | `False` | Suppresses lane number badges |
+| | `--lane-number-style` | Choice | `circle` | Badge style: `circle`, `square`, or `plain` |
+| | `--lane-number-format`| Choice | `numeric` | Format: `numeric` (1), `prefixed_L` (L1), `prefixed_lane` (Lane 1), `alpha` (A), `roman` (I) |
+| | `--include-table` | Flag | `False` | Appends formatted lane sample designation table below the gel figure |
 
 #### Example
 
@@ -578,6 +586,11 @@ biolabcalc annotate-gel \
   --ladder 1kb_dna \
   -b "3:3200:Backbone,3:850:Insert" \
   -t "Cloning Verification" \
+  --font-family "Arial, Helvetica, sans-serif" \
+  --font-scale 1.1 \
+  --lane-number-style circle \
+  --lane-number-format prefixed_L \
+  --include-table \
   -o "annotated_clones.png" \
   --excel "Cloning_Log.xlsx"
 ```
@@ -1544,6 +1557,39 @@ biolabcalc interactive-plasmid --plasmid "pET-28a(+)" --open-browser
 * `--plasmid <ID>`: Plasmid name or path to GenBank file.
 * `-o, --output <PATH>`: Output HTML file path.
 * `--open-browser`: Automatically open generated workbench in default browser.
+
+---
+
+### 42. `print-protocol` — Printable Benchtop Protocol & Plate Companion
+
+Generates print-optimized HTML5/CSS documents (`@media print`) designed for physical lab bench use, biosafety hoods, and physical laboratory notebook tape-ins. Enforces the 7-stage thermodynamic "Enzyme-Last" addition hierarchy, computes master mix pipetting overage, assigns recommended pipette tool sizes (P2–P1000), formats visual plate maps with orientation chamfer notches, and embeds GLP archival sign-off blocks.
+
+```bash
+# Generate a 24-reaction PCR bench protocol with 10% overage and 96-well plate map
+biolabcalc print-protocol \
+  --title "Q5 Colony PCR Screening" \
+  --reactions 24 \
+  --overage 10 \
+  --template pcr \
+  --plate-type 96-well \
+  --trim-size 8x10 \
+  --output "colony_pcr_protocol.html" \
+  --open-browser
+```
+
+#### Arguments:
+* `-t, --title <TEXT>`: Experiment or protocol title (default: `'Q5 High-Fidelity PCR Amplification'`).
+* `-n, --reactions <INT>`: Total number of experimental reactions (default: `24`).
+* `--overage <FLOAT>`: Master mix overage percentage (default: `10.0`).
+* `--template <PRESET>`: Reaction formulation template (`pcr`, `qpcr`, `digest`, `custom`).
+* `--plate-type <TYPE>`: Benchware plate or rack layout (`96-well`, `384-well`, `24-tube`, `8-strip`).
+* `-s, --samples <LIST>`: Comma-separated list of sample names to populate onto the plate map.
+* `--trim-size <SIZE>`: Physical notebook tape-in trim boundary (`8x10`, `7.5x9.5`, `full-page`).
+* `-o, --output <PATH>`: Output HTML document path (default: `'bench_protocol.html'`).
+* `--operator <NAME>`: Operator name for GLP compliance sign-off.
+* `--project <ID>`: Project or grant identifier.
+* `--protocol-id <ID>`: Standard operating procedure ID (default: `'SOP-BIO-01'`).
+* `--open-browser`: Automatically open the rendered protocol in the default web browser.
 
 ---
 

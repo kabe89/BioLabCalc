@@ -79,6 +79,26 @@ class RestrictionCutSite:
     overhang_type: str = "5' overhang"  # "5' overhang", "3' overhang", "blunt"
     overhang_seq: str = ""  # sequence of the overhang on the protruding strand
 
+    @property
+    def start(self) -> int:
+        """1-based start coordinate of recognition sequence."""
+        return self.recognition_start
+
+    @property
+    def end(self) -> int:
+        """1-based end coordinate of recognition sequence."""
+        return self.recognition_end
+
+    @property
+    def pos(self) -> int:
+        """1-based top strand cut coordinate."""
+        return self.cut_pos_top
+
+    @property
+    def position(self) -> int:
+        """1-based top strand cut coordinate."""
+        return self.cut_pos_top
+
 
 @dataclass(frozen=True)
 class DigestedFragment:
@@ -98,6 +118,56 @@ class DigestedFragment:
     wraps_origin: bool = False
     contained_features: Tuple[str, ...] = ()
 
+    @property
+    def start_pos(self) -> int:
+        """1-based start coordinate."""
+        return self.start_1based
+
+    @property
+    def end_pos(self) -> int:
+        """1-based end coordinate."""
+        return self.end_1based
+
+    @property
+    def start(self) -> int:
+        """1-based start coordinate."""
+        return self.start_1based
+
+    @property
+    def end(self) -> int:
+        """1-based end coordinate."""
+        return self.end_1based
+
+    @property
+    def length(self) -> int:
+        """Fragment length in base pairs."""
+        return self.length_bp
+
+    @property
+    def size_bp(self) -> int:
+        """Fragment length in base pairs."""
+        return self.length_bp
+
+    @property
+    def size(self) -> int:
+        """Fragment length in base pairs."""
+        return self.length_bp
+
+    @property
+    def mw_da(self) -> float:
+        """Molecular weight in Daltons."""
+        return self.molecular_weight_da
+
+    @property
+    def mw(self) -> float:
+        """Molecular weight in Daltons."""
+        return self.molecular_weight_da
+
+    @property
+    def molecular_weight(self) -> float:
+        """Molecular weight in Daltons."""
+        return self.molecular_weight_da
+
 
 @dataclass(frozen=True)
 class RestrictionDigestPrediction:
@@ -111,6 +181,46 @@ class RestrictionDigestPrediction:
     uncut_conformations: Dict[str, int] = field(default_factory=dict)
     gel_bands: Tuple[Dict[str, Any], ...] = ()
     pipetting_plan: Optional[Any] = None
+
+    @property
+    def count(self) -> int:
+        """Total fragment count."""
+        return self.fragment_count
+
+    @property
+    def num_fragments(self) -> int:
+        """Total fragment count."""
+        return self.fragment_count
+
+    @property
+    def length_bp(self) -> int:
+        """Total construct length in base pairs."""
+        return self.total_length_bp
+
+    @property
+    def size_bp(self) -> int:
+        """Total construct length in base pairs."""
+        return self.total_length_bp
+
+    @property
+    def length(self) -> int:
+        """Total construct length in base pairs."""
+        return self.total_length_bp
+
+    @property
+    def size(self) -> int:
+        """Total construct length in base pairs."""
+        return self.total_length_bp
+
+    @property
+    def is_linearized(self) -> bool:
+        """True if circular construct was cleaved exactly once into 1 linear fragment."""
+        return self.fragment_count == 1 and self.topology.lower() in ("circular", "circ")
+
+    @property
+    def is_uncut(self) -> bool:
+        """True if construct has zero cleavage cut sites."""
+        return len(self.cut_sites) == 0 or self.fragment_count == 0
 
     def _repr_html_(self) -> str:
         """Render clean HTML summary for Jupyter notebooks."""
@@ -139,6 +249,12 @@ class RestrictionDigestPrediction:
             f'</table>'
             f'</div>'
         )
+
+
+# Backward-compatible and ergonomic aliases
+DigestionPrediction = RestrictionDigestPrediction
+RestrictionDigestResult = RestrictionDigestPrediction
+RestrictionFragment = DigestedFragment
 
 
 @dataclass(frozen=True)
