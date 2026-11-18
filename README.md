@@ -874,8 +874,6 @@ If you use BioLabCalc in your scientific research, molecular biology calculation
 }
 ```
 
-For the paper manuscript draft and bibliography, see [paper/paper.md](paper/paper.md) and [paper/paper.bib](paper/paper.bib).
-
 ---
 
 ## 📄 License
