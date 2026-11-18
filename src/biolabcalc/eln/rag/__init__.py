@@ -26,6 +26,7 @@ from .local_llm import (
 from .synthesizer import (
     Citation,
     CitationSynthesizer,
+    ContextualSynthesizer,
     SynthesisResult,
 )
 
@@ -46,6 +47,7 @@ __all__ = [
     "BM25Engine",
     # Synthesis & Citations
     "CitationSynthesizer",
+    "ContextualSynthesizer",
     "SynthesisResult",
     "Citation",
 ]

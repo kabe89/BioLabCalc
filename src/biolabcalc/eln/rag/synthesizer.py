@@ -312,3 +312,7 @@ class CitationSynthesizer:
 
     # Alias for API compatibility
     answer_query = synthesize
+
+
+# Alias for documentation and backward compatibility
+ContextualSynthesizer = CitationSynthesizer
