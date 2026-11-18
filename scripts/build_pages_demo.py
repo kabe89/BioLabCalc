@@ -20,6 +20,7 @@ src_dir = repo_root / "src"
 if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
+from biolabcalc import __version__
 from biolabcalc.interactive_gel import get_interactive_html
 from biolabcalc.interactive_plasmid import get_plasmid_workbench_html
 
@@ -44,7 +45,7 @@ def build_pages_demo(output_dir: Optional[Path] = None) -> Path:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BioLabCalc v1.1.0 — Pure-Python Molecular Biology & Biophysics Suite</title>
+    <title>BioLabCalc v{__version__} — Pure-Python Molecular Biology & Biophysics Suite</title>
     <meta name="description" content="Pure-Python molecular biology and biophysical calculation suite with zero mandatory dependencies. 45 CLI tools, Bio-Rad .scn/.1sc parser, ELN & LIMS pipeline, microplate liquid handling automation.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧬</text></svg>">
     <style>
@@ -230,7 +231,7 @@ def build_pages_demo(output_dir: Optional[Path] = None) -> Path:
 </head>
 <body>
     <header>
-        <span class="badge">VERSION 1.1.0 RELEASE</span>
+        <span class="badge">VERSION {__version__} RELEASE</span>
         <h1>BioLabCalc</h1>
         <p class="tagline">The Zero-Dependency Pure-Python Molecular Biology, Biophysics & Laboratory Automation Suite</p>
         <div class="hero-actions">
@@ -293,7 +294,7 @@ def build_pages_demo(output_dir: Optional[Path] = None) -> Path:
     </main>
 
     <footer>
-        <p>BioLabCalc v1.1.0 — Licensed under MIT. Developed by kabe89 & the Open Source Life Sciences Community.</p>
+        <p>BioLabCalc v{__version__} — Licensed under MIT. Developed by kabe89 & the Open Source Life Sciences Community.</p>
         <p style="margin-top: 0.5rem; font-size: 0.85rem;">Designed for production research environments, high-throughput screening, and automated workflows.</p>
     </footer>
 

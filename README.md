@@ -8,7 +8,7 @@
 [![Conda Environment](https://img.shields.io/badge/conda-environment.yml-green.svg)](environment.yml)
 [![Security: CodeQL](https://img.shields.io/badge/security-CodeQL%20passed-success.svg)](https://github.com/kabe89/BioLabCalc/security)
 [![Wiki: 26 Guides](https://img.shields.io/badge/wiki-26%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
-[![Tests](https://img.shields.io/badge/tests-560%20passed-brightgreen.svg)](#-running-tests)
+[![Tests](https://img.shields.io/badge/tests-564%20passed-brightgreen.svg)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -87,7 +87,7 @@ Modern life science research laboratories operate under significant friction:
 
 ## 📊 Feature Comparison Matrix
 
-| Capability / Dimension | BioLabCalc (v1.1.0) | Proprietary Cloud ELNs (Benchling, LabArchives) | Generic Spreadsheets (Excel / Sheets) |
+| Capability / Dimension | BioLabCalc (v1.1.1) | Proprietary Cloud ELNs (Benchling, LabArchives) | Generic Spreadsheets (Excel / Sheets) |
 | :--- | :---: | :---: | :---: |
 | **Server Requirements** | **Zero (Runs locally / offline)** | Dedicated cloud infrastructure | Local application |
 | **Offline / Air-Gapped Support**| **100% Native (No internet needed)** | Requires active internet connection | Local only |
@@ -813,10 +813,10 @@ pytest tests/
 ```
 
 ```text
-======================= 560 passed, 6 skipped in 3.35s =======================
+======================= 564 passed, 6 skipped in 3.35s =======================
 ```
 
-All 560 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
+All 564 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
 
 ```bash
 # Run Git Security & PII Compliance Audit
@@ -870,7 +870,7 @@ If you use BioLabCalc in your scientific research, molecular biology calculation
   title = {BioLabCalc: A Pure-Python Molecular Biology, Biophysics, and Laboratory Automation Engine},
   year = {2026},
   url = {https://github.com/kabe89/BioLabCalc},
-  version = {1.1.0}
+  version = {1.1.1}
 }
 ```
 
