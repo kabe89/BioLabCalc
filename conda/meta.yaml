@@ -1,0 +1,57 @@
+{% set name = "biolabcalc" %}
+{% set version = "1.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/biolabcalc-{{ version }}.tar.gz
+  sha256: 018246a2baea71c1fc88013fa8fcbb2f43430225
+
+build:
+  noarch: python
+  number: 0
+  script: "{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv"
+  entry_points:
+    - biolabcalc = biolabcalc.cli:main
+
+requirements:
+  host:
+    - python >=3.8
+    - pip
+    - setuptools >=61.0
+    - wheel
+  run:
+    - python >=3.8
+
+test:
+  imports:
+    - biolabcalc
+    - biolabcalc.seq_utils
+    - biolabcalc.pcr
+    - biolabcalc.cloning
+    - biolabcalc.restriction_engine
+    - biolabcalc.tea_runtime
+  commands:
+    - biolabcalc --help
+    - biolabcalc mw --dna "ATGCGATC"
+    - biolabcalc pcr --fwd "ATGCGATCGATC" --rev "GCTAGCTAGCTA"
+
+about:
+  home: https://github.com/kabe89/BioLabCalc
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: "Air-gapped computational biology suite, benchtop assistant, and Electronic Lab Notebook (ELN)"
+  description: |
+    BioLabCalc is an enterprise-grade, privacy-preserving computational biology suite,
+    command-line benchtop assistant, and browser-based Electronic Lab Notebook (ELN) / LIMS
+    for wet-lab molecular biology, biochemistry, cloning, electrophoresis, and cell culture.
+    Runs 100% offline without hosting an external server.
+  doc_url: https://github.com/kabe89/BioLabCalc/wiki
+  dev_url: https://github.com/kabe89/BioLabCalc
+
+extra:
+  recipe-maintainers:
+    - kabe89

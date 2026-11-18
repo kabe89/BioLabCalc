@@ -3,13 +3,16 @@
 [![CI](https://github.com/kabe89/BioLabCalc/actions/workflows/ci.yml/badge.svg)](https://github.com/kabe89/BioLabCalc/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/biolabcalc.svg)](https://pypi.org/project/biolabcalc/)
 [![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/biolabcalc/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?logo=github)](https://kabe89.github.io/BioLabCalc/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kabe89/BioLabCalc/blob/main/examples/quickstart_cookbook.ipynb)
+[![Conda Environment](https://img.shields.io/badge/conda-environment.yml-green.svg)](environment.yml)
 [![Security: CodeQL](https://img.shields.io/badge/security-CodeQL%20passed-success.svg)](https://github.com/kabe89/BioLabCalc/security)
 [![Wiki: 26 Guides](https://img.shields.io/badge/wiki-26%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
 [![Tests](https://img.shields.io/badge/tests-543%20passed-brightgreen.svg)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-> **BioLabCalc** is an enterprise-grade, privacy-preserving computational biology suite, command-line benchtop assistant, interactive Excel generator, and browser-based Electronic Lab Notebook (ELN) / LIMS for daily wet-lab molecular biology, biochemistry, cloning, electrophoresis, and cell culture workflows. Operates seamlessly on local workstations, shared network drives (UNC / mapped drives), or zero-install portable bundles.
+> **BioLabCalc** is a 100% free and open-source computational molecular biology suite, benchtop assistant, and offline Electronic Lab Notebook (ELN) / LIMS for wet-lab cloning, electrophoresis, biophysics, and automation. **Runs completely offline with zero server hosting required, zero mandatory external dependencies, and zero-install portable deployment.**
 
 ---
 
@@ -22,9 +25,12 @@
 - [Installation & Portable Deployment](#-installation--portable-deployment)
   - [PyPI Installation](#from-pypi-recommended)
   - [Zero-Install Portable Run](#zero-install-portable-bundle-bench-pcs--usb)
+  - [Conda / Mamba Environment](#using-conda--mamba)
+  - [Interactive Google Colab & Live Demo](#try-online-instantly-no-installation-needed)
   - [First-Run Setup Wizard](#first-run-setup-wizard)
 - [Quick Start](#-quick-start)
   - [5-Minute Benchtop Cookbook](#-5-minute-benchtop-cookbook)
+  - [Interactive Jupyter / Colab Cookbook](#-interactive-jupyter--colab-cookbook)
   - [Convenience API (`biolabcalc.easy`)](#-convenience-api-biolabcalceasy)
 - [Shared Lab Network Storage & Concurrency](#-shared-lab-network-storage--concurrency)
 - [No-Code Custom Experiment Builder](#-no-code-custom-experiment-builder)
@@ -58,6 +64,7 @@
 - [Running Tests](#-running-tests)
 - [Contributing](#-contributing)
 - [Legal & Compliance Notice](#-legal--compliance-notice)
+- [Citation](#-citation)
 - [License](#-license)
 
 ---
@@ -65,19 +72,27 @@
 ## 🌟 Overview & Value Proposition
 
 Modern life science research laboratories operate under significant friction:
-* **Fragmented Calculations**: Researchers manually compute pipetting volumes, stock dilutions, molar ratios, and standard curves across ad-hoc spreadsheets prone to broken references (`#REF!`) and transcription mistakes.
+* **Fragmented Calculations**: Researchers manually compute pipetting volumes, stock dilutions, molar ratios, and standard curves across ad-hoc spreadsheets or disparate web forms.
 * **Complex Multi-Step Stoichiometry**: High-stakes enzymatic reactions—such as Golden Gate Type IIS assemblies, Gibson/HiFi assemblies, in vitro transcriptions (IVT) with CleanCap analogs, and multiplex PCRs—require exact stoichiometric balance.
-* **Multi-User Wet-Lab Isolation**: Traditional Electronic Lab Notebooks (ELNs) demand recurring cloud subscription fees, vendor lock-in, and constant internet access, conflicting with institutional data sovereignty policies and air-gapped instrument computers.
+* **Server Overhead & Cloud Lock-In**: Traditional Electronic Lab Notebooks (ELNs) demand recurring cloud subscriptions, vendor lock-in, and constant internet connectivity, conflicting with institutional data privacy rules and air-gapped instrument computers.
 
-**BioLabCalc** solves this by unifying fundamental biophysical stoichiometry with an enterprise-grade, offline-first Electronic Lab Notebook. It operates effortlessly on a single laptop, an air-gapped benchtop PC, or across an entire research department via a shared local network drive (Windows UNC paths `\\server\share\data` or mapped drive letters `Z:\...`).
+**BioLabCalc** solves this by delivering a completely free, open-source, and self-contained computational molecular biology suite and benchtop ELN:
+* 🌐 **Zero Server Hosting**: Requires no servers, cloud hosting, or database administrators. Runs directly on your workstation or shared lab directory.
+* 🔒 **100% Offline & Air-Gapped Ready**: Operates with total data sovereignty. No data ever leaves your computer; fully functional on air-gapped wet-lab workstations.
+* 📦 **Zero Mandatory Dependencies**: Core biophysical calculators and parsers run on pure Python standard library. Optional scientific extensions (`numpy`, `openpyxl`, `biopython`, `matplotlib`) are purely opt-in extras.
+* 💾 **Zero-Install Portable Run**: Execute immediately from a USB flash drive or shared network folder (`run_lab.bat` / `run_lab.sh`) without administrator rights or package installation.
+* 🤝 **Open Source & Extensible**: 100% MIT licensed with no paywalls or gated features.
 
 ---
 
 ## 📊 Feature Comparison Matrix
 
-| Capability / Dimension | BioLabCalc (v0.4.0) | Proprietary Cloud ELNs (Benchling, LabArchives) | Generic Spreadsheets (Excel / Sheets) |
+| Capability / Dimension | BioLabCalc (v1.1.0) | Proprietary Cloud ELNs (Benchling, LabArchives) | Generic Spreadsheets (Excel / Sheets) |
 | :--- | :---: | :---: | :---: |
+| **Server Requirements** | **Zero (Runs locally / offline)** | Dedicated cloud infrastructure | Local application |
+| **Offline / Air-Gapped Support**| **100% Native (No internet needed)** | Requires active internet connection | Local only |
 | **Data Sovereignty & Privacy** | **100% Local / On-Premise Drive** | Stored on third-party cloud servers | Local file |
+| **Zero Mandatory Dependencies**| **Yes (Pure stdlib core)** | N/A (SaaS) | N/A |
 | **Zero-Install Portable Run** | **Yes (`run_lab.bat` / USB drive)** | Requires browser + paid account | Requires Microsoft Office license |
 | **Shared Network Concurrency** | **Yes (UNC `\\server\share` & `Z:\`)** | Cloud sync only | High file-lock corruption risk |
 | **Custom Experiment Builder** | **Declarative Safe AST Engine** | Limited / Enterprise tier only | Fragile cell formulas (`#VALUE!`) |
@@ -155,6 +170,22 @@ pip install "biolabcalc[eln]"
 pip install "biolabcalc[dev]"
 ```
 
+### Using Conda / Mamba
+Set up a clean, isolated Conda environment using the provided environment definition:
+```bash
+# Clone repository
+git clone https://github.com/kabe89/BioLabCalc.git
+cd BioLabCalc
+
+# Create and activate environment
+conda env create -f environment.yml
+conda activate biolabcalc
+```
+
+### Try Online Instantly (No Installation Needed)
+* **Google Colab Cookbook**: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kabe89/BioLabCalc/blob/main/examples/quickstart_cookbook.ipynb) — Run molecular cloning, PCR, in-silico restriction digestion, and plasmid mapping directly in your browser.
+* **GitHub Pages Live Demo**: [https://kabe89.github.io/BioLabCalc/](https://kabe89.github.io/BioLabCalc/) — Explore client-side biophysical tools and interactive interfaces.
+
 ### Zero-Install Portable Bundle (Bench PCs & USB)
 Generate a self-contained portable distribution folder that runs on any bench computer with Python installed:
 ```bash
@@ -201,6 +232,22 @@ python run.py setup --shared-dir "Z:\BioLabCalc_Data" --role client --non-intera
 | **Interactive Guided Wizard** | `biolabcalc wizard` | Step-by-step prompted menu for bench calculations |
 | **View System Diagnostics** | `biolabcalc diagnostics` | Plain-English health inspection and failure remediation |
 | **Launch Electronic Lab Notebook** | `biolabcalc eln --port 8080` | Opens modern web ELN in browser |
+
+---
+
+### 📓 Interactive Jupyter / Colab Cookbook
+
+Prefer hands-on exploration in an interactive notebook? Open our 5-minute quickstart cookbook:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kabe89/BioLabCalc/blob/main/examples/quickstart_cookbook.ipynb)
+
+The cookbook (`examples/quickstart_cookbook.ipynb`) demonstrates key workflows:
+1. **Biophysical Conversions**: Stoichiometry, DNA/protein molecular weights, and solution dilution formulas.
+2. **Primer Thermodynamics**: Accurate SantaLucia nearest-neighbor $T_m$ and GC content calculations.
+3. **PCR Master Mix Formulation**: Automatic reaction component scaling for multi-tube experiments.
+4. **In-Silico Restriction Digestion & Virtual Gel**: Enzyme cleavage simulation and electrophoretic band migration.
+5. **Interactive SVG Plasmid Mapping**: Generating circular plasmid diagrams with annotated features directly in Jupyter.
+6. **Protein Quantification**: Bradford standard curve fitting and sample concentration interpolation.
 
 ---
 
@@ -810,6 +857,24 @@ BioLabCalc is developed for open scientific research. For regulatory, export con
 * **Permissive Dependencies**: All upstream dependencies (`openpyxl`, `matplotlib`, `Pillow`, `numpy`) use OSI-approved permissive licenses (MIT, PSF, HPND, BSD-3-Clause) with zero copyleft (GPL/AGPL) restrictions.
 * **Data Sovereignty**: Sequence data, primer designs, experimental formulations, and laboratory notebooks created by users are saved solely to local file storage and are never transmitted to external servers.
 * **Nominative Fair Use**: All product names, logos, and trademarks (e.g. Gibson Assembly®, NanoDrop™, Coomassie®, Triton™, Tween®, Q5®, Phusion®) are the property of their respective owners and are referenced under nominative fair use without endorsement.
+
+---
+
+## 📚 Citation
+
+If you use BioLabCalc in your scientific research, molecular biology calculations, or laboratory automation workflows, please cite our software:
+
+```bibtex
+@software{biolabcalc2026,
+  author = {BioLabCalc Contributors},
+  title = {BioLabCalc: A Pure-Python Molecular Biology, Biophysics, and Laboratory Automation Engine},
+  year = {2026},
+  url = {https://github.com/kabe89/BioLabCalc},
+  version = {1.1.0}
+}
+```
+
+For the paper manuscript draft and bibliography, see [paper/paper.md](paper/paper.md) and [paper/paper.bib](paper/paper.bib).
 
 ---
 

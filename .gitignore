@@ -131,4 +131,12 @@ check_ids.py
 .ai_docs/
 ai_docs/
 
+# Growth, Marketing & Star Strategy (Git-Ignored)
+*star_plan*
+*growth_plan*
+STAR_STRATEGY.md
+GROWTH_PLAN.md
+plan_stars.md
+
+
 
