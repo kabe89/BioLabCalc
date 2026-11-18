@@ -32,7 +32,7 @@ PyYAML>=6.0                 # Configuration serialization and environment profil
 # 3. Optional Cloud & Object Storage Extensions
 # ------------------------------------------------------------------------------
 # Content-Addressed Storage (CAS) backend for AWS S3 and MinIO object storage.
-boto3>=1.26.0               # S3/MinIO cloud object storage client for ELN blob store (eln.storage.blob_store)
+boto3>=1.44.3               # S3/MinIO cloud object storage client for ELN blob store (eln.storage.blob_store)
 
 # ------------------------------------------------------------------------------
 # 4. Optional Advanced Scientific & Data Analysis Stack
