@@ -38,6 +38,7 @@ ALLOWED_EMAIL_DOMAINS = (
     "alumni.biolabcalc.org",
     "example.com",
     "users.noreply.github.com",
+    "github.com",
 )
 
 # Known benign synthetic test paths
