@@ -14,7 +14,7 @@ import os
 import secrets
 import threading
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
@@ -136,6 +136,18 @@ class UserSession:
     role: str
     token: str
     created_at: str
+    expires_at: Optional[str] = None
+
+    def is_expired(self) -> bool:
+        """Check whether the session has expired."""
+        if not self.expires_at:
+            return False
+        try:
+            exp = datetime.fromisoformat(self.expires_at)
+            now = datetime.now(timezone.utc)
+            return now > exp
+        except Exception:
+            return False
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -206,13 +218,16 @@ class AuthService:
         display_name: str,
         role: str,
         token: Optional[str] = None,
+        expires_in_seconds: Optional[int] = 86400,
     ) -> UserSession:
         """
-        Dynamically create and register an active UserSession.
+        Dynamically create and register an active UserSession with optional expiration (default: 24h).
         """
         if token is None:
             token = secrets.token_urlsafe(32)
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_dt = datetime.now(timezone.utc)
+        now_iso = now_dt.isoformat()
+        expires_at = (now_dt + timedelta(seconds=expires_in_seconds)).isoformat() if expires_in_seconds else None
         session = UserSession(
             user_id=user_id,
             username=username,
@@ -220,10 +235,24 @@ class AuthService:
             role=role,
             token=token,
             created_at=now_iso,
+            expires_at=expires_at,
         )
         with self._lock:
+            self._prune_expired_locked()
             self._sessions[token] = session
         return session
+
+    def _prune_expired_locked(self) -> int:
+        """Prune expired sessions from in-memory cache (called holding self._lock)."""
+        expired = [t for t, s in self._sessions.items() if s.is_expired()]
+        for t in expired:
+            del self._sessions[t]
+        return len(expired)
+
+    def prune_expired_sessions(self) -> int:
+        """Prune expired sessions from in-memory cache."""
+        with self._lock:
+            return self._prune_expired_locked()
 
     def authenticate_token(self, token_or_header: Optional[str]) -> UserSession:
         """
@@ -251,6 +280,9 @@ class AuthService:
             session = self._sessions.get(token)
             if not session:
                 raise AuthorizationError(f"Invalid or expired authentication token: '{token}'")
+            if session.is_expired():
+                del self._sessions[token]
+                raise AuthorizationError(f"Authentication token has expired: '{token}'")
             return session
 
     def require_role(self, allowed_roles: List[str]) -> Callable:

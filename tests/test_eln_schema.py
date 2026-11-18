@@ -407,7 +407,7 @@ class TestElnSchema(unittest.TestCase):
         Verify Engine protects _shared_conn with a threading.Lock and concurrent operations succeed.
         """
         self.assertIsNotNone(self.engine._lock)
-        self.assertTrue(isinstance(self.engine._lock, type(threading.Lock())))
+        self.assertTrue(isinstance(self.engine._lock, (type(threading.Lock()), type(threading.RLock()))))
 
         errors = []
         def worker(w_id: int) -> None:

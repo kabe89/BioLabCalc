@@ -136,7 +136,7 @@ def update(msg: Msg, model: BioLabModel) -> Tuple[BioLabModel, Cmd]:
         next_snap = model.history_redo[-1]
         new_redo = model.history_redo[:-1]
         current_snap = _snapshot(model)
-        new_undo = model.history_undo + (current_snap,)
+        new_undo = (model.history_undo + (current_snap,))[-50:]
         restored = replace(
             next_snap,
             history_undo=new_undo,
@@ -145,9 +145,9 @@ def update(msg: Msg, model: BioLabModel) -> Tuple[BioLabModel, Cmd]:
         )
         return restored, Cmd(action="redo_applied")
 
-    # State-mutating messages: capture snapshot for undo history
+    # State-mutating messages: capture snapshot for undo history (capped to last 50 states)
     curr_snap = _snapshot(model)
-    next_undo = model.history_undo + (curr_snap,)
+    next_undo = (model.history_undo + (curr_snap,))[-50:]
     next_redo: Tuple[Any, ...] = ()
 
     if isinstance(msg, LoadPlasmidMsg):

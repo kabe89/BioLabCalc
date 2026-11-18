@@ -599,44 +599,14 @@ class Session:
         return inst
 
 
-class _LockContext:
-    """Reentrant context manager wrapping a threading.Lock."""
-
-    def __init__(self, lock: threading.Lock) -> None:
-        self._lock = lock
-        self._owner: Optional[int] = None
-        self._count = 0
-
-    def acquire(self) -> None:
-        tid = threading.get_ident()
-        if self._owner == tid:
-            self._count += 1
-            return
-        self._lock.acquire()
-        self._owner = tid
-        self._count = 1
-
-    def release(self) -> None:
-        tid = threading.get_ident()
-        if self._owner != tid:
-            raise RuntimeError("Cannot release lock held by another thread")
-        self._count -= 1
-        if self._count == 0:
-            self._owner = None
-            self._lock.release()
-
-    def __enter__(self) -> _LockContext:
-        self.acquire()
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        self.release()
+# Use Python's high-performance built-in reentrant lock
+_LockContext = threading.RLock
 
 
 class _ThreadSafeCursor:
-    """Thread-safe proxy around sqlite3.Cursor using a lock context."""
+    """Thread-safe proxy around sqlite3.Cursor using a reentrant lock."""
 
-    def __init__(self, cursor: sqlite3.Cursor, lock_ctx: _LockContext) -> None:
+    def __init__(self, cursor: sqlite3.Cursor, lock_ctx: Any) -> None:
         self._cursor = cursor
         self._lock = lock_ctx
 
@@ -747,9 +717,9 @@ class Engine:
         self.url = url
         self.echo = echo
         self._local = threading.local()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.lock = self._lock
-        self._lock_ctx = _LockContext(self._lock)
+        self._lock_ctx = self._lock
         self._sa_engine: Optional[Any] = None
         self.sa_engine: Optional[Any] = None
 

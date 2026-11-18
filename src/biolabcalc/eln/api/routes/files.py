@@ -90,7 +90,7 @@ class CASFileStorage:
     """
 
     def __init__(self, blob_store: Optional[BlobStore] = None) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.blob_store = blob_store or BlobStore()
         self._by_hash: Dict[str, StoredFile] = {}
         self._by_id: Dict[str, StoredFile] = {}
@@ -107,8 +107,30 @@ class CASFileStorage:
         with self._lock:
             # Persist to disk-backed CAS BlobStore
             custom_attributes: Dict[str, Any] = {"uploaded_by": uploaded_by}
+            tokens: List[OCRToken] = []
             if ocr_tokens:
-                custom_attributes["ocr_tokens"] = ocr_tokens
+                for idx, t in enumerate(ocr_tokens):
+                    orig = t.get("original_text") or t.get("text") or ""
+                    tok_id = t.get("token_id") or t.get("id") or f"TOK-{idx+1}"
+                    conf = t.get("confidence") if t.get("confidence") is not None else t.get("conf", 0.95)
+                    bbox = t.get("bounding_box") or t.get("bbox") or {"x": 0.0, "y": 0.0, "width": 50.0, "height": 20.0}
+                    if isinstance(bbox, (list, tuple)) and len(bbox) >= 4:
+                        bbox = {"x": float(bbox[0]), "y": float(bbox[1]), "width": float(bbox[2]), "height": float(bbox[3])}
+                    tokens.append(
+                        OCRToken(
+                            token_id=str(tok_id),
+                            original_text=str(orig),
+                            corrected_text=t.get("corrected_text", str(orig)),
+                            confidence=float(conf),
+                            bounding_box=bbox if isinstance(bbox, dict) else {"x": 0.0, "y": 0.0, "width": 50.0, "height": 20.0},
+                            is_corrected=bool(t.get("is_corrected", False)),
+                            corrected_by=t.get("corrected_by"),
+                            corrected_at=t.get("corrected_at"),
+                        )
+                    )
+            if tokens:
+                custom_attributes["ocr_tokens"] = [t.to_dict() for t in tokens]
+
             blob_meta = self.blob_store.store_bytes(
                 data=content_bytes,
                 filename=filename,
@@ -124,19 +146,6 @@ class CASFileStorage:
 
             file_id = f"FILE-{sha256_hex[:12].upper()}"
             now_iso = datetime.now(timezone.utc).isoformat()
-
-            tokens: List[OCRToken] = []
-            if ocr_tokens:
-                for idx, t in enumerate(ocr_tokens):
-                    tokens.append(
-                        OCRToken(
-                            token_id=t.get("token_id", f"TOK-{idx+1}"),
-                            original_text=t.get("original_text", ""),
-                            corrected_text=t.get("corrected_text", t.get("original_text", "")),
-                            confidence=float(t.get("confidence", 0.95)),
-                            bounding_box=t.get("bounding_box", {"x": 0.0, "y": 0.0, "width": 50.0, "height": 20.0}),
-                        )
-                    )
 
             stored = StoredFile(
                 file_id=file_id,
@@ -178,14 +187,20 @@ class CASFileStorage:
                 tokens: List[OCRToken] = []
                 raw_tokens = meta.custom_attributes.get("ocr_tokens", [])
                 for idx, t in enumerate(raw_tokens):
+                    orig = t.get("original_text") or t.get("text") or ""
+                    tok_id = t.get("token_id") or t.get("id") or f"TOK-{idx+1}"
+                    conf = t.get("confidence") if t.get("confidence") is not None else t.get("conf", 0.95)
+                    bbox = t.get("bounding_box") or t.get("bbox") or {"x": 0.0, "y": 0.0, "width": 50.0, "height": 20.0}
+                    if isinstance(bbox, (list, tuple)) and len(bbox) >= 4:
+                        bbox = {"x": float(bbox[0]), "y": float(bbox[1]), "width": float(bbox[2]), "height": float(bbox[3])}
                     tokens.append(
                         OCRToken(
-                            token_id=t.get("token_id", f"TOK-{idx+1}"),
-                            original_text=t.get("original_text", ""),
-                            corrected_text=t.get("corrected_text", t.get("original_text", "")),
-                            confidence=float(t.get("confidence", 0.95)),
-                            bounding_box=t.get("bounding_box", {"x": 0.0, "y": 0.0, "width": 50.0, "height": 20.0}),
-                            is_corrected=t.get("is_corrected", False),
+                            token_id=str(tok_id),
+                            original_text=str(orig),
+                            corrected_text=t.get("corrected_text", str(orig)),
+                            confidence=float(conf),
+                            bounding_box=bbox if isinstance(bbox, dict) else {"x": 0.0, "y": 0.0, "width": 50.0, "height": 20.0},
+                            is_corrected=bool(t.get("is_corrected", False)),
                             corrected_by=t.get("corrected_by"),
                             corrected_at=t.get("corrected_at"),
                         )
@@ -215,7 +230,7 @@ class CASFileStorage:
     ) -> OCRToken:
         """Apply human-in-the-loop OCR token correction."""
         with self._lock:
-            file_obj = self._by_id.get(file_id)
+            file_obj = self.get_file(file_id)
             if not file_obj:
                 raise KeyError(f"File '{file_id}' not found.")
 
@@ -250,6 +265,11 @@ class CASFileStorage:
 
 
 _cas_storage = CASFileStorage()
+
+
+def get_cas_storage() -> CASFileStorage:
+    """Retrieve singleton CAS file storage instance."""
+    return _cas_storage
 
 
 @router.post("/upload")

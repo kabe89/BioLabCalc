@@ -563,6 +563,14 @@ class TestAuthAndRBAC(unittest.TestCase):
         with self.assertRaises(AuthorizationError):
             prod_auth.authenticate_token("token-pi-admin")
 
+    def test_session_expiration_and_pruning(self) -> None:
+        """Verify dynamic sessions expire and are pruned from memory."""
+        s = self.auth.create_session("USR-EXP-01", "expired_user", "Expired User", ROLE_ACTIVE_RESEARCHER, expires_in_seconds=-10)
+        self.assertTrue(s.is_expired())
+        with self.assertRaises(AuthorizationError):
+            self.auth.authenticate_token(s.token)
+        self.assertNotIn(s.token, self.auth._sessions)
+
 
 class TestRESTAPIEndpoints(unittest.TestCase):
     """
@@ -682,6 +690,39 @@ class TestRESTAPIEndpoints(unittest.TestCase):
         # Search
         search_res = self.client.get("/api/search?q=T7RNAP")
         self.assertEqual(search_res["status_code"], 200)
+
+    def test_ocr_token_ingestion_and_restart_recovery(self) -> None:
+        """Verify parser output keys (id, text, conf, bbox) map correctly and persist across restart."""
+        from biolabcalc.eln.api.routes.files import get_cas_storage
+        storage = get_cas_storage()
+
+        # Ingest with parser keys
+        stored = storage.store_file(
+            filename="notebook_scan.png",
+            content_bytes=b"fake_image_content_for_ocr_test",
+            mime_type="image/png",
+            uploaded_by="pi_admin",
+            ocr_tokens=[
+                {"id": "tok_1", "text": "500 uL", "conf": 0.92, "bbox": [10, 20, 60, 25]},
+                {"token_id": "tok_2", "original_text": "10 mM", "confidence": 0.98, "bounding_box": {"x": 5.0, "y": 10.0, "width": 40.0, "height": 15.0}},
+            ],
+        )
+        self.assertEqual(len(stored.ocr_tokens), 2)
+        self.assertEqual(stored.ocr_tokens[0].token_id, "tok_1")
+        self.assertEqual(stored.ocr_tokens[0].original_text, "500 uL")
+        self.assertEqual(stored.ocr_tokens[0].confidence, 0.92)
+        self.assertEqual(stored.ocr_tokens[0].bounding_box, {"x": 10.0, "y": 20.0, "width": 60.0, "height": 25.0})
+
+        # Simulate server restart by clearing in-memory caches
+        file_id = stored.file_id
+        storage._by_id.clear()
+        storage._by_hash.clear()
+
+        # Correction after restart should reload from blob_store
+        corrected = storage.correct_ocr_token(file_id, "tok_1", "600 uL", "pi_admin")
+        self.assertTrue(corrected.is_corrected)
+        self.assertEqual(corrected.corrected_text, "600 uL")
+        self.assertEqual(corrected.original_text, "500 uL")
 
 
 if __name__ == "__main__":

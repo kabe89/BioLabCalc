@@ -71,6 +71,17 @@ def dilute(
     v1_num = UnitParser.parse_volume(v1, "ul") if v1 is not None else None
     v2_num = UnitParser.parse_volume(v2, "ul") if v2 is not None else None
 
+    # Validate strictly positive parameters
+    for param_name, param_val in [("c1", c1_num), ("v1", v1_num), ("c2", c2_num), ("v2", v2_num)]:
+        if param_val is not None and param_val <= 0:
+            raise ValueError(f"Dilution parameter '{param_name}' must be strictly positive (got {param_val}).")
+
+    if c1_num is not None and c2_num is not None and c2_num > c1_num:
+        raise ValueError(f"Target concentration c2 ({c2_num} mM) cannot exceed stock concentration c1 ({c1_num} mM) in a dilution.")
+
+    if v1_num is not None and v2_num is not None and v1_num > v2_num:
+        raise ValueError(f"Stock volume v1 ({v1_num} µL) cannot exceed final volume v2 ({v2_num} µL) in a dilution.")
+
     idx = missing[0]
     if idx == 0:  # solve c1 = (c2 * v2) / v1
         res = (c2_num * v2_num) / v1_num

@@ -160,6 +160,13 @@ seq4,ACGTACGT,dna
                 self.assertEqual(len(lines), 6)  # header + 4 valid rows + 1 empty/comment row
                 self.assertTrue(any("OK" in line for line in lines))
 
+    def test_unit_parser_greek_mu(self):
+        """Verify UnitParser accepts standard Greek small letter mu (\u03BC) in quantities."""
+        self.assertEqual(UnitParser.parse_volume("10\u03BCL", "ul"), 10.0)
+        self.assertEqual(UnitParser.parse_concentration("50\u03BCM", "um"), 50.0)
+        self.assertEqual(UnitParser.parse_mass("1.5\u03BCg", "ug"), 1.5)
+        self.assertEqual(UnitParser.parse_moles("2.5\u03BCmol", "umol"), 2.5)
+
 
 if __name__ == "__main__":
     unittest.main()

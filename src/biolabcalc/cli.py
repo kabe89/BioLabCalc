@@ -8,6 +8,7 @@ import os
 import sys
 from typing import Any, Callable, Dict
 
+from . import __version__
 from .units import UnitParser
 from .easy import dilute, convert as easy_convert
 from .molecular_weight import calculate_dna_mw, calculate_rna_mw, calculate_protein_mw
@@ -2389,7 +2390,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="biolabcalc",
         description="BioLabCalc: Multifaceted molecular biology stoichiometry, PCR, IVT, protein yield, fluorophore mods, gel ladders, and E. coli growth.",
     )
-    parser.add_argument("-V", "--version", action="version", version="biolabcalc 0.4.0")
+    parser.add_argument("-V", "--version", action="version", version=f"biolabcalc {__version__}")
     parser.add_argument("-q", "--quiet", action="store_true", default=False, help="Suppress header banners and decorative bars")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

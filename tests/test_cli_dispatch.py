@@ -12,6 +12,7 @@ _src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
+from biolabcalc import __version__
 from biolabcalc.cli import main, run_wizard, COMMAND_DISPATCH
 
 
@@ -42,11 +43,11 @@ class TestCliDispatch(unittest.TestCase):
         """Test biolabcalc --version and -V output."""
         out, err, code = self._run_cli(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("biolabcalc 0.4.0", out)
+        self.assertIn(f"biolabcalc {__version__}", out)
 
         out_v, err_v, code_v = self._run_cli(["-V"])
         self.assertEqual(code_v, 0)
-        self.assertIn("biolabcalc 0.4.0", out_v)
+        self.assertIn(f"biolabcalc {__version__}", out_v)
 
     def test_cli_rc_dna_json(self):
         """Test biolabcalc rc -s ATGCGTACGTTAGC --json."""

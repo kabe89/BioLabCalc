@@ -95,11 +95,12 @@ class UnitParser:
         if isinstance(val, (int, float)):
             return float(val), ""
         s = str(val).strip().replace(" ", "").replace(",", "")
-        match = re.match(r"^([+-]?[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?)([a-zA-Zµ/]*)$", s)
+        match = re.match(r"^([+-]?[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?)([a-zA-Z\u00B5\u03BC/]*)$", s)
         if not match:
             raise ValueError(f"Unable to parse numeric laboratory quantity from string: '{val}'")
         num_str, unit_str = match.groups()
-        return float(num_str), unit_str.lower()
+        unit_str = unit_str.replace("\u03BC", "\u00B5").lower()
+        return float(num_str), unit_str
 
     @classmethod
     def parse_volume(cls, val: Union[str, float, int], target_unit: str = "ul") -> float:
@@ -107,7 +108,7 @@ class UnitParser:
         num, unit = cls._parse_raw(val)
         if not unit:
             return num
-        t_unit = target_unit.lower()
+        t_unit = target_unit.replace("\u03BC", "\u00B5").lower()
         if unit not in cls.VOLUME_FACTORS:
             raise ValueError(f"Unknown volume unit '{unit}'. Supported: {list(cls.VOLUME_FACTORS.keys())}")
         if t_unit not in cls.VOLUME_FACTORS:
@@ -125,8 +126,8 @@ class UnitParser:
         num, unit = cls._parse_raw(val)
         if not unit:
             return num
-        t_unit = target_unit.lower().replace("µ", "u")
-        unit_clean = unit.replace("µ", "u")
+        t_unit = target_unit.lower().replace("\u03BC", "u").replace("µ", "u")
+        unit_clean = unit.replace("\u03BC", "u").replace("µ", "u")
 
         # If input has '/' (e.g. mg/mL, ug/uL), it is a mass concentration
         if "/" in unit_clean:
@@ -155,7 +156,7 @@ class UnitParser:
         num, unit = cls._parse_raw(val)
         if not unit:
             return num
-        t_unit = target_unit.lower()
+        t_unit = target_unit.replace("\u03BC", "\u00B5").lower()
         if unit not in cls.MASS_FACTORS:
             raise ValueError(f"Unknown mass unit '{unit}'. Supported: {list(cls.MASS_FACTORS.keys())}")
         if t_unit not in cls.MASS_FACTORS:
@@ -169,7 +170,7 @@ class UnitParser:
         num, unit = cls._parse_raw(val)
         if not unit:
             return num
-        t_unit = target_unit.lower()
+        t_unit = target_unit.replace("\u03BC", "\u00B5").lower()
         if unit not in cls.MOLE_FACTORS:
             raise ValueError(f"Unknown molar unit '{unit}'. Supported: {list(cls.MOLE_FACTORS.keys())}")
         if t_unit not in cls.MOLE_FACTORS:

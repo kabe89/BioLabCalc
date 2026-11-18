@@ -471,7 +471,7 @@ def _build_lab_notebook_template(wb: Any, output_path: str) -> str:
 
     nano_rows = [
         ("Nucleic Acid Concentration", "=B19", "ng/µL", "Should match target concentration within ±5%"),
-        ("A260 (10 mm normalized)", "=B19/40.0", "AU", "Normalized absorbance at 260 nm"),
+        ("A260 (10 mm normalized)", "=B19/IF(B8=\"dsDNA\", 50, IF(B8=\"ssDNA\", 33, 40))", "AU", "Normalized absorbance at 260 nm"),
         ("A260 (1 mm physical pedestal)", "=B26*0.1", "AU", "Raw instrument reading on 1 mm pedestal"),
         ("A260 / A280 Ratio", 2.00, "-", "Pure RNA: ~2.00 (Pure dsDNA: ~1.80)"),
         ("A260 / A230 Ratio", 2.10, "-", "Pure sample range: 2.00 to 2.20"),
@@ -621,7 +621,7 @@ def _build_lab_notebook_template(wb: Any, output_path: str) -> str:
     ec_proj = [
         ("Plasmid Copy Number (pUC)", 600, "copies/cell", "High-copy pUC vector (~500-700)"),
         ("Plasmid Size", 3000, "bp", "Double-stranded plasmid length"),
-        ("Theoretical Plasmid Yield", "=(B17*B20*1853916)/(6.02214e23)*1e6", "µg", "Max theoretical DNA yield"),
+        ("Theoretical Plasmid Yield", "=(B17*B20*(B21*617.96+36.04))/(6.02214e23)*1e6", "µg", "Max theoretical DNA yield"),
         ("Typical Column Kit Recovery", "=B22*0.55", "µg", "~50-60% typical silica recovery"),
         ("Target Protein MW", 45000, "Da", "Recombinant protein molecular weight"),
         ("Expression Level (% of total)", 15.0, "%", "Typical T7 / BL21(DE3) expression (10-25%)"),

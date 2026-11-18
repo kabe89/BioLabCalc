@@ -178,11 +178,15 @@ def calculate_pcr_kinetics(
         raise ValueError("Reaction volume must be positive.")
     if amplicon_gc_pct < 0.0 or amplicon_gc_pct > 100.0:
         raise ValueError("Amplicon GC percentage must be between 0.0 and 100.0.")
+    if forward_primer_nm <= 0 or reverse_primer_nm <= 0:
+        raise ValueError("Primer concentrations must be positive numbers.")
+    if dntp_conc_mm <= 0:
+        raise ValueError("dNTP concentration must be positive.")
 
-    # Double stranded DNA MW approx: len * 617.96 + 36.04
-    amplicon_mw = amplicon_len_bp * 617.96 + 36.04
+    # Calculate double-stranded DNA MW via centralized calculate_dna_mw
+    amplicon_mw = calculate_dna_mw(length=amplicon_len_bp, double_stranded=True).molecular_weight
     templ_len = template_total_len_bp or amplicon_len_bp
-    templ_mw = templ_len * 617.96 + 36.04
+    templ_mw = calculate_dna_mw(length=templ_len, double_stranded=True).molecular_weight
 
     # Initial template copy number
     n0 = mass_to_copy_number(template_ng, "ng", templ_mw)

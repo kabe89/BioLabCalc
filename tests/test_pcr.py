@@ -33,5 +33,14 @@ class TestPCR(unittest.TestCase):
         self.assertEqual(water_item.component, "Nuclease-Free Water")
         self.assertGreater(water_item.total_volume_ul, 0)
 
+    def test_pcr_parameter_validation(self):
+        """Verify invalid primer and dNTP concentrations raise ValueError."""
+        with self.assertRaises(ValueError):
+            calculate_pcr_kinetics(amplicon_len_bp=500, template_ng=10.0, forward_primer_nm=0.0)
+        with self.assertRaises(ValueError):
+            calculate_pcr_kinetics(amplicon_len_bp=500, template_ng=10.0, reverse_primer_nm=-10.0)
+        with self.assertRaises(ValueError):
+            calculate_pcr_kinetics(amplicon_len_bp=500, template_ng=10.0, dntp_conc_mm=0.0)
+
 if __name__ == '__main__':
     unittest.main()
