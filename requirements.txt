@@ -40,7 +40,7 @@ boto3>=1.26.0               # S3/MinIO cloud object storage client for ELN blob 
 # Recommended libraries for advanced array operations, curve fitting,
 # tabular instrument data manipulation, and sequence bioinformatics.
 numpy>=1.21.0               # Vectorized array and matrix calculations (LEGAL.md, scientific calculators)
-scipy>=1.9.0                # Scientific optimization, curve fitting, and biophysical modeling
+scipy>=1.15.3                # Scientific optimization, curve fitting, and biophysical modeling
 pandas>=2.3.3               # Tabular instrument data analysis, CSV/TSV dataframes, and analytical export
 biopython>=1.88             # Advanced sequence analysis, file formats (FASTA/GenBank), and structural parsing
 
