@@ -14,4 +14,4 @@
 # ------------------------------------------------------------------------------
 # Production Relational Database Driver
 # ------------------------------------------------------------------------------
-psycopg2-binary>=2.9.0      # PostgreSQL 16+ adapter with pgvector compatibility for enterprise production ELN deployments
+psycopg2-binary>=2.9.13      # PostgreSQL 16+ adapter with pgvector compatibility for enterprise production ELN deployments
