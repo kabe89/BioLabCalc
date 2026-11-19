@@ -3,7 +3,7 @@ message: "If you use this software in academic research, please cite it as below
 authors:
   - family-names: "BioLabCalc Contributors"
 title: "BioLabCalc: Molecular Biology Stoichiometry, Biophysics & Electronic Lab Notebook"
-version: 1.1.2
+version: 1.5.0a1
 date-released: 2026-11-17
 url: "https://github.com/kabe89/BioLabCalc"
 repository-code: "https://github.com/kabe89/BioLabCalc"

@@ -128,31 +128,69 @@ export class AppController {
   }
 
   /**
-   * Applies light or dark theme to document root.
+   * Applies minimalist theme preset and custom accent color to document root.
    * @role Theme Controller
    * @private
-   * @param {string} theme - 'light' or 'dark'
+   * @param {string} theme - 'minimal-light', 'minimal-slate', 'bench-paper', 'colorblind-safe'
+   * @param {string} [accent] - Optional hex accent override
    * @returns {void}
    */
-  _applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    this.state.theme = theme;
-    localStorage.setItem('eln_theme', theme);
+  _applyTheme(theme, accent) {
+    const canonicalTheme = theme === 'dark' ? 'minimal-slate' : (theme === 'light' ? 'minimal-light' : theme);
+    document.documentElement.setAttribute('data-theme', canonicalTheme);
+    this.state.theme = canonicalTheme;
+    localStorage.setItem('eln_theme', canonicalTheme);
+
+    if (accent) {
+      document.documentElement.style.setProperty('--accent', accent);
+      document.documentElement.style.setProperty('--primary', accent);
+      this.state.accent = accent;
+      localStorage.setItem('eln_accent', accent);
+    }
+
+    const selectEl = document.getElementById('eln-theme-select');
+    if (selectEl && selectEl.value !== canonicalTheme) {
+      selectEl.value = canonicalTheme;
+    }
+
+    const accentPicker = document.getElementById('eln-accent-picker');
+    if (accentPicker && accent) {
+      accentPicker.value = accent;
+    }
 
     const toggleBtn = document.getElementById('theme-toggle-btn');
     if (toggleBtn) {
-      toggleBtn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+      toggleBtn.textContent = canonicalTheme === 'minimal-slate' ? '☀️ Light' : '🌙 Dark';
     }
   }
 
   /**
-   * Toggles between light and dark theme modes.
+   * Toggles between minimal-light and minimal-slate theme modes.
    * @role Theme Toggle Dispatcher
    * @returns {void}
    */
   toggleTheme() {
-    const next = this.state.theme === 'dark' ? 'light' : 'dark';
+    const next = this.state.theme === 'minimal-slate' ? 'minimal-light' : 'minimal-slate';
     this._applyTheme(next);
+  }
+
+  /**
+   * Persists active theme and custom accent to server via REST API.
+   * @private
+   * @param {string} theme
+   * @param {string} [accent]
+   * @returns {Promise<void>}
+   */
+  async _persistThemeServer(theme, accent) {
+    try {
+      await fetch('/api/theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme, accent_hex: accent })
+      });
+    } catch (err) {
+      console.debug('[BioLabCalc Theme] Server sync skipped or offline:', err);
+    }
   }
 
   /**
@@ -166,6 +204,29 @@ export class AppController {
     const themeBtn = document.getElementById('theme-toggle-btn');
     if (themeBtn) {
       themeBtn.addEventListener('click', () => this.toggleTheme());
+    }
+
+    // Theme preset selector
+    const themeSelect = document.getElementById('eln-theme-select');
+    if (themeSelect) {
+      themeSelect.addEventListener('change', (e) => {
+        const selected = e.target.value;
+        this._applyTheme(selected, this.state.accent);
+        this._persistThemeServer(selected, this.state.accent);
+      });
+    }
+
+    // Accent color picker
+    const accentPicker = document.getElementById('eln-accent-picker');
+    if (accentPicker) {
+      accentPicker.addEventListener('input', (e) => {
+        const hex = e.target.value;
+        this._applyTheme(this.state.theme, hex);
+      });
+      accentPicker.addEventListener('change', (e) => {
+        const hex = e.target.value;
+        this._persistThemeServer(this.state.theme, hex);
+      });
     }
 
     // Role switcher

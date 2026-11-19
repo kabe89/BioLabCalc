@@ -5,16 +5,18 @@
  *               scientific canvas overlays, badge indicators, and interactive UI components.
  */
 
+@import url("theme_tokens.css");
+
 /* ==========================================================================
    CSS Variables & Color System
    ========================================================================== */
 :root {
   /* Scientific Brand Palette (Light Mode Default) */
-  --primary: #1e3a8a;          /* Deep scientific navy */
-  --primary-hover: #1d4ed8;
-  --primary-light: #dbeafe;
-  --accent: #2563eb;           /* Cobalt azure */
-  --accent-focus: #1d4ed8;
+  --primary: var(--accent, #1e3a8a);
+  --primary-hover: var(--accent-hover, #1d4ed8);
+  --primary-light: var(--accent-soft, #dbeafe);
+  --accent: var(--accent, #2563eb);
+  --accent-focus: var(--accent, #1d4ed8);
   
   /* Status & Compliance Colors */
   --pass: #10b981;             /* Quality PASS */
@@ -48,21 +50,21 @@
   --sample-buffer: #06b6d4;
   --sample-empty: #e2e8f0;
 
-  /* Surfaces & Neutral Backgrounds */
-  --bg-app: #f8fafc;
-  --bg-card: #ffffff;
-  --bg-header: #ffffff;
-  --bg-sidebar: #f1f5f9;
-  --bg-toolbar: #f8fafc;
-  --bg-hover: #f1f5f9;
-  --bg-input: #ffffff;
-  --border: #e2e8f0;
-  --border-focus: #3b82f6;
+  /* Surfaces & Neutral Backgrounds (Minimalist Tokens) */
+  --bg-app: var(--bg, #f8fafc);
+  --bg-card: var(--surface, #ffffff);
+  --bg-header: var(--surface, #ffffff);
+  --bg-sidebar: var(--surface, #f1f5f9);
+  --bg-toolbar: var(--surface, #f8fafc);
+  --bg-hover: var(--surface, #f1f5f9);
+  --bg-input: var(--surface, #ffffff);
+  --border: var(--hairline, #e2e8f0);
+  --border-focus: var(--accent, #3b82f6);
 
   /* Typography */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: var(--ink, #0f172a);
+  --text-secondary: var(--ink-muted, #475569);
+  --text-muted: var(--ink-muted, #64748b);
   --text-inverse: #ffffff;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", Consolas, Menlo, Monaco, monospace;

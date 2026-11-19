@@ -12,6 +12,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BioLabCalc ELN & Multi-Modal LIMS Pipeline</title>
+  <link rel="stylesheet" href="/static/theme_tokens.css">
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧪</text></svg>">
 </head>
@@ -53,6 +54,16 @@
       <div id="ws-status-badge" class="ws-status-badge">
         <div class="ws-status-dot"></div>
         <span id="ws-status-text">Live Sync</span>
+      </div>
+
+      <div class="theme-selector-wrap no-print" style="display:flex; align-items:center; gap:6px;">
+        <select id="eln-theme-select" class="theme-select" title="Minimalist Theme Preset" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border); border-radius:4px; padding:4px 6px; font-size:12px;">
+          <option value="minimal-light">Light</option>
+          <option value="minimal-slate">Slate</option>
+          <option value="bench-paper">Bench Paper</option>
+          <option value="colorblind-safe">Colorblind-Safe</option>
+        </select>
+        <input type="color" id="eln-accent-picker" value="#1D4ED8" title="Custom Accent Color" style="width:24px; height:24px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer;">
       </div>
 
       <button id="print-eln-btn" class="theme-toggle-btn no-print" onclick="window.print()" title="Print Current Notebook View">

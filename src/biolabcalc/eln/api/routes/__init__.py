@@ -14,6 +14,7 @@ from .nanodrop import router as nanodrop_router
 from .search import router as search_router
 from .sequences import router as sequences_router
 from .sops import router as sops_router
+from .theme import router as theme_router
 from .timepoints import router as timepoints_router
 
 ALL_ROUTERS = [
@@ -27,6 +28,7 @@ ALL_ROUTERS = [
     sequences_router,
     sops_router,
     search_router,
+    theme_router,
 ]
 
 # Dynamically mount custom experiments and approvals routers when available
@@ -55,4 +57,5 @@ __all__ = [
     "sequences_router",
     "sops_router",
     "search_router",
+    "theme_router",
 ]

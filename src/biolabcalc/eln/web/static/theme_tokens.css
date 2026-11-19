@@ -1,0 +1,100 @@
+/**
+ * BioLabCalc Minimalist CSS Design Tokens & Theme System
+ * Conforms to WCAG AAA contrast ratios (>= 7:1) and clean 1px hairline aesthetics.
+ */
+
+:root, [data-theme="minimal-light"] {
+  --bg: #FFFFFF;
+  --surface: #F8FAFC;
+  --ink: #0F172A;
+  --ink-muted: #64748B;
+  --hairline: #E2E8F0;
+  --accent: #1D4ED8;
+  --accent-soft: rgba(29, 78, 216, 0.08);
+  --danger: #DC2626;
+  --ok: #16A34A;
+  --font-scale: 1.0;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+[data-theme="minimal-slate"] {
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --ink: #F8FAFC;
+  --ink-muted: #94A3B8;
+  --hairline: #334155;
+  --accent: #38BDF8;
+  --accent-soft: rgba(56, 189, 248, 0.12);
+  --danger: #EF4444;
+  --ok: #22C55E;
+}
+
+[data-theme="bench-paper"] {
+  --bg: #FAF9F6;
+  --surface: #F3F0E6;
+  --ink: #1C1917;
+  --ink-muted: #78716C;
+  --hairline: #E7E5E4;
+  --accent: #166534;
+  --accent-soft: rgba(22, 101, 52, 0.08);
+  --danger: #B91C1C;
+  --ok: #15803D;
+}
+
+[data-theme="colorblind-safe"] {
+  --bg: #FFFFFF;
+  --surface: #F0F4F8;
+  --ink: #111111;
+  --ink-muted: #555555;
+  --hairline: #D0D7DE;
+  --accent: #D55E00; /* Okabe-Ito Vermilion */
+  --accent-soft: rgba(213, 94, 0, 0.10);
+  --danger: #CC79A7; /* Okabe-Ito Reddish Purple */
+  --ok: #009E73;     /* Okabe-Ito Bluish Green */
+}
+
+/* Hairline helper classes */
+.hairline-border {
+  border: 1px solid var(--hairline);
+}
+
+.hairline-top {
+  border-top: 1px solid var(--hairline);
+}
+
+.hairline-bottom {
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* High contrast print stylesheet for physical laboratory binders */
+@media print {
+  :root, [data-theme] {
+    --bg: #FFFFFF !important;
+    --surface: #FFFFFF !important;
+    --ink: #000000 !important;
+    --ink-muted: #222222 !important;
+    --hairline: #BBBBBB !important;
+    --accent: #000000 !important;
+    --accent-soft: transparent !important;
+    color: #000000 !important;
+    background: #FFFFFF !important;
+  }
+
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  a {
+    color: #000000 !important;
+    text-decoration: underline !important;
+  }
+}

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "nightly" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "nightly" ]
 
 permissions:
   contents: read
@@ -13,6 +13,7 @@ jobs:
   test:
     name: Test (Python ${{ matrix.python-version }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.continue-on-error || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +29,20 @@ jobs:
             python-version: "3.11"
           - os: ubuntu-latest
             python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: ubuntu-latest
+            python-version: "3.14"
+            continue-on-error: true
+          - os: ubuntu-latest
+            python-version: "3.15"
+            continue-on-error: true
+          - os: ubuntu-latest
+            python-version: "3.14t"
+            continue-on-error: true
+          - os: ubuntu-latest
+            python-version: "3.15t"
+            continue-on-error: true
           # Windows matrix
           - os: windows-latest
             python-version: "3.8"
@@ -39,6 +54,14 @@ jobs:
             python-version: "3.11"
           - os: windows-latest
             python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.13"
+          - os: windows-latest
+            python-version: "3.14"
+            continue-on-error: true
+          - os: windows-latest
+            python-version: "3.15"
+            continue-on-error: true
 
     steps:
       - name: Checkout repository
@@ -48,6 +71,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
           cache: "pip"
 
       - name: Install dependencies

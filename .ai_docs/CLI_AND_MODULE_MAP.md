@@ -1,6 +1,6 @@
 # CLI Subcommands & Core Module Map
 
-BioLabCalc provides 46 CLI subcommands and 37 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
+BioLabCalc provides 46 CLI subcommands and 39 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
 
 ---
 
@@ -59,7 +59,7 @@ BioLabCalc provides 46 CLI subcommands and 37 core computational modules. This d
 
 ## 📦 Core Python Modules Reference
 
-All 37 core Python modules in `src/biolabcalc/` operate with **zero external dependencies** (`dependencies = []`), standard library math, and strict Python 3.8+ AST compatibility:
+All 39 core Python modules in `src/biolabcalc/` operate with **zero external dependencies** (`dependencies = []`), standard library math, and strict Python 3.8+ AST compatibility:
 
 | Module | Primary Scientific & Architectural Role |
 | :--- | :--- |
@@ -84,6 +84,7 @@ All 37 core Python modules in `src/biolabcalc/` operate with **zero external dep
 | `biolabcalc.pcr` | Polymerase chain reaction master mix formulation, cycling protocol design, and kinetics modeling |
 | `biolabcalc.plasmid` | Circular plasmid storage, annotation indexing, Modulo-L coordinates, and GenBank I/O engine |
 | `biolabcalc.plasmid_engineering` | Automated in-silico vector engineering, codon adaptation index (CAI), and gene insertion |
+| `biolabcalc.plugins` | Zero-dependency plugin discovery and extension registry for custom backbones, enzymes, and themes |
 | `biolabcalc.precipitation` | Ethanol, isopropanol, and PEG nucleic acid precipitation recipe and yield calculations |
 | `biolabcalc.primers` | Thermodynamic primer design, SantaLucia nearest-neighbor Tm, secondary structure, and hairpin checks |
 | `biolabcalc.printable_protocol` | Bench-ready printable SOP protocol generators with high-contrast print layouts |
@@ -96,6 +97,7 @@ All 37 core Python modules in `src/biolabcalc/` operate with **zero external dep
 | `biolabcalc.setup_wizard` | Interactive terminal setup assistant for initial configuration and profile creation |
 | `biolabcalc.spectroscopy` | NanoDrop UV-Vis purity evaluation (A260/A280, A260/A230) and contaminant deconvolution |
 | `biolabcalc.tea_runtime` | Traceable Experimental Architecture (TEA) runtime invariants and mathematical immutability guards |
+| `biolabcalc.theme` | Minimalist CSS design tokens, WCAG AAA color presets, and atomic theme configuration persistence |
 | `biolabcalc.transcription` | In-vitro transcription (IVT) yield optimization, NTP stoichiometric tuning, and kinetics |
 | `biolabcalc.units` | Biochemical unit conversions (molar, mass, volume, enzymatic units) with dimensional analysis |
 | `biolabcalc.western_blot` | Western blot antibody dilution calculation, transfer buffer formulation, and troubleshooting |

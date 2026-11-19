@@ -1,0 +1,83 @@
+name: Nightly Build & Prerelease CI
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  push:
+    branches: [ "nightly" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  nightly-tests:
+    name: Test Nightly (Python ${{ matrix.python-version }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.15", "3.15t", "3.16"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+          check-latest: true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" || pip install -e .
+
+      - name: Run Architecture & CI Guardrails
+        run: |
+          python scripts/ci_guard.py
+
+      - name: Run Unit Tests
+        run: |
+          python -m unittest discover tests
+        env:
+          PYTHONPATH: src
+
+  nightly-build:
+    name: Build Nightly Artifacts (1.5.0.devYYYYMMDD)
+    needs: nightly-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip build wheel
+
+      - name: Inject Nightly Dev Build Version
+        run: |
+          DATE_TAG=$(date +'%Y%m%d')
+          sed -i -E "s/version = \"[^\"]+\"/version = \"1.5.0.dev${DATE_TAG}\"/" pyproject.toml
+          sed -i -E "s/__version__ = \"[^\"]+\"/__version__ = \"1.5.0.dev${DATE_TAG}\"/" src/biolabcalc/__init__.py
+          echo "Built dev version: 1.5.0.dev${DATE_TAG}"
+
+      - name: Build distributions
+        run: |
+          python -m build
+
+      - name: Upload Nightly Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: biolabcalc-nightly-distribution
+          path: dist/
+          retention-days: 7

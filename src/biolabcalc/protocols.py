@@ -1361,10 +1361,18 @@ def format_protocol_html(p: LabProtocol) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{esc(p.title)} — BioLabCalc Protocol</title>
 <style>
+  :root {{
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --ink: #0F172A;
+    --ink-muted: #475569;
+    --hairline: #E2E8F0;
+    --accent: #1D4ED8;
+  }}
   body {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #0F172A;
-    background: #F8FAFC;
+    color: var(--ink);
+    background: var(--bg);
     margin: 0;
     padding: 24px;
     line-height: 1.5;
@@ -1372,12 +1380,13 @@ def format_protocol_html(p: LabProtocol) -> str:
   .container {{
     max-width: 850px;
     margin: 0 auto;
-    background: #FFFFFF;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     padding: 32px;
   }}
-  h1 {{ margin: 0 0 8px 0; font-size: 24px; color: #1E293B; }}
+  h1 {{ margin: 0 0 8px 0; font-size: 24px; color: var(--ink); }}
   .meta-pills {{
     display: flex;
     flex-wrap: wrap;
@@ -1385,8 +1394,9 @@ def format_protocol_html(p: LabProtocol) -> str:
     margin: 12px 0 20px 0;
   }}
   .pill {{
-    background: #F1F5F9;
-    color: #475569;
+    background: var(--bg);
+    color: var(--ink-muted);
+    border: 1px solid var(--hairline);
     padding: 4px 10px;
     border-radius: 9999px;
     font-size: 12px;
@@ -1410,32 +1420,32 @@ def format_protocol_html(p: LabProtocol) -> str:
   th, td {{
     text-align: left;
     padding: 8px 10px;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid var(--hairline);
   }}
-  th {{ background: #F8FAFC; color: #475569; font-weight: 600; }}
+  th {{ background: var(--bg); color: var(--ink-muted); font-weight: 600; }}
   .step-card {{
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--hairline);
     border-radius: 6px;
     padding: 16px;
     margin-bottom: 16px;
-    background: #FAFAFA;
+    background: var(--surface);
   }}
   .step-title {{
     font-weight: 600;
     font-size: 15px;
-    color: #1E293B;
+    color: var(--ink);
     margin-bottom: 8px;
   }}
   .tip-box {{
     margin-top: 10px;
     background: #EFF6FF;
-    border-left: 3px solid #3B82F6;
+    border-left: 3px solid var(--accent);
     padding: 8px 12px;
     font-size: 13px;
     color: #1E40AF;
   }}
   .btn-print {{
-    background: #2563EB;
+    background: var(--accent);
     color: #FFFFFF;
     border: none;
     border-radius: 6px;
@@ -1445,7 +1455,7 @@ def format_protocol_html(p: LabProtocol) -> str:
     cursor: pointer;
     margin-bottom: 20px;
   }}
-  .btn-print:hover {{ background: #1D4ED8; }}
+  .btn-print:hover {{ opacity: 0.9; }}
   @media print {{
     .no-print, button {{ display: none !important; }}
     body, .container {{

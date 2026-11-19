@@ -385,36 +385,45 @@ class LabReport:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{esc(self.title)}</title>
 <style>
+  :root {{
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --ink: #0F172A;
+    --ink-muted: #64748B;
+    --hairline: #E2E8F0;
+    --accent: #1D4ED8;
+  }}
   body {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #0F172A;
-    background: #F8FAFC;
+    color: var(--ink);
+    background: var(--bg);
     margin: 0;
     padding: 24px;
   }}
   .container {{
     max-width: 900px;
     margin: 0 auto;
-    background: #FFFFFF;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     padding: 32px;
   }}
   .header {{
-    border-bottom: 2px solid #E2E8F0;
+    border-bottom: 2px solid var(--hairline);
     padding-bottom: 16px;
     margin-bottom: 24px;
   }}
-  h1 {{ margin: 0 0 8px 0; font-size: 24px; color: #1E293B; }}
+  h1 {{ margin: 0 0 8px 0; font-size: 24px; color: var(--ink); }}
   .meta-grid {{
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
     font-size: 13px;
-    color: #64748B;
+    color: var(--ink-muted);
     margin-bottom: 16px;
   }}
-  .meta-item strong {{ color: #1E293B; }}
+  .meta-item strong {{ color: var(--ink); }}
   table {{
     width: 100%;
     border-collapse: collapse;
@@ -424,21 +433,22 @@ class LabReport:
   th, td {{
     text-align: left;
     padding: 8px 10px;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid var(--hairline);
   }}
   th {{
-    background: #F1F5F9;
-    color: #475569;
+    background: var(--bg);
+    color: var(--ink-muted);
     font-weight: 600;
   }}
   code {{
-    background: #F1F5F9;
+    background: var(--bg);
     padding: 2px 4px;
+    border: 1px solid var(--hairline);
     border-radius: 4px;
     font-size: 12px;
   }}
   .btn-print {{
-    background: #2563EB;
+    background: var(--accent);
     color: #FFFFFF;
     border: none;
     border-radius: 6px;
@@ -448,7 +458,7 @@ class LabReport:
     cursor: pointer;
     margin-bottom: 20px;
   }}
-  .btn-print:hover {{ background: #1D4ED8; }}
+  .btn-print:hover {{ opacity: 0.9; }}
   @media print {{
     .no-print, button {{ display: none !important; }}
     body, .container {{
