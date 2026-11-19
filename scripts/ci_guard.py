@@ -41,14 +41,16 @@ def check_ast_python38(root: Path) -> list[str]:
             errors.append(f"{path}:{e.lineno}: Python 3.8 SyntaxError: {e}")
             continue
 
-        # Check for Python 3.12+ f-string backslashes (forbidden in Python 3.8-3.11)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FormattedValue):
-                seg = ast.get_source_segment(source, node) or ""
-                if "\\" in seg:
-                    errors.append(
-                        f"{path}:{getattr(node, 'lineno', 0)}: Python 3.8 SyntaxError: f-string expression part cannot include a backslash ({seg})"
-                    )
+        # In Python 3.12+, ast.parse allows backslashes in f-strings even with feature_version=(3,8) (PEP 701).
+        # Check FormattedValue.value to catch PEP 701 backslashes ahead of time when running on Python 3.12+.
+        if sys.version_info >= (3, 12):
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FormattedValue) and getattr(node, "value", None) is not None:
+                    val_seg = ast.get_source_segment(source, node.value) or ""
+                    if "\\" in val_seg:
+                        errors.append(
+                            f"{path}:{getattr(node, 'lineno', 0)}: Python 3.8 SyntaxError: f-string expression part cannot include a backslash ({val_seg})"
+                        )
 
         # Check for unguarded PEP 604 union (X | Y) or PEP 585 generics (list[X])
         has_future_annotations = False
