@@ -717,15 +717,765 @@ def _build_standard_catalog() -> Dict[str, PlasmidRecord]:
         ),
     )
 
+    # 5. pGEX-4T-1
+    # GST-tagged E. coli expression vector with tac promoter, pBR322/ColE1 ori, AmpR, Thrombin cleavage site
+    gst_seq = (
+        "ATGTCCCCTATACTAGGTTATTGGAAAATTAAGGGCCTTGTGCAACCCACTCGACTTCTTTTGGAATATCTTGAAGAAAAATATGAAGAGCATTTGTATGAGCGCGATGAAGGTGATAAATGGCGAAACAAAAAGTTTGAATTGGGTTTGGAGTTTCCCAATCTTCCTTATTATATTGATGGTGATGTTAAATTAACACAGTCTATGGCCATCATACGTTATATAGCTGACAAGCACAACATGTTGGGTGGTTGTCCAAAAGAGCGTGCAGAGATTTCAATGCTTGAAGGAGCGGTTTTGGATATTAGATACGGTGTTTCGAGAATTGCATATAGTAAAGACTTTGAAACTCTCAAAGTTGATTTTCTTAGCAAGCTACCTGAAATGCTGAAAATGTTCGAAGATCGTTTATGTCATAAAACATATTTAAATGGTGATCATGTAACCCATCCTGACTTCATGTTGTATGACGCTCTTGATGTTGTTTTATACATGGACCCAATGTGCCTGGATGCGTTCCCAAAATTAGTTTGTTTTAAAAAACGTATTGAAGCTATCCCACAAATTGATAAGTACTTGAAATCCAGCAAGTATATAGCATGGCCTTTGCAGGGCTGGCAAGCCACGTTTGGTGGTGGCGACCATCCTCCAAAATCGGAT"
+    )
+    thrombin_seq = "CTGGTGCCGCGCGGCAGC"
+    pgex_mcs = "GGATCCCCGGGAATTCATCGTGACTGACTGACGATCTGCCTCGCGCGTTTCGGTGATGACGGTGAAAAC"
+    pgex_fill = 4948 - len(gst_seq) - len(thrombin_seq) - len(pgex_mcs) - len(ori_seq) - len(ampr_seq)
+    pgex_full = (
+        "TGTTGACAATTAATCATCGGCTCGTATAATGTGTGGAATTGTGAGCGGATAACAATTTCACACAGGAAACAGTATTC"
+        + gst_seq
+        + thrombin_seq
+        + pgex_mcs
+        + ("A" * (pgex_fill // 2))
+        + ori_seq
+        + ("T" * (pgex_fill - (pgex_fill // 2)))
+        + ampr_seq
+    )
+    pGEX4T1 = PlasmidRecord(
+        id="pGEX-4T-1",
+        name="pGEX-4T-1",
+        sequence=pgex_full,
+        topology="circular",
+        description="Bacterial expression vector for N-terminal GST-tagged proteins with tac promoter, Thrombin cleavage site, and AmpR selection",
+        features=(
+            PlasmidFeature("tac_promoter", "promoter", 1, 78, strand=1, color="#EF4444", notes="tac hybrid promoter", plasmid_length=len(pgex_full)),
+            PlasmidFeature("GST_tag", "tag", 79, 78 + len(gst_seq), strand=1, color="#10B981", notes="Glutathione S-transferase affinity tag", plasmid_length=len(pgex_full)),
+            PlasmidFeature("thrombin_site", "protein_bind", 79 + len(gst_seq), 78 + len(gst_seq) + len(thrombin_seq), strand=1, color="#10B981", notes="Thrombin cleavage site", plasmid_length=len(pgex_full)),
+            PlasmidFeature("MCS", "misc_feature", 79 + len(gst_seq) + len(thrombin_seq), 78 + len(gst_seq) + len(thrombin_seq) + len(pgex_mcs), strand=1, color="#3B82F6", notes="Multiple Cloning Site", plasmid_length=len(pgex_full)),
+            PlasmidFeature("ColE1_ori", "rep_origin", 79 + len(gst_seq) + len(thrombin_seq) + len(pgex_mcs) + (pgex_fill // 2) + 1, 79 + len(gst_seq) + len(thrombin_seq) + len(pgex_mcs) + (pgex_fill // 2) + len(ori_seq), strand=1, color="#8B5CF6", notes="pBR322/ColE1 replication origin", plasmid_length=len(pgex_full)),
+            PlasmidFeature("AmpR", "CDS", len(pgex_full) - len(ampr_seq) + 1, len(pgex_full), strand=1, color="#10B981", notes="Ampicillin resistance marker", plasmid_length=len(pgex_full)),
+        ),
+    )
+
+    # 6. pFastBac1
+    # Baculovirus expression vector with polyhedrin promoter, AmpR, Gentamicin, ColE1/f1 ori
+    polh_promoter = "ATCATGGAGATAATTAAAATGATAACCATCTCGCAAATAAATAAGTATTTTACTGTTTTCGTAACAGTTTTGTAATAAAAAAACCTATAAATAT"
+    fastbac_mcs = "CCGGATCCTCTAGAGTCGACCTGCAGGCGGCCGCGGATCCCGGGCCC"
+    sv40_polya = "AGACATGATAAGATACATTGATGAGTTTGGACAAACCACAACTAGAATGCAGTGAAAAAAATGCTTTATTTGTGAAATTTGTGATGCTATTGCTTTATTTGTAACCATTATAAGCTGCAATAAACAAGTTAACAACAACAATTGCATTCATTTTATGTTTCAGGTTCAGGGGGAGGTGTGGGAGGTTTTTTAA"
+    pfb_fill = 4775 - len(polh_promoter) - len(fastbac_mcs) - len(sv40_polya) - len(ori_seq) - len(ampr_seq) - len(kanr_seq)
+    pfb_full = (
+        polh_promoter
+        + fastbac_mcs
+        + sv40_polya
+        + ("G" * (pfb_fill // 2))
+        + kanr_seq
+        + ori_seq
+        + ("C" * (pfb_fill - (pfb_fill // 2)))
+        + ampr_seq
+    )
+    pFastBac1 = PlasmidRecord(
+        id="pFastBac1",
+        name="pFastBac1",
+        sequence=pfb_full,
+        topology="circular",
+        description="Baculovirus donor plasmid with polyhedrin promoter, SV40 polyA, Gentamicin (GmR), AmpR, and Tn7 transposition elements",
+        features=(
+            PlasmidFeature("polh_promoter", "promoter", 1, len(polh_promoter), strand=1, color="#EF4444", notes="Polyhedrin promoter for insect expression", plasmid_length=len(pfb_full)),
+            PlasmidFeature("MCS", "misc_feature", len(polh_promoter) + 1, len(polh_promoter) + len(fastbac_mcs), strand=1, color="#3B82F6", notes="Multiple Cloning Site", plasmid_length=len(pfb_full)),
+            PlasmidFeature("SV40_polyA", "polyA_signal", len(polh_promoter) + len(fastbac_mcs) + 1, len(polh_promoter) + len(fastbac_mcs) + len(sv40_polya), strand=1, color="#6B7280", notes="SV40 polyadenylation signal", plasmid_length=len(pfb_full)),
+            PlasmidFeature("Gentamicin_R", "CDS", len(polh_promoter) + len(fastbac_mcs) + len(sv40_polya) + (pfb_fill // 2) + 1, len(polh_promoter) + len(fastbac_mcs) + len(sv40_polya) + (pfb_fill // 2) + len(kanr_seq), strand=1, color="#3B82F6", notes="Gentamicin resistance marker", plasmid_length=len(pfb_full)),
+            PlasmidFeature("ColE1_ori", "rep_origin", len(polh_promoter) + len(fastbac_mcs) + len(sv40_polya) + (pfb_fill // 2) + len(kanr_seq) + 1, len(polh_promoter) + len(fastbac_mcs) + len(sv40_polya) + (pfb_fill // 2) + len(kanr_seq) + len(ori_seq), strand=1, color="#8B5CF6", notes="ColE1 origin of replication", plasmid_length=len(pfb_full)),
+            PlasmidFeature("AmpR", "CDS", len(pfb_full) - len(ampr_seq) + 1, len(pfb_full), strand=1, color="#10B981", notes="Ampicillin resistance marker", plasmid_length=len(pfb_full)),
+        ),
+    )
+
+    # 7. pLKO.1
+    # Lentiviral shRNA transfer vector with human U6 promoter, Puromycin, AmpR
+    hu6_promoter = (
+        "AAGGTCGGGCAGGAAGAGGGCCTATTTCCCATGATTCCTTCATATTTGCATATACGATACAAGGCTGTTAGAGAGATAATTAGAATTAATTTGACTGTAAACACAAAGATATTAGTACAAAATACGTGACGTAGAAAGTAATAATTTCTTGGGTAGTTTGCAGTTTTAAAATTATGTTTTAAAATGGACTATCATATGCTTACCGTAACTTGAAAGTATTTCGATTTCTTGGCTTTATATATCTTGTGGAAAGGACGAAACACC"
+    )
+    puro_seq = (
+        "ATGACCGAGTACAAGCCCACGGTGCGCCTCGCCACCCGCGACGACGTCCCCAGGGCCGTACGCACCCTCGCCGCCGCGTTCGCCGACTACCCCGCCACGCGCCACACCGTCGATCCGGACCGCCACATCGAGCGGGTCACCGAGCTGCAAGAACTCTTCCTCACGCGCGTCGGGCTCGACATCGGCAAGGTGTGGGTCGCGGACGACGGCGCCGCGGTGGCGGTCTGGACCACGCCGGAGAGCGTCGAAGCGGGGGCGGTGTTCGCCGAGATCGGCCCGCGCATGGCCGAGTTGAGCGGTTCCCGGCTGGCCGCGCAGCAACAGATGGAAGGCCTCCTGGCGCCGCACCGGCCCAAGGAGCCCGCGTGGTTCCTGGCCACCGTCGGCGTCTCGCCCGACCACCAGGGCAAGGGTCTGGGCAGCGCCGTCGTGCTCCCCGGAGTGGAGGCGGCCGAGCGCGCCGGGGTGCCCGCCTTCCTGGAGACCTCCGCGCCCCGCAACCTCCCCTTCTACGAGCGGCTCGGCTTCACCGTCACCGCCGACGTCGAGGTGCCCGAAGGACCGCGCACCTGGTGCATGACCCGCAAGCCCGGTGCCTGA"
+    )
+    plko_mcs = "ACCGGTTCAAGAGAGAATTC"
+    plko_fill = 7086 - len(hu6_promoter) - len(plko_mcs) - len(puro_seq) - len(ori_seq) - len(ampr_seq)
+    plko_full = (
+        hu6_promoter
+        + plko_mcs
+        + ("T" * (plko_fill // 2))
+        + puro_seq
+        + ori_seq
+        + ("A" * (plko_fill - (plko_fill // 2)))
+        + ampr_seq
+    )
+    pLKO1 = PlasmidRecord(
+        id="pLKO.1",
+        name="pLKO.1",
+        sequence=plko_full,
+        topology="circular",
+        description="Lentiviral vector with human U6 promoter for shRNA/sgRNA expression, Puromycin selection, and AmpR",
+        features=(
+            PlasmidFeature("hU6_promoter", "promoter", 1, len(hu6_promoter), strand=1, color="#EF4444", notes="Human U6 RNA Pol III promoter", plasmid_length=len(plko_full)),
+            PlasmidFeature("MCS", "misc_feature", len(hu6_promoter) + 1, len(hu6_promoter) + len(plko_mcs), strand=1, color="#3B82F6", notes="AgeI and EcoRI cloning sites", plasmid_length=len(plko_full)),
+            PlasmidFeature("Puromycin_R", "CDS", len(hu6_promoter) + len(plko_mcs) + (plko_fill // 2) + 1, len(hu6_promoter) + len(plko_mcs) + (plko_fill // 2) + len(puro_seq), strand=1, color="#3B82F6", notes="Puromycin N-acetyltransferase", plasmid_length=len(plko_full)),
+            PlasmidFeature("ColE1_ori", "rep_origin", len(hu6_promoter) + len(plko_mcs) + (plko_fill // 2) + len(puro_seq) + 1, len(hu6_promoter) + len(plko_mcs) + (plko_fill // 2) + len(puro_seq) + len(ori_seq), strand=1, color="#8B5CF6", notes="ColE1 replication origin", plasmid_length=len(plko_full)),
+            PlasmidFeature("AmpR", "CDS", len(plko_full) - len(ampr_seq) + 1, len(plko_full), strand=1, color="#10B981", notes="Ampicillin resistance marker", plasmid_length=len(plko_full)),
+        ),
+    )
+
+    # 8. pAAV-CAG
+    # AAV vector with CAG promoter, MCS, AmpR, ColE1
+    cag_promoter = (
+        "GACATTGATTATTGACTAGTTATTAATAGTAATCAATTACGGGGTCATTAGTTCATAGCCCATATATGGAGTTCCGCGTTACATAACTTACGGTAAATGGCCCGCCTGGCTGACCGCCCAACGACCCCCGCCCATTGACGTCAATAATGACGTATGTTCCCATAGTAACGCCAATAGGGACTTTCCATTGACGTCAATGGGTGGAGTATTTACGGTAAACTGCCCACTTGGCAGTACATCAAGTGTATCATATGCCAAGTACGCCCCCTATTGACGTCAATGACGGTAAATGGCCCGCCTGGCATTATGCCCAGTACATGACCTTATGGGACTTTCCTACTTGGCAGTACATCTACGTATTAGTCATCGCTATTACCATGGTCGAGGTGAGCCCCACGTTCTGCTTCACTCTCCCCATCTCCCCCCCCTCCCCACCCCCAATTTTGTATTTATTTATTTTTTAATTATTTTGTGCAGCGATGGGGGCGGGGGGGGGGGGGGGGCGCGCGCCAGGCGGGGCGGGGCGGGGCGAGGGGCGGGGCGGGGCGAGGCGGAGAGGTGCGGCGGCAGCCAATCAGAGCGGCGCGCTCCGAAAGTTTCCTTTTATGGCGAGGCGGCGGCGGCGGCGGCCCTATAAAAAGCGAAGCGCGCGGCGGGCGGGAGTCGCTGCGACGCTGCCTTCGCCCCGTGCCCCGCTCCGCCGCCGCCTCGCGCCGCCCGCCCCGGCTCTGACTGACCGCGTTACTCCCACAGGTGAGCGGGCGGGACGGCCCTTCTCCTCCGGGCTGTAATTAGCGCTTGGTTTAATGACGGCTTGTTTCTTTTCTGTGGCTGCGTGAAAGCCTTGAGGGGCTCCGGGAGGGCCCTTTGTGCGGGGGGGAGCGGCTCGGGGGGTGCGTGCGTGTGTGTGTGCGTGGGGAGCGCCGCGTGCGGCTCCGCGCTGCCCGGCGGCTGTGAGCGCTGCGGGCGCGGCGCGGGGCTTTGTGCGCTCCGCAGTGTGCGCGAGGGGAGCGCGGCCGGGGGCGGTGCCCCGCGGTGCGGGGGGGGCTGCGAGGGGAACAAAGGCTGCGTGCGGGGTGTGTGCGTGGGGGGGTGAGCAGGGGGTGTGGGCGCGTCGGTCGGGCTGCAACCCCCCCTGCACCCCCCTCCCCGAGTTGCTGAGCACGGCCCGGCTTCGGGTGCGGGGCTCCGTACGGGGCGTGGCGCGGGGCTCGCCGTGCCGGGCGGGGGGTGGCGGCAGGTGGGGGTGCCGGGCGGGGCGGGGCCGCCTCGGGCCGGGGAGGGCTCGGGGGAGGGGCGCGGCGGCCCCCGGAGCGCCGGCGGCTGTCGAGGCGCGGCGAGCCGCAGCCATTGCCTTTTATGGTAATCGTGCGAGAGGGCGCAGGGACTTCCTTTGTCCCAAATCTGTGCGGAGCCGAAATCTGGGAGGCGCCGCCGCACCCCCTCTAGCGGGCGCGGGGCGAAGCGGTGCGGCGCCGGCAGGAAGGAAATGGGCGGGGAGGGCCTTCGTGCGTCGCCGCGCCGCCGTCCCCTTCTCCCTCTCCAGCCTCGGGGCTGTCCGCGGGGGGACGGCTGCCTTCGGGGGGGACGGGGCAGGGCGGGGTTCGGCTTCTGGCGTGTGACCGGCGGCTCTAGAGCCTCTGCTAACCATGTTCATGCCTTCTTCTTTTTCCTACAGCTCCTGGGCAACGTGCTGGTTATTGTGCTGTCTCATCATTTTGGCAAAGAATT"
+    )
+    aav_mcs = "GAATTCGGATCCGATATCGCTAGCCTCGAGGCGGCCGC"
+    paav_fill = 5400 - len(cag_promoter) - len(aav_mcs) - len(ori_seq) - len(ampr_seq)
+    paav_full = (
+        cag_promoter
+        + aav_mcs
+        + ("C" * (paav_fill // 2))
+        + ori_seq
+        + ("G" * (paav_fill - (paav_fill // 2)))
+        + ampr_seq
+    )
+    pAAV_CAG = PlasmidRecord(
+        id="pAAV-CAG",
+        name="pAAV-CAG",
+        sequence=paav_full,
+        topology="circular",
+        description="AAV expression vector with high-expression CAG promoter, MCS, ColE1 ori, and AmpR selection",
+        features=(
+            PlasmidFeature("CAG_promoter", "promoter", 1, len(cag_promoter), strand=1, color="#EF4444", notes="CAG promoter (CMV enhancer + chicken beta-actin)", plasmid_length=len(paav_full)),
+            PlasmidFeature("MCS", "misc_feature", len(cag_promoter) + 1, len(cag_promoter) + len(aav_mcs), strand=1, color="#3B82F6", notes="Multiple Cloning Site", plasmid_length=len(paav_full)),
+            PlasmidFeature("ColE1_ori", "rep_origin", len(cag_promoter) + len(aav_mcs) + (paav_fill // 2) + 1, len(cag_promoter) + len(aav_mcs) + (paav_fill // 2) + len(ori_seq), strand=1, color="#8B5CF6", notes="ColE1 replication origin", plasmid_length=len(paav_full)),
+            PlasmidFeature("AmpR", "CDS", len(paav_full) - len(ampr_seq) + 1, len(paav_full), strand=1, color="#10B981", notes="Ampicillin resistance marker", plasmid_length=len(paav_full)),
+        ),
+    )
+
     return {
         "pUC19": puc19,
         "pET-28a(+)": pET28a,
+        "pET28a(+)": pET28a,
+        "pET28a": pET28a,
         "pcDNA3.1(+)": pcDNA31,
+        "pcDNA3.1": pcDNA31,
         "pGoldenGate-Dest": pGoldenGate_Dest,
+        "pGEX-4T-1": pGEX4T1,
+        "pFastBac1": pFastBac1,
+        "pLKO.1": pLKO1,
+        "pAAV-CAG": pAAV_CAG,
     }
 
 
 STANDARD_PLASMID_CATALOG: Dict[str, PlasmidRecord] = _build_standard_catalog()
+
+
+# ---------------------------------------------------------------------------
+# DNA Vector Backbone Library and Customization Engine
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class BackboneSpec:
+    """Specification of a modular plasmid vector backbone."""
+    name: str
+    origin: str
+    resistance: str
+    promoter: str
+    copy_number: str
+    n_term_tag: str
+    c_term_tag: str
+    cleavage_site: str
+    mcs_enzymes: Tuple[str, ...]
+    sequence: str
+    features: Tuple[PlasmidFeature, ...]
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.features, tuple):
+            object.__setattr__(self, "features", tuple(self.features))
+        if not isinstance(self.mcs_enzymes, tuple):
+            object.__setattr__(self, "mcs_enzymes", tuple(self.mcs_enzymes))
+
+    def to_plasmid(self) -> PlasmidRecord:
+        """Convert BackboneSpec into an immutable PlasmidRecord."""
+        return PlasmidRecord(
+            id=self.name,
+            name=self.name,
+            sequence=self.sequence,
+            topology="circular",
+            features=self.features,
+            description=self.description or f"{self.name} backbone ({self.promoter}, {self.resistance}, {self.origin})",
+        )
+
+
+def _build_backbone_catalog() -> Dict[str, BackboneSpec]:
+    std = STANDARD_PLASMID_CATALOG
+    puc = std["pUC19"]
+    pet = std["pET-28a(+)"]
+    pcdna = std["pcDNA3.1(+)"]
+    pgex = std["pGEX-4T-1"]
+    pfb = std["pFastBac1"]
+    plko = std["pLKO.1"]
+    paav = std["pAAV-CAG"]
+
+    catalog: Dict[str, BackboneSpec] = {
+        "pUC19": BackboneSpec(
+            name="pUC19",
+            origin="ColE1/pUC",
+            resistance="AmpR",
+            promoter="lac",
+            copy_number="High (500–700 copies/cell)",
+            n_term_tag="None",
+            c_term_tag="None",
+            cleavage_site="None",
+            mcs_enzymes=("EcoRI", "SacI", "KpnI", "SmaI", "BamHI", "XbaI", "SalI", "PstI", "SphI", "HindIII"),
+            sequence=puc.sequence,
+            features=puc.features,
+            description=puc.description,
+        ),
+        "pET28a(+)": BackboneSpec(
+            name="pET28a(+)",
+            origin="pBR322/ColE1",
+            resistance="KanR",
+            promoter="T7",
+            copy_number="Medium (40 copies/cell)",
+            n_term_tag="His6",
+            c_term_tag="His6",
+            cleavage_site="Thrombin",
+            mcs_enzymes=("NdeI", "NheI", "BamHI", "EcoRI", "SacI", "SalI", "HindIII", "NotI", "XhoI"),
+            sequence=pet.sequence,
+            features=pet.features,
+            description=pet.description,
+        ),
+        "pET-28a(+)": BackboneSpec(
+            name="pET-28a(+)",
+            origin="pBR322/ColE1",
+            resistance="KanR",
+            promoter="T7",
+            copy_number="Medium (40 copies/cell)",
+            n_term_tag="His6",
+            c_term_tag="His6",
+            cleavage_site="Thrombin",
+            mcs_enzymes=("NdeI", "NheI", "BamHI", "EcoRI", "SacI", "SalI", "HindIII", "NotI", "XhoI"),
+            sequence=pet.sequence,
+            features=pet.features,
+            description=pet.description,
+        ),
+        "pET28a": BackboneSpec(
+            name="pET28a",
+            origin="pBR322/ColE1",
+            resistance="KanR",
+            promoter="T7",
+            copy_number="Medium (40 copies/cell)",
+            n_term_tag="His6",
+            c_term_tag="His6",
+            cleavage_site="Thrombin",
+            mcs_enzymes=("NdeI", "NheI", "BamHI", "EcoRI", "SacI", "SalI", "HindIII", "NotI", "XhoI"),
+            sequence=pet.sequence,
+            features=pet.features,
+            description=pet.description,
+        ),
+        "pcDNA3.1(+)": BackboneSpec(
+            name="pcDNA3.1(+)",
+            origin="ColE1",
+            resistance="AmpR",
+            promoter="CMV",
+            copy_number="High",
+            n_term_tag="None",
+            c_term_tag="None",
+            cleavage_site="None",
+            mcs_enzymes=("NheI", "PmeI", "AflII", "HindIII", "KpnI", "BamHI", "BstXI", "EcoRI", "EcoRV", "NotI", "XhoI", "XbaI", "DraIII", "ApaI"),
+            sequence=pcdna.sequence,
+            features=pcdna.features,
+            description=pcdna.description,
+        ),
+        "pcDNA3.1": BackboneSpec(
+            name="pcDNA3.1",
+            origin="ColE1",
+            resistance="AmpR",
+            promoter="CMV",
+            copy_number="High",
+            n_term_tag="None",
+            c_term_tag="None",
+            cleavage_site="None",
+            mcs_enzymes=("NheI", "PmeI", "AflII", "HindIII", "KpnI", "BamHI", "BstXI", "EcoRI", "EcoRV", "NotI", "XhoI", "XbaI", "DraIII", "ApaI"),
+            sequence=pcdna.sequence,
+            features=pcdna.features,
+            description=pcdna.description,
+        ),
+        "pGEX-4T-1": BackboneSpec(
+            name="pGEX-4T-1",
+            origin="pBR322/ColE1",
+            resistance="AmpR",
+            promoter="tac",
+            copy_number="Medium",
+            n_term_tag="GST",
+            c_term_tag="None",
+            cleavage_site="Thrombin",
+            mcs_enzymes=("BamHI", "EcoRI", "SmaI", "SalI", "XhoI", "NotI"),
+            sequence=pgex.sequence,
+            features=pgex.features,
+            description=pgex.description,
+        ),
+        "pFastBac1": BackboneSpec(
+            name="pFastBac1",
+            origin="ColE1/f1",
+            resistance="AmpR/Gentamicin",
+            promoter="polyhedrin",
+            copy_number="Medium",
+            n_term_tag="None",
+            c_term_tag="None",
+            cleavage_site="None",
+            mcs_enzymes=("BamHI", "EcoRI", "SalI", "PstI", "NotI", "XhoI", "SphI", "KpnI", "HindIII"),
+            sequence=pfb.sequence,
+            features=pfb.features,
+            description=pfb.description,
+        ),
+        "pLKO.1": BackboneSpec(
+            name="pLKO.1",
+            origin="ColE1/f1",
+            resistance="AmpR/Puromycin",
+            promoter="hU6",
+            copy_number="High",
+            n_term_tag="None",
+            c_term_tag="None",
+            cleavage_site="None",
+            mcs_enzymes=("AgeI", "EcoRI"),
+            sequence=plko.sequence,
+            features=plko.features,
+            description=plko.description,
+        ),
+        "pAAV-CAG": BackboneSpec(
+            name="pAAV-CAG",
+            origin="ColE1",
+            resistance="AmpR",
+            promoter="CAG",
+            copy_number="High",
+            n_term_tag="None",
+            c_term_tag="None",
+            cleavage_site="None",
+            mcs_enzymes=("EcoRI", "NotI", "HindIII", "BamHI"),
+            sequence=paav.sequence,
+            features=paav.features,
+            description=paav.description,
+        ),
+    }
+    return catalog
+
+
+BACKBONE_CATALOG: Dict[str, BackboneSpec] = _build_backbone_catalog()
+
+
+# ---------------------------------------------------------------------------
+# Modular Sequence Cassette Catalog for Customization
+# ---------------------------------------------------------------------------
+
+MODULAR_ORIGINS: Dict[str, str] = {
+    "cole1": (
+        "TTGAGATCCTTTTTTTCTGCGCGTAATCTGCTGCTTGCAAACAAAAAAACCACCGCTACCAGCGGTGGTTTGTTTGCCGGATCAAGAGCTACCAACTCTTTTTCCGAAGGTAACTGGCTTCAGCAGAGCGCAGATACCAAAT"
+        "ACTGTCCTTCTAGTGTAGCCGTAGTTAGGCCACCACTTCAAGAACTCTGTAGCACCGCCTACATACCTCGCTCTGCTAATCCTGTTACCAGTGGCTGCTGCCAGTGGCGATAAGTCGTGTCTTACCGGGTTGGACTCAAGAC"
+        "GATAGTTACCGGATAAGGCGCAGCGGTCGGGCTGAACGGGGGGTTCGTGCACACAGCCCAGCTTGGAGCGAACGACCTACACCGAACTGAGATACCTACAGCGTGAGCTATGAGAAAGCGCCACGCTTCCCGAAGGGAGAA"
+        "AGGCGGACAGGTATCCGGTAAGCGGCAGGGTCGGAACAGGAGAGCGCACGAGGGAGCTTCCAGGGGGAAACGCCTGGTATCTTTATAGTCCTGTCGGGTTTCGCCACCTCTGACTTGAGCGTCGATTTTTGTGATGCTCGTC"
+    ),
+    "p15a": (
+        "TTGACAACTCGTCGTGGTTCTTAGTTAAAGATATTATTGACGTTGAAACTGAAATTGCAGTGATTCTTTTCTGTTGTTTTCAAGACGCAGTAAAGCCAGACTGCTGCTTCCCGTTCCATTCTCTCTGTACCCCGTAGTGCACC"
+        "CTCGTAGTCTCCACTTCAGCTTCATCATAGTTTGAGATCTCTGCCTCGTGCCTCGTGCCTCGTGCCTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCC"
+        "CACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCAC"
+        "GTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTC"
+    ),
+    "psc101": (
+        "TTTTCTCGCTTTCGCTTAGTTTTCTCGTTTCTCACCGTTTTCAAGACGCAGTAAAGCCAGACTGCTGCTTCCCGTTCCATTCTCTCTGTACCCCGTAGTGCACCCTCGTAGTCTCCACTTCAGCTTCATCATAGTTTGAGATC"
+        "TCTGCCTCGTGCCTCGTGCCTCGTGCCTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGC"
+        "CACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACGTCGTGCCACG"
+    ),
+}
+
+MODULAR_RESISTANCES: Dict[str, str] = {
+    "ampr": (
+        "ATGAGTATTCAACATTTTCGTGTCGCCCTTATTCCCTTTTTTGCGGCATTTTGCCTTCCTGTTTTTGCTCACCCAGAAACGCTGGTGAAAGTAAAAGATGCTGAAGATCAGTTGGGTGCACGAGTGGGTTACATCGAAC"
+        "TGGATCTCAACAGCGGTAAGATCCTTGAGAGTTTTCGCCCCGAAGAACGTTTTCCAATGATGAGCACTTTTAAAGTTCTGCTATGTGGCGCGGTATTATCCCGTATTGACGCCGGGCAAGAGCAACTCGGTCGCCGCATAC"
+        "ACTATTCTCAGAATGACTTGGTTGAGTACTCACCAGTCACAGAAAAGCATCTTACGGATGGCATGACAGTAAGAGAATTATGCAGTGCTGCCATAACCATGAGTGATAACACTGCGGCCAACTTACTTCTGACAACGATC"
+        "GGAGGACCGAAGGAGCTAACCGCTTTTTTGCACAACATGGGGGATCATGTAACTCGCCTTGATCGTTGGGAACCGGAGCTGAATGAAGCCATACCAAACGACGAGCGTGACACCACGATGCCTGTAGCAATGGCAACAA"
+        "CGTTGCGCAAACTATTAACTGGCGAACTACTTACTCTAGCTTCCCGGCAACAATTAATAGACTGGATGGAGGCGGATAAAGTTGCAGGACCACTTCTGCGCTCGGCCCTTCCGGCTGGCTGGTTTATTGCTGATAAATCT"
+        "GGAGCCGGTGAGCGTGGGTCTCGCGGTATCATTGCAGCACTGGGGCCAGATGGTAAGCCCTCCCGTATCGTAGTTATCTACACGACGGGGAGTCAGGCAACTATGGATGAACGAAATAGACAGATCGCTGAGATAGGT"
+        "GCCTCACTGATTAAGCATTGGTAA"
+    ),
+    "kanr": (
+        "ATGAGCCATATTCAACGGGAAACGTCTTGCTCGAGGCCGCGATTAAATTCCAACATGGATGCTGATTTATATGGGTATAAATGGGCTCGCGATAATGTCGGGCAATCAGGTGCGACAATCTATCGATTGTATGGGAAGCC"
+        "CGATGCGCCAGAGTTGTTTCTGAAACATGGCAAAGGTAGCGTTGCCAATGATGTTACAGATGAGATGGTCAGACTAAACTGGCTGACGGAATTTATGCCTCTTCCGACCATCAAGCATTTTATCCGTACTCCTGATGATG"
+        "CATGGTTACTCACCACTGCGATCCCCGGGAAAACAGCATTCCAGGTATTAGAAGAATATCCTGATTCAGGTGAAAATATTGTTGATGCGCTGGCAGTGTTCCTGCGCCGGTTGCATTCGATTCCTGTTTGTAATTGTCCT"
+        "TTTAACAGCGATCGCGTATTTCGTCTCGCTCAGGCGCAATCACGAATGAATAACGGTTTGGTTGATGCGAGTGATTTTGATGACGAGCGTAATGGCTGGCCTGTTGAACAAGTCTGGAAAGAAATGCATAAACTTTTGCCA"
+        "TTCTCACCGGATTCAGTCGTCACTCATGGTGATTTCTCACTTGATAACCTTATTTTTGACGAGGGGAAATTAATAGGTTGTATTGATGTTGGACGAGTCGGAATCGCAGACCGATACCAGGATCTTGCCATCCTATGGAAC"
+        "TGCCTCGGTGAGTTTTCTCCTTCATTACAGAAACGGCTTTTTCAAAAATATGGTATTGATAATCCTGATATGAATAAATTGCAGTTTCATTTGATGCTCGATGAGTTTTTCTAA"
+    ),
+    "cmr": (
+        "ATGGAGAAAAAAATCACTGGATATACCACCGTTGATATATCCCAATGGCATCGTAAAGAACATTTTGAGGCATTTCAGTCAGTTGCTCAATGTACCTATAACCAGACCGTTCAGCTGGATATTACGGCCTTTTTAAAGAC"
+        "CGTAAAGAAAAATAAGCACAAGTTTTATCCGGCCTTTATTCACATTCTTGCCCGCCTGATGAATGCTCATCCGGAATTTCGTATGGCAATGAAAGACGGTGAGCTGGTGATATGGGATAGTGTTCACCCTTGTTACACCG"
+        "TTTTCCATGAGCAAACTGAAACGTTTTCATCGCTCTGGAGTGAATACCACGACGATTTCCGGCAGTTTCTACACATATATTCGCAAGATGTGGCGTGTTACGGTGAAAACCTGGCCTATTTCCCTAAAGGGTTTATTGAG"
+        "AATATGTTTTTCGTCTCAGCCAATCCCTGGGTGAGTTTCACCAGTTTTGATTTAAACGTGGCCAATATGGACAACTTCTTCGCCCCCGTTTTCACCATGGGCAAATATTATACGCAAGGCGACAAGGTGCTGATGCCGCTG"
+        "GCGATTCAGGTTCATCATGCCGTTTGTGATGGCTTCCATGTCGGCAGAATGCTTAATGAATTACAACAGTACTGCGATGAGTGGCAGGGCGGGGCGTAA"
+    ),
+    "specr": (
+        "ATGAGGGAAGCGGTGATCACCGAAGTGTCGACGCTCGACGAGCGGCTTGCCGGCCTGCTCGCGGACGCCCACGAGGGCCAGGTGGTCGGCGTGTGCGTGGCCACCGACCGGGACGCCGCCGAGGCGCTGCTCACCGGCTGG"
+        "TCGCGCGACGCGGTGCAGCACGCGGTCGAGGCCCACCCCGACGTGCACGTCATCGGCGACGGCATCATCCCGCTCGACGCCCGGCTCGCCGAGGTGCGCGACGGCCTCGACGCCCTCGTCGTCGACCCCGCCGACCCGGCG"
+        "ATCACCGACGCCCTCGCCGCGGCGGCCGACCGGGTCCTCGTCCACCCCGACGGCAAGGACGAGGCCGACGTCGCGGCCCTCGCCGCCGAGGTCCGCGCCGCCGACGAGGCGGGCGCGTCGGTGCTCGTGCTCGACCCCGGC"
+        "TGCGAGGACACGGCCCGGCTCCTCGCCGAGATCGCCGACGACGTCACCGTCCGCCTCGACCCCGCCGCCGGGGCCCGGCTGCCCGCGGTGCGCGACGTGGCCGAGGCCGAGCGCCTCGTGCTCGTCCACCCCGGCGTCGCC"
+        "GAGGCGCTCGCCGCGCACCTCGCCGAGGCCCTCGACGCCGCCGTCGAGGCGGGCGTCGTCGTCGAGCCGGGCCTCGAGGAGGCGCGCCGCGCCGGCGAGCTGCTCACCGCCGAGCAGCGCCGCGCCCTCGCGGCCCTGGCC"
+        "GCCGAGGACCTCACCGCCCTCCGCGAGGCCCGCCGGCCCGCCGCCCACCCCGCCCCCTGA"
+    ),
+    "zeor": (
+        "ATGGCCAAGTTGACCAGTGCCGTTCCGGTGCTCACCGCGCGCGACGTCGCCGGAGCGGTCGAGTTCTGGACCGACCGGCTCGGGTTCTCCCGGGACTTCGTGGAGGACGACTTCGCCGGTGTGGTCCGGGACGACGTGACC"
+        "CTGTTCATCAGCGCGGTCCAGGACCAGGTGGTGCCGGACAACACCCTGGCCTGGGTGTGGGTGCGCGGCCTGGACGAGCTGTACGCCGAGTGGTCGGAGGTCGTGTCCACGAACTTCCGGGACGCCTCCGGGCCGGCCATG"
+        "ACCGAGATCGGCGAGCAGCCGTGGGGGCGGGAGTTCGCCCTGCGCGACCCGGCCGGCAACTGCGTGCACTTCGTGGCCGAGGAGCAGGACTGA"
+    ),
+}
+
+MODULAR_PROMOTERS: Dict[str, str] = {
+    "t7": "TAATACGACTCACTATAGGG",
+    "sp6": "ATTTAGGTGACACTATAGAAG",
+    "t3": "AATTAACCCTCACTAAAGGG",
+    "tac": "TTGACAATTAATCATCGGCTCGTATAATGTGTGGAATTGTGAGCGGATAACAATT",
+    "lac": "TGTTGACAATTAATCATCGGCTCGTATAATGTGTGGAATTGTGAGCGGATAACAATT",
+    "cmv": (
+        "GACATTGATTATTGACTAGTTATTAATAGTAATCAATTACGGGGTCATTAGTTCATAGCCCATATATGGAGTTCCGCGTTACATAACTTACGGTAAATGGCCCGCCTGGCTGACCGCCCAACGACCCCCGCCCATTGACG"
+        "TCAATAATGACGTATGTTCCCATAGTAACGCCAATAGGGACTTTCCATTGACGTCAATGGGTGGAGTATTTACGGTAAACTGCCCACTTGGCAGTACATCAAGTGTATCATATGCCAAGTACGCCCCCTATTGACGTCAATG"
+        "ACGGTAAATGGCCCGCCTGGCATTATGCCCAGTACATGACCTTATGGGACTTTCCTACTTGGCAGTACATCTACGTATTAGTCATCGCTATTACCATGGTGATGCGGTTTTGGCAGTACATCAATGGGCGTGGATAGCGGTT"
+        "TGACTCACGGGGATTTCCAAGTCTCCACCCCATTGACGTCAATGGGAGTTTGTTTTGGCACCAAAATCAACGGGACTTTCCAAAATGTCGTAACAACTCCGCCCCATTGACGCAAATGGGCGGTAGGCGTGTACGGTGGGAG"
+        "GTCTATATAAGCAGAGCTCTCTGGCTAACTAGAGAACCCACTGCTTACTGGCTTATC"
+    ),
+}
+
+MODULAR_TAGS: Dict[str, str] = {
+    "his6": "CATCATCATCATCATCAT",
+    "his8": "CATCATCATCATCATCATCATCAT",
+    "flag": "GACTACAAGGACGACGACGATAAG",
+    "twinstrep": "TGGAGCCACCCGCAGTTCGAAAAAGGCGGCGGCAGCGGCGGCGGCAGCTGGAGCCACCCGCAGTTCGAAAAA",
+    "twin-strep": "TGGAGCCACCCGCAGTTCGAAAAAGGCGGCGGCAGCGGCGGCGGCAGCTGGAGCCACCCGCAGTTCGAAAAA",
+    "strep": "TGGAGCCACCCGCAGTTCGAAAAA",
+    "gst": (
+        "ATGTCCCCTATACTAGGTTATTGGAAAATTAAGGGCCTTGTGCAACCCACTCGACTTCTTTTGGAATATCTTGAAGAAAAATATGAAGAGCATTTGTATGAGCGCGATGAAGGTGATAAATGGCGAAACAAAAAGTTTGAATT"
+        "GGGTTTGGAGTTTCCCAATCTTCCTTATTATATTGATGGTGATGTTAAATTAACACAGTCTATGGCCATCATACGTTATATAGCTGACAAGCACAACATGTTGGGTGGTTGTCCAAAAGAGCGTGCAGAGATTTCAATGCTTGA"
+        "AGGAGCGGTTTTGGATATTAGATACGGTGTTTCGAGAATTGCATATAGTAAAGACTTTGAAACTCTCAAAGTTGATTTTCTTAGCAAGCTACCTGAAATGCTGAAAATGTTCGAAGATCGTTTATGTCATAAAACATATTTAA"
+        "ATGGTGATCATGTAACCCATCCTGACTTCATGTTGTATGACGCTCTTGATGTTGTTTTATACATGGACCCAATGTGCCTGGATGCGTTCCCAAAATTAGTTTGTTTTAAAAAACGTATTGAAGCTATCCCACAAATTGATAAG"
+        "TACTTGAAATCCAGCAAGTATATAGCATGGCCTTTGCAGGGCTGGCAAGCCACGTTTGGTGGTGGCGACCATCCTCCAAAATCGGAT"
+    ),
+    "mbp": (
+        "ATGAAAATAAAAACAGGTGCACGCATCCTCGCATTATCCGCATTAACGACGATGATGTTTTCCGCCTCGGCTCTCGCCAAAATCGAAGAAGGTAAACTGGTAATCTGGATTAACGGCGATAAAGGCTATAACGGTCTCGCTGA"
+        "AGTCGGTAAGAAATTCGAGAAAGATACCGGAATTAAAGTCACCGTTGAGCATCCGGATAAACTGGAAGAGAAATTCCCACAGGTTGCGGCAACTGGCGATGGCCCTGACATTATCTTCTGGGCACACGACCGCTTTGGTGGCTA"
+        "CGCTCAATCTGGCCTGTTGGCTGAAATCACCCCGGACAAAGCGTTCCAGGACAAGCTGTATCCGTTTACCTGGGATGCCGTACGTTACAACGGCAAGCTGATTGCTTACCCGATCGCTGTTGAAGCGTTATCGCTGATTTATA"
+        "ACAAAGATCTGCTGCCGAACCCGCCAAAAACCTGGGAAGAGATCCCGGCGCTGGATAAAGAACTGAAAGCGAAAGGTAAGAGCGCGCTGATGTTCAACCTGCAAGAACCGTACTTCACCTGGCCGCTGATTGCTGCTGACGGG"
+        "GGTTATGCGTTCAAGTATGAAAACGGCAAGTACGACATTAAAGACGTGGGCGTGGATAACGCTGGCGCGAAAGCGGGTCTGACCTTCCTGGTTGACCTGATTAAAAACAAACACATGAATGCAGACACCGATTACTCCATCGC"
+        "AGAAGCTGCCTTTAATAAAGGCGAAACAGCGATGACCATCAACGGCCCGTGGGCATGGTCCAACATCGACACCAGCAAAGTGAATTATGGTGTAACGGTACTGCCGACCTTCAAGGGTCAACCATCCAAACCGTTCGTTGGCG"
+        "TGCTGAGCGCAGGTATTAACGCCGCCAGTCCGAACAAAGAGCTGGCAAAAGAGTTCCTCGAAAACTATCTGCTGACTGATGAAGGTCTGGAAGCGGTTAATAAAGACAAACCGCTGGGTGCCGTAGCGCTGAAGTCTTACGAG"
+        "GAAGAGTTGGCGAAAGATCCACGTATTGCCGCCACCATGGAAAACGCCCAGAAAGGTGAAATCATGCCGAACATCCCGCAGATGTCCGCTTTCTGGTATGCCGTGCGTACTGCGGTGATCAACGCCGCCAGCGGTCGTCAGACT"
+        "GTCGATGAAGCCCTGAAAGACGCGCAGACTAATTCGAGCTCG"
+    ),
+    "sumo": (
+        "ATGTCCGACCAAGAAGCGAAACCTTCAACAGAAGAGAAAGGTGAAGAAGCCAAGAAAGAAGGTGGTGGCAAGAAAGAAGAAGAAGGTGGCAAGAAAGAAGAAGCCAAGGAAGAGGACAAGAGCAAGGATGAAGATGAGGAGGA"
+        "CGACGACGACGATGAAGAAGGTGAAGGTGACGAAGAAGACGAGCAAGCTGCGAACACAGCCAAGTCGACAGCCACGGTTCCAGTCACACTAGGTGTCAAAGCAGAGAACACTGCAGACGGTGTCAAAGTTACATTCAAATTC"
+        "AAGAACAAAGCGACATCATCACCTGTCTCTATCGACACCATCAGTTTCCAACTCAAAGCCAAAGATGCAGTTTCCACAAAGGAGGTCACAGTGAAACTCAAAAGTGTTGGCTCGGCCACAAACCTCAAACAAATGAAGAAACT"
+        "GATCAACAAAGAACCCAAGGAATACAAAGGTTTCACAGTGCTCGGTACTTCCGGTGGTTCTGGTTACGTCGTTTCTTCCTCTGGC"
+    ),
+}
+
+MODULAR_CLEAVAGE_SITES: Dict[str, str] = {
+    "tev": "GAAAACCTGTATTTTCAGGGC",
+    "hrv_3c": "CTGGAAGTTCTGTTCCAGGGGCCC",
+    "hrv3c": "CTGGAAGTTCTGTTCCAGGGGCCC",
+    "thrombin": "CTGGTGCCGCGCGGCAGC",
+    "factor_xa": "ATCGAAGGTCGT",
+    "factorxa": "ATCGAAGGTCGT",
+}
+
+
+def get_user_backbones_dir() -> Path:
+    """Return the user's custom backbones directory in BIOLABCALC_HOME/backbones/."""
+    try:
+        from .profile import get_biolabcalc_home
+        return get_biolabcalc_home() / "backbones"
+    except Exception:
+        return Path(os.path.expanduser("~/.biolabcalc/backbones"))
+
+
+def _backbone_from_dict(d: Dict[str, Any]) -> BackboneSpec:
+    features = tuple(_feature_from_dict(f) for f in d.get("features", []))
+    enzymes = tuple(d.get("mcs_enzymes", []))
+    return BackboneSpec(
+        name=d.get("name", "custom_backbone"),
+        origin=d.get("origin", "ColE1"),
+        resistance=d.get("resistance", "AmpR"),
+        promoter=d.get("promoter", "T7"),
+        copy_number=d.get("copy_number", "High"),
+        n_term_tag=d.get("n_term_tag", "None"),
+        c_term_tag=d.get("c_term_tag", "None"),
+        cleavage_site=d.get("cleavage_site", "None"),
+        mcs_enzymes=enzymes,
+        sequence=d.get("sequence", ""),
+        features=features,
+        description=d.get("description", ""),
+    )
+
+
+def list_backbones() -> List[BackboneSpec]:
+    """List all standard backbones plus custom user backbones in BIOLABCALC_HOME/backbones/."""
+    backbones: Dict[str, BackboneSpec] = dict(BACKBONE_CATALOG)
+    user_dir = get_user_backbones_dir()
+    if user_dir.exists() and user_dir.is_dir():
+        for json_file in user_dir.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    spec = _backbone_from_dict(data)
+                    backbones[spec.name] = spec
+            except Exception:
+                pass
+    return list(backbones.values())
+
+
+def get_backbone(name: str) -> BackboneSpec:
+    """Retrieve a BackboneSpec by name. Checks user backbones first, then BACKBONE_CATALOG."""
+    norm = name.strip()
+    norm_lower = norm.lower()
+
+    # 1. Check user directory
+    user_dir = get_user_backbones_dir()
+    if user_dir.exists() and user_dir.is_dir():
+        for json_file in user_dir.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    spec = _backbone_from_dict(data)
+                    if spec.name.lower() == norm_lower or json_file.stem.lower() == norm_lower:
+                        return spec
+            except Exception:
+                pass
+
+    # 2. Check built-in catalog
+    for k, spec in BACKBONE_CATALOG.items():
+        if k.lower() == norm_lower or spec.name.lower() == norm_lower:
+            return spec
+
+    raise KeyError(f"Vector backbone '{name}' not found in standard catalog or {user_dir}.")
+
+
+def customize_backbone(
+    base_name: str,
+    origin: Optional[str] = None,
+    resistance: Optional[str] = None,
+    promoter: Optional[str] = None,
+    n_term_tag: Optional[str] = None,
+    c_term_tag: Optional[str] = None,
+    cleavage_site: Optional[str] = None,
+) -> PlasmidRecord:
+    """Customize a plasmid vector backbone by modularly replacing functional elements.
+
+    Preserves 1-based inclusive feature coordinates and circular topology.
+
+    Parameters
+    ----------
+    base_name : str
+        Base plasmid backbone from BACKBONE_CATALOG or user backbones.
+    origin : str, optional
+        Replication origin to substitute (e.g. 'ColE1', 'p15A', 'pSC101').
+    resistance : str, optional
+        Selectable antibiotic marker to substitute (e.g. 'AmpR', 'KanR', 'CmR', 'SpecR', 'ZeoR').
+    promoter : str, optional
+        Expression promoter to substitute (e.g. 'T7', 'CMV', 'tac', 'lac', 'SP6', 'T3').
+    n_term_tag : str, optional
+        N-terminal affinity/solubility tag (e.g. 'His6', 'His8', 'MBP', 'GST', 'SUMO', 'Twin-Strep', 'FLAG').
+    c_term_tag : str, optional
+        C-terminal affinity tag (e.g. 'His6', 'FLAG').
+    cleavage_site : str, optional
+        Protease cleavage site (e.g. 'TEV', 'HRV_3C', 'Thrombin', 'Factor_Xa').
+    """
+    spec = get_backbone(base_name)
+    current_seq = spec.sequence
+    features = list(spec.features)
+    history_notes: List[str] = []
+
+    def _replace_feature_range(target_feat_idx: int, new_seq: str, new_name: str, new_notes: str) -> None:
+        nonlocal current_seq, features
+        feat = features[target_feat_idx]
+        s_pos = feat.start
+        e_pos = feat.end
+        old_len = e_pos - s_pos + 1
+        new_len = len(new_seq)
+        delta = new_len - old_len
+
+        # Splicing 0-based slice [s_pos - 1 : e_pos]
+        current_seq = current_seq[: s_pos - 1] + new_seq + current_seq[e_pos:]
+        new_L = len(current_seq)
+
+        # Update target feature
+        updated_target = PlasmidFeature(
+            name=new_name,
+            feature_type=feat.feature_type,
+            start=s_pos,
+            end=s_pos + new_len - 1,
+            strand=feat.strand,
+            color=feat.color,
+            notes=new_notes,
+            plasmid_length=new_L,
+        )
+        features[target_feat_idx] = updated_target
+
+        # Adjust subsequent features
+        for i, f in enumerate(features):
+            if i == target_feat_idx:
+                continue
+            if f.start > e_pos:
+                new_start = f.start + delta
+                new_end = f.end + delta
+                features[i] = replace(f, start=new_start, end=new_end, plasmid_length=new_L)
+            else:
+                features[i] = replace(f, plasmid_length=new_L)
+
+    # 1. Origin replacement
+    if origin is not None and origin.strip():
+        ori_key = origin.lower().replace("-", "").replace("_", "")
+        if ori_key in MODULAR_ORIGINS:
+            new_ori = MODULAR_ORIGINS[ori_key]
+            ori_idx = -1
+            for idx, f in enumerate(features):
+                if f.feature_type == "rep_origin" or "ori" in f.name.lower():
+                    ori_idx = idx
+                    break
+            if ori_idx != -1:
+                _replace_feature_range(ori_idx, new_ori, f"{origin}_ori", f"Customized origin: {origin}")
+                history_notes.append(f"Origin swapped to {origin}")
+
+    # 2. Resistance replacement
+    if resistance is not None and resistance.strip():
+        res_key = resistance.lower().replace("-", "").replace("_", "")
+        if res_key in MODULAR_RESISTANCES:
+            new_res = MODULAR_RESISTANCES[res_key]
+            res_idx = -1
+            for idx, f in enumerate(features):
+                if f.feature_type == "CDS" and ("amp" in f.name.lower() or "kan" in f.name.lower() or "res" in f.name.lower() or "puro" in f.name.lower() or "gent" in f.name.lower()):
+                    res_idx = idx
+                    break
+            if res_idx != -1:
+                _replace_feature_range(res_idx, new_res, resistance, f"Customized marker: {resistance}")
+                history_notes.append(f"Resistance swapped to {resistance}")
+
+    # 3. Promoter replacement
+    if promoter is not None and promoter.strip():
+        prom_key = promoter.lower().replace("-", "").replace("_", "")
+        if prom_key in MODULAR_PROMOTERS:
+            new_prom = MODULAR_PROMOTERS[prom_key]
+            prom_idx = -1
+            for idx, f in enumerate(features):
+                if f.feature_type == "promoter":
+                    prom_idx = idx
+                    break
+            if prom_idx != -1:
+                _replace_feature_range(prom_idx, new_prom, f"{promoter}_promoter", f"Customized promoter: {promoter}")
+                history_notes.append(f"Promoter swapped to {promoter}")
+
+    # 4. Cleavage site replacement
+    if cleavage_site is not None and cleavage_site.strip():
+        clv_key = cleavage_site.lower().replace("-", "").replace("_", "")
+        if clv_key in MODULAR_CLEAVAGE_SITES:
+            new_clv = MODULAR_CLEAVAGE_SITES[clv_key]
+            clv_idx = -1
+            for idx, f in enumerate(features):
+                if "thrombin" in f.name.lower() or "site" in f.name.lower() or "cleav" in f.name.lower():
+                    clv_idx = idx
+                    break
+            if clv_idx != -1:
+                _replace_feature_range(clv_idx, new_clv, f"{cleavage_site}_site", f"Protease site: {cleavage_site}")
+                history_notes.append(f"Cleavage site swapped to {cleavage_site}")
+
+    # 5. N-terminal tag replacement / insertion
+    if n_term_tag is not None and n_term_tag.strip():
+        tag_key = n_term_tag.lower().replace("-", "").replace("_", "")
+        if tag_key in MODULAR_TAGS:
+            new_tag = MODULAR_TAGS[tag_key]
+            tag_idx = -1
+            for idx, f in enumerate(features):
+                if f.feature_type == "tag" or "n_tag" in f.name.lower() or "his6" in f.name.lower() or "gst" in f.name.lower():
+                    tag_idx = idx
+                    break
+            if tag_idx != -1:
+                _replace_feature_range(tag_idx, new_tag, f"{n_term_tag}_N_tag", f"Affinity tag: {n_term_tag}")
+                history_notes.append(f"N-tag swapped to {n_term_tag}")
+            else:
+                insert_pos = 1
+                for f in features:
+                    if f.name.upper() == "MCS" or f.feature_type == "misc_feature":
+                        insert_pos = f.start
+                        break
+                current_seq = current_seq[: insert_pos - 1] + new_tag + current_seq[insert_pos - 1 :]
+                new_L = len(current_seq)
+                tag_len = len(new_tag)
+                new_feat = PlasmidFeature(
+                    name=f"{n_term_tag}_N_tag",
+                    feature_type="tag",
+                    start=insert_pos,
+                    end=insert_pos + tag_len - 1,
+                    strand=1,
+                    color="#10B981",
+                    notes=f"Inserted affinity tag: {n_term_tag}",
+                    plasmid_length=new_L,
+                )
+                for i, f in enumerate(features):
+                    if f.start >= insert_pos:
+                        features[i] = replace(f, start=f.start + tag_len, end=f.end + tag_len, plasmid_length=new_L)
+                    else:
+                        features[i] = replace(f, plasmid_length=new_L)
+                features.append(new_feat)
+                history_notes.append(f"N-tag {n_term_tag} inserted at {insert_pos}")
+
+    # 6. C-terminal tag replacement / insertion
+    if c_term_tag is not None and c_term_tag.strip():
+        tag_key = c_term_tag.lower().replace("-", "").replace("_", "")
+        if tag_key in MODULAR_TAGS:
+            new_tag = MODULAR_TAGS[tag_key]
+            c_idx = -1
+            for idx, f in enumerate(features):
+                if "c_tag" in f.name.lower() or ("tag" in f.name.lower() and f.start > len(current_seq) // 2):
+                    c_idx = idx
+                    break
+            if c_idx != -1:
+                _replace_feature_range(c_idx, new_tag, f"{c_term_tag}_C_tag", f"C-terminal tag: {c_term_tag}")
+                history_notes.append(f"C-tag swapped to {c_term_tag}")
+            else:
+                insert_pos = len(current_seq)
+                for f in features:
+                    if f.name.upper() == "MCS" or f.feature_type == "misc_feature":
+                        insert_pos = f.end + 1
+                        break
+                current_seq = current_seq[: insert_pos - 1] + new_tag + current_seq[insert_pos - 1 :]
+                new_L = len(current_seq)
+                tag_len = len(new_tag)
+                new_feat = PlasmidFeature(
+                    name=f"{c_term_tag}_C_tag",
+                    feature_type="tag",
+                    start=insert_pos,
+                    end=insert_pos + tag_len - 1,
+                    strand=1,
+                    color="#10B981",
+                    notes=f"Inserted C-terminal tag: {c_term_tag}",
+                    plasmid_length=new_L,
+                )
+                for i, f in enumerate(features):
+                    if f.start >= insert_pos:
+                        features[i] = replace(f, start=f.start + tag_len, end=f.end + tag_len, plasmid_length=new_L)
+                    else:
+                        features[i] = replace(f, plasmid_length=new_L)
+                features.append(new_feat)
+                history_notes.append(f"C-tag {c_term_tag} inserted at {insert_pos}")
+
+    sorted_features = tuple(sorted(features, key=lambda f: (f.start, f.end)))
+    mod_str = "; ".join(history_notes) if history_notes else "unmodified"
+    cust_name = f"{spec.name}_custom"
+
+    return PlasmidRecord(
+        id=cust_name,
+        name=cust_name,
+        sequence=current_seq,
+        topology="circular",
+        features=sorted_features,
+        description=f"Customized from {spec.name} ({mod_str})",
+        cloning_history=spec.to_plasmid().cloning_history + (f"Customized backbone: {mod_str}",),
+    )
+
 
 
 # ---------------------------------------------------------------------------

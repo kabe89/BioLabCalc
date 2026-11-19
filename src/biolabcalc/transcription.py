@@ -11,7 +11,114 @@ PROMOTER_SEQUENCES: Dict[str, str] = {
     "T7_short": "AATACGACTCACTATA", # 16-mer variant
     "SP6": "ATTTAGGTGACACTATA",      # SP6 consensus (-17 to -1)
     "T3": "AATTAACCCTCACTAAA",       # T3 consensus (-17 to -1)
+    "Syn5": "ATTGGGCACCCGTAA",       # Syn5 consensus
 }
+
+
+@dataclass(frozen=True)
+class RNAPolymeraseSpec:
+    """Biochemical specification of an in vitro RNA polymerase enzyme."""
+    name: str
+    promoter_consensus: str
+    optimal_temperature_c: float
+    optimal_temperature_range_c: Tuple[float, float]
+    initiation_rules: str
+    recommended_mg_ntp_ratio: float
+    spermidine_tolerance_mm: float
+    supported_caps: Tuple[str, ...]
+    dsrna_byproduct_level: str
+    description: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.optimal_temperature_range_c, tuple):
+            object.__setattr__(self, "optimal_temperature_range_c", tuple(self.optimal_temperature_range_c))
+        if not isinstance(self.supported_caps, tuple):
+            object.__setattr__(self, "supported_caps", tuple(self.supported_caps))
+
+
+POLYMERASE_CATALOG: Dict[str, RNAPolymeraseSpec] = {
+    "T7": RNAPolymeraseSpec(
+        name="T7",
+        promoter_consensus="TAATACGACTCACTATAGGG",
+        optimal_temperature_c=37.0,
+        optimal_temperature_range_c=(37.0, 40.0),
+        initiation_rules="+1/+2 GG or GGG optimal; single G gives ~60% yield, +1 A gives ~25%",
+        recommended_mg_ntp_ratio=1.5,
+        spermidine_tolerance_mm=2.0,
+        supported_caps=("m7G", "ARCA", "CleanCap_AG", "CleanCap_GG"),
+        dsrna_byproduct_level="Normal (3'-terminal loopback synthesis produces dsRNA)",
+        description="Wild-type bacteriophage T7 RNA polymerase; high processivity and maximum run-off yield.",
+    ),
+    "T7_G47A": RNAPolymeraseSpec(
+        name="T7_G47A",
+        promoter_consensus="TAATACGACTCACTATAAGG",
+        optimal_temperature_c=37.0,
+        optimal_temperature_range_c=(37.0, 40.0),
+        initiation_rules="+1/+2 AG preferred (ideal for CleanCap AG co-transcriptional capping); reduces dsRNA by >90%",
+        recommended_mg_ntp_ratio=1.4,
+        spermidine_tolerance_mm=2.0,
+        supported_caps=("CleanCap_AG", "m7G", "ARCA"),
+        dsrna_byproduct_level="Ultra-Low (minimizes TLR3/RIG-I innate immune activation for mRNA therapeutics)",
+        description="Engineered G47A mutant T7 RNA polymerase; suppresses abortive cycling and immunogenic dsRNA byproducts.",
+    ),
+    "T7_Thermo": RNAPolymeraseSpec(
+        name="T7_Thermo",
+        promoter_consensus="TAATACGACTCACTATAGGG",
+        optimal_temperature_c=50.0,
+        optimal_temperature_range_c=(48.0, 52.0),
+        initiation_rules="+1/+2 GG/GGG optimal; high temperature resolves strong secondary structures, GC-rich stems, and pseudoknots",
+        recommended_mg_ntp_ratio=1.5,
+        spermidine_tolerance_mm=2.5,
+        supported_caps=("m7G", "ARCA", "CleanCap_AG", "CleanCap_GG"),
+        dsrna_byproduct_level="Moderate",
+        description="Thermostable T7 RNA polymerase engineered for high-temperature IVT (48–52°C) to transcribe structured RNAs.",
+    ),
+    "SP6": RNAPolymeraseSpec(
+        name="SP6",
+        promoter_consensus="ATTTAGGTGACACTATAGAAG",
+        optimal_temperature_c=37.0,
+        optimal_temperature_range_c=(37.0, 40.0),
+        initiation_rules="Strict +1 A requirement (5'-A...); clean 3' runoffs with lower 3'-terminal heterogeneity",
+        recommended_mg_ntp_ratio=1.5,
+        spermidine_tolerance_mm=2.0,
+        supported_caps=("CleanCap_AU", "m7G", "ARCA"),
+        dsrna_byproduct_level="Low to Moderate",
+        description="Bacteriophage SP6 RNA polymerase; initiates preferentially at +1 Adenine with clean run-offs.",
+    ),
+    "T3": RNAPolymeraseSpec(
+        name="T3",
+        promoter_consensus="AATTAACCCTCACTAAAGGG",
+        optimal_temperature_c=37.0,
+        optimal_temperature_range_c=(37.0, 40.0),
+        initiation_rules="+1/+2 GG/GGG preferred; completely orthogonal to T7 and SP6 promoters",
+        recommended_mg_ntp_ratio=1.5,
+        spermidine_tolerance_mm=2.0,
+        supported_caps=("m7G", "ARCA", "CleanCap_AG", "CleanCap_GG"),
+        dsrna_byproduct_level="Normal",
+        description="Bacteriophage T3 RNA polymerase; orthogonal promoter for dual-expression assays and in situ probes.",
+    ),
+    "Syn5": RNAPolymeraseSpec(
+        name="Syn5",
+        promoter_consensus="ATTGGGCACCCGTAA",
+        optimal_temperature_c=24.0,
+        optimal_temperature_range_c=(20.0, 30.0),
+        initiation_rules="Tolerates any +1 nucleotide (A, C, G, or U) with high efficiency; high salt and spermidine tolerance",
+        recommended_mg_ntp_ratio=1.2,
+        spermidine_tolerance_mm=5.0,
+        supported_caps=("CleanCap_AG", "CleanCap_AU", "m7G", "ARCA"),
+        dsrna_byproduct_level="Low",
+        description="Marine cyanophage Syn5 RNA polymerase; universal +1 initiation (A/C/G/U) without leading G constraints.",
+    ),
+}
+
+
+def get_rna_polymerase(name: str) -> RNAPolymeraseSpec:
+    """Retrieve an RNAPolymeraseSpec by name (case-insensitive)."""
+    norm = name.strip()
+    for key, spec in POLYMERASE_CATALOG.items():
+        if key.lower() == norm.lower() or spec.name.lower() == norm.lower():
+            return spec
+    return POLYMERASE_CATALOG["T7"]
 
 
 @dataclass(frozen=True)
@@ -202,6 +309,7 @@ class IVTResult:
     initiation_efficiency_rating: str = "Optimal"
     initiation_recommendations: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    polymerase: str = "T7"
     cap_analog: Optional[str] = None
     predicted_capping_efficiency_percent: Optional[float] = None
     modified_ntp: Optional[str] = None
@@ -365,6 +473,7 @@ def calculate_ivt_yield(
     add_5prime_gg: int = 0,
     cap_analog: Optional[str] = None,
     modified_ntp: Optional[str] = None,
+    polymerase: str = "T7",
     end_5: Literal["triphosphate", "monophosphate", "hydroxyl", "cap0", "cap1"] = "triphosphate",
     end_3: Literal["hydroxyl", "monophosphate", "diphosphate", "triphosphate", "cyclic_phosphate"] = "hydroxyl",
     backbone: Literal["monophosphate", "phosphorothioate"] = "monophosphate",
@@ -397,12 +506,15 @@ def calculate_ivt_yield(
         Whether to detect and automatically trim upstream T7, SP6, or T3 promoters (default: True).
     add_5prime_gg : int
         Number of desired 5' Guanine residues (0-3). If sequence has fewer, prepends Gs to boost initiation.
+    polymerase : str
+        RNA polymerase enzyme ('T7', 'T7_G47A', 'T7_Thermo', 'SP6', 'T3', 'Syn5'). Default: 'T7'.
     """
     cleaned_rna = clean_sequence(rna_seq).replace("T", "U")
     if not cleaned_rna:
         raise ValueError("RNA sequence cannot be empty.")
 
     warnings: List[str] = []
+    poly_spec = get_rna_polymerase(polymerase)
 
     # Promoter trimming
     promoter_name = None
@@ -415,6 +527,11 @@ def calculate_ivt_yield(
                 f"Detected and trimmed upstream {promoter_name} promoter sequence ({trimmed_nt} nt). "
                 "Calculated transcript begins at +1 initiation site."
             )
+            p_base = promoter_name.split()[0].upper()
+            if p_base not in poly_spec.name.upper() and not poly_spec.name.upper().startswith(p_base):
+                warnings.append(
+                    f"Promoter mismatch: Detected '{promoter_name}' promoter in template sequence, but selected polymerase is {poly_spec.name}."
+                )
 
     if not cleaned_rna:
         raise ValueError("Sequence contains only promoter with no downstream transcribed region.")
@@ -501,8 +618,35 @@ def calculate_ivt_yield(
         cap_name = "m7G (Cap-0)"
         capping_eff = 70.0
         cap_delta_mw = 525.3
+    elif cap_str in ("cleancapau", "cleancap_au"):
+        cap_name = "CleanCap AU (Cap-1)"
+        capping_eff = 92.0
+        cap_delta_mw = 696.5
+        if not cleaned_rna.startswith("AU") and not cleaned_rna.startswith("A"):
+            warnings.append(
+                f"CleanCap AU requires a 5'-AU... initiation sequence. Sequence starts with '{cleaned_rna[:2]}', "
+                "which may reduce capping efficiency."
+            )
     elif cap_str and cap_str != "none":
         warnings.append(f"Unrecognized cap analog '{cap_analog}'.")
+
+    if cap_name and poly_spec:
+        supported_lower = [c.lower() for c in poly_spec.supported_caps]
+        if not any(sl in cap_str or cap_str in sl for sl in supported_lower):
+            warnings.append(
+                f"Cap analog '{cap_analog}' may have reduced incorporation with {poly_spec.name}. Recommended caps for {poly_spec.name}: {', '.join(poly_spec.supported_caps)}."
+            )
+
+    total_ntp_conc = atp_mm + ctp_mm + gtp_mm + utp_mm
+    mg_ratio = mg_conc_mm / total_ntp_conc if total_ntp_conc > 0 else 0.0
+    if mg_ratio < 1.0:
+        warnings.append(
+            f"Suboptimal [Mg2+] to [NTP] ratio ({mg_ratio:.2f}x). {poly_spec.name} optimal ratio is ~{poly_spec.recommended_mg_ntp_ratio:.1f}x. Transcription yield may drop due to Mg2+ starvation."
+        )
+    elif mg_ratio > 2.5:
+        warnings.append(
+            f"High [Mg2+] to [NTP] ratio ({mg_ratio:.2f}x). Elevated Mg2+ may increase untemplated 3'-terminal additions and non-specific abortive products."
+        )
 
     mw = round(base_mw + mod_delta_mw + cap_delta_mw, 2)
 
@@ -635,6 +779,7 @@ def calculate_ivt_yield(
         initiation_efficiency_rating=init_eval.efficiency_rating,
         initiation_recommendations=init_eval.recommendations,
         warnings=warnings,
+        polymerase=poly_spec.name,
         cap_analog=cap_name,
         predicted_capping_efficiency_percent=capping_eff,
         modified_ntp=mod_desc,

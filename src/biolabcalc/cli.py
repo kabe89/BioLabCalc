@@ -57,6 +57,11 @@ from .plasmid import (
     list_plasmids,
     delete_plasmid,
     STANDARD_PLASMID_CATALOG,
+    customize_backbone,
+)
+from .protein_recommender import (
+    recommend_protein_strategy,
+    analyze_protein_profile,
 )
 from .restriction_engine import (
     RestrictionCutSite,
@@ -543,6 +548,7 @@ def handle_ivt(args: argparse.Namespace) -> None:
         add_5prime_gg=getattr(args, "add_gg", 0),
         cap_analog=getattr(args, "cap", None),
         modified_ntp=getattr(args, "mod_ntp", None),
+        polymerase=getattr(args, "polymerase", "T7"),
         end_3=getattr(args, "end_3", "hydroxyl"),
         buffer_type=getattr(args, "buffer", "hepes"),
         temperature_celsius=getattr(args, "temp", 37.0),
@@ -555,6 +561,7 @@ def handle_ivt(args: argparse.Namespace) -> None:
         print("=" * 65)
         print("IN VITRO TRANSCRIPTION (IVT) YIELD & STOICHIOMETRY")
         print("=" * 65)
+    print(f"Polymerase Enzyme:          {res.polymerase}")
     print(f"Transcribed RNA Length:     {res.rna_length} nt")
     print(f"RNA Molecular Weight:       {res.rna_mw:,.2f} Da")
     if res.promoter_detected:
@@ -2060,8 +2067,45 @@ def handle_plasmid(args: argparse.Namespace) -> None:
         export_genbank(rec, out_path)
         print(f"Exported plasmid '{rec.name}' to GenBank file '{out_path}'.")
 
+    elif action == "customize-backbone":
+        base_arg = getattr(args, "base", None)
+        if not base_arg:
+            print("Error: biolabcalc plasmid customize-backbone requires -b/--base.", file=sys.stderr)
+            sys.exit(1)
+        rec = customize_backbone(
+            base_name=base_arg,
+            origin=getattr(args, "origin", None),
+            resistance=getattr(args, "resistance", None),
+            promoter=getattr(args, "promoter", None),
+            n_term_tag=getattr(args, "tag", None),
+            c_term_tag=getattr(args, "c_tag", None),
+            cleavage_site=getattr(args, "cleavage", None),
+        )
+        if getattr(args, "json", False):
+            _dump_json(rec, getattr(args, "compact", False))
+            return
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+            print(f"CUSTOMIZED PLASMID BACKBONE: {rec.name}")
+            print("=" * 70)
+        print(f"Base Vector:      {base_arg}")
+        print(f"Construct Name:   {rec.name}")
+        print(f"Length:           {rec.length:,} bp ({rec.topology})")
+        print(f"GC Content:       {rec.gc_percent:.1f}%")
+        print(f"Molecular Weight: {rec.molecular_weight_da / 1e6:.3f} MDa")
+        print(f"Features:         {len(rec.features)} annotated")
+        for f in rec.features:
+            flen = f.get_length(rec.length)
+            print(f"  * [{f.feature_type.upper()}] {f.name:18s} {f.start:6d}..{f.end:<6d} ({flen} bp) - {f.notes}")
+        out_path = getattr(args, "output", None)
+        if out_path:
+            export_genbank(rec, out_path)
+            print(f"Exported customized construct to '{out_path}'.")
+        if not getattr(args, "quiet", False):
+            print("=" * 70)
+
     else:
-        print("Usage: biolabcalc plasmid {inspect,annotate,digest,export} [options]")
+        print("Usage: biolabcalc plasmid {inspect,annotate,digest,export,customize-backbone} [options]")
 
 
 def handle_clone_gene(args: argparse.Namespace) -> None:
@@ -2329,7 +2373,61 @@ def handle_scn(args: argparse.Namespace) -> None:
                 print(f"  Lane {l['lane_index']}: {len(l['bands'])} bands detected")
 
 
+def handle_protein_recommend(args: argparse.Namespace) -> None:
+    raw_seq = _resolve_sequence(args)
+    if not raw_seq:
+        print("Error: biolabcalc protein-recommend requires sequence via -s/--sequence, -f/--file, or stdin (-s -).", file=sys.stderr)
+        sys.exit(1)
+    res = recommend_protein_strategy(
+        sequence=raw_seq,
+        application=getattr(args, "app", "xray_crystallography"),
+        is_membrane=getattr(args, "membrane", False),
+        target_name=getattr(args, "name", "Target_Protein"),
+    )
+    if getattr(args, "json", False):
+        _dump_json(res, getattr(args, "compact", False))
+        return
+    if not getattr(args, "quiet", False):
+        print("=" * 70)
+        print(f"PROTEIN EXPRESSION & PURIFICATION STRATEGY: {res.target_name}")
+        print("=" * 70)
+    prof = res.biophysical_profile
+    print(f"Target Name:          {res.target_name}")
+    print(f"Application:          {res.application}")
+    print(f"Length:               {prof.length} aa")
+    print(f"Molecular Weight:     {prof.molecular_weight_da:,.1f} Da")
+    print(f"Isoelectric Point:    pI {prof.isoelectric_point:.2f}")
+    print(f"GRAVY Hydropathy:     {prof.gravy_index:+.2f} (Membrane: {prof.is_membrane_predicted})")
+    print(f"Cysteine Residues:    {prof.cysteine_count} (Disulfide capacity: {prof.predicted_disulfide_bonds}, Odd Cys: {prof.has_odd_cysteines})")
+    print(f"N-Glycosylation:      {len(prof.n_glycosylation_sites)} sites {list(prof.n_glycosylation_sites) if prof.n_glycosylation_sites else 'None'}")
+    if not getattr(args, "quiet", False):
+        print("-" * 70)
+        print("RECOMMENDED EXPRESSION HOSTS:")
+    for h in res.recommended_hosts:
+        print(f"  * [{h[2]:2d}/100] {h[0]}: {h[1]}")
+    if not getattr(args, "quiet", False):
+        print("-" * 70)
+        print("RECOMMENDED TAGS & CLEAVAGE:")
+    for t in res.recommended_tags:
+        print(f"  * Tag:      {t[0]} - {t[1]}")
+    for p in res.recommended_cleavage_proteases:
+        print(f"  * Protease: {p[0]} - {p[1]}")
+    if not getattr(args, "quiet", False):
+        print("-" * 70)
+        print("BUFFER & SOLUBILITY STRATEGY:")
+    print(f"  Lysis Buffer pH:    {res.recommended_lysis_buffer_ph:.1f}")
+    print(f"  SEC Buffer pH:      {res.recommended_sec_buffer_ph:.1f}")
+    print(f"  Buffer Rationale:   {res.buffer_rationale}")
+    for g in res.detergent_or_additive_guidance:
+        print(f"  Guidance:           {g}")
+    for w in res.warnings:
+        print(f"  [!] Warning:        {w}")
+    if not getattr(args, "quiet", False):
+        print("=" * 70)
+
+
 COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
+    "protein-recommend": handle_protein_recommend,
     "dilute": handle_dilute,
     "wizard": handle_wizard,
     "interactive": handle_wizard,
@@ -2432,7 +2530,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_ivt.add_argument("--ntp-mm", type=float, default=5.0, help="Starting NTP concentration in mM")
     p_ivt.add_argument("--no-trim-promoter", action="store_true", help="Disable automatic detection and trimming of upstream promoters")
     p_ivt.add_argument("--add-gg", type=int, default=0, choices=[0, 1, 2, 3], help="Ensure at least N leading 5' Guanines (e.g. 2 for 5'-GG)")
-    p_ivt.add_argument("--cap", choices=["CleanCap_AG", "CleanCap_GG", "ARCA", "m7G"], default=None, help="Co-transcriptional cap analog")
+    p_ivt.add_argument("--polymerase", default="T7", choices=["T7", "T7_G47A", "T7_Thermo", "SP6", "T3", "Syn5"], help="RNA polymerase enzyme (default: T7)")
+    p_ivt.add_argument("--cap", choices=["CleanCap_AG", "CleanCap_AU", "CleanCap_GG", "ARCA", "m7G"], default=None, help="Co-transcriptional cap analog")
     p_ivt.add_argument("--mod-ntp", choices=["m1Psi", "Psi", "5moU", "m5C"], default=None, help="Modified nucleotide replacement (e.g. m1Psi)")
     p_ivt.add_argument("--end-3", choices=["hydroxyl", "monophosphate", "triphosphate"], default="hydroxyl", help="3' terminal phosphorylation state")
     p_ivt.add_argument("--buffer", choices=["hepes", "tris"], default="hepes", help="Reaction buffer system (default: hepes)")
@@ -2812,6 +2911,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_p_exp.add_argument("-p", "--plasmid", required=True, help="Plasmid catalog name or GenBank path")
     p_p_exp.add_argument("-o", "--output", default=None, help="Output GenBank file path (.gb)")
 
+    p_p_cbb = plas_sub.add_parser("customize-backbone", parents=[common], help="Customize plasmid vector backbone (origin, resistance, promoter, tags, cleavage)")
+    p_p_cbb.add_argument("-b", "--base", required=True, help="Base backbone name (e.g. pET28a(+), pUC19, pcDNA3.1(+), pGEX-4T-1)")
+    p_p_cbb.add_argument("--origin", default=None, help="Replication origin (e.g. ColE1, p15A, pSC101)")
+    p_p_cbb.add_argument("--resistance", default=None, help="Selectable marker (e.g. AmpR, KanR, CmR, SpecR, ZeoR)")
+    p_p_cbb.add_argument("--promoter", default=None, help="Promoter (e.g. T7, CMV, lac, tac, SP6, T3)")
+    p_p_cbb.add_argument("--tag", default=None, help="N-terminal affinity/solubility tag (e.g. His6, His8, MBP, GST, SUMO, Twin-Strep, FLAG)")
+    p_p_cbb.add_argument("--c-tag", default=None, help="C-terminal affinity tag (e.g. His6, FLAG)")
+    p_p_cbb.add_argument("--cleavage", default=None, help="Protease cleavage site (e.g. TEV, HRV_3C, Thrombin, Factor_Xa)")
+    p_p_cbb.add_argument("-o", "--output", default=None, help="Export customized plasmid to GenBank format (.gb)")
+    p_p_cbb.add_argument("--json", action="store_true", help="Output JSON")
+    p_p_cbb.add_argument("--compact", action="store_true", help="Compact JSON")
+
     # 35. clone-gene (Automated Gene Expression Cloning)
     p_clone = subparsers.add_parser("clone-gene", parents=[common], help="Automated gene expression cloning with frame synchronization and 7-point validation")
     p_clone.add_argument("-v", "--vector", default="pET-28a(+)", help="Destination vector (catalog name e.g. pET-28a(+), or file)")
@@ -2868,6 +2979,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_scn.add_argument("--no-auto-contrast", action="store_true", help="Disable min-max percentile auto-contrast stretch")
     p_scn.add_argument("--json", action="store_true", help="Output metadata and densitometry results in JSON format")
     p_scn.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
+
+    # 40. protein-recommend (Protein Expression & Purification Strategy Recommender)
+    p_prec = subparsers.add_parser("protein-recommend", parents=[common], help="Recommend expression host, tags, protease, and buffer for target protein")
+    p_prec.add_argument("-s", "--sequence", default=None, help="Protein amino acid sequence (or '-' for stdin)")
+    p_prec.add_argument("-f", "--file", default=None, help="Path to protein sequence file (FASTA or plain text)")
+    p_prec.add_argument("-a", "--app", default="xray_crystallography", choices=["cryo_em", "xray_crystallography", "electrophysiology", "enzymatic_assay", "antibody_antigen", "pull_down", "therapeutic_grade"], help="Target application")
+    p_prec.add_argument("-m", "--membrane", action="store_true", help="Flag if target is a membrane protein")
+    p_prec.add_argument("-n", "--name", default="Target_Protein", help="Target protein identifier/name")
+    p_prec.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    p_prec.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
 
     return parser
 

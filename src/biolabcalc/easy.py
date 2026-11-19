@@ -41,7 +41,21 @@ from .lab_report import new_lab_report, get_active_report, record_measurement, a
 from .western_blot import plan_western_blot, calculate_transfer_conditions, calculate_lysate_loading, calculate_antibody_dilution, troubleshoot_western_blot
 from .workflows import cloning_workflow as _cloning_workflow, ivt_workflow as _ivt_workflow, CloningWorkflowResult, IVTWorkflowResult
 from .sequence_store import SequenceRecord, save_sequence, get_sequence
-from .plasmid import PlasmidRecord, STANDARD_PLASMID_CATALOG, get_plasmid, parse_genbank
+from .plasmid import (
+    PlasmidRecord,
+    STANDARD_PLASMID_CATALOG,
+    get_plasmid,
+    parse_genbank,
+    customize_backbone as _customize_backbone,
+    BackboneSpec,
+    BACKBONE_CATALOG,
+)
+from .protein_recommender import (
+    ProteinBiophysicalProfile,
+    ProteinRecommendationResult,
+    recommend_protein_strategy as _recommend_protein_strategy,
+    analyze_protein_profile,
+)
 from .restriction_engine import RestrictionDigestPrediction, predict_restriction_digest
 from .plasmid_engineering import EngineeredPlasmidResult, engineer_plasmid, optimize_codons
 from .interactive_plasmid import render_plasmid_map_svg
@@ -1070,6 +1084,46 @@ def read_scn(
     """
     from .eln.parsers.biorad_parser import BioRadParser
     return BioRadParser.parse(source, auto_contrast=auto_contrast, invert=invert, gamma=gamma)
+
+
+def customize_backbone(
+    base_name: str,
+    origin: Optional[str] = None,
+    resistance: Optional[str] = None,
+    promoter: Optional[str] = None,
+    n_term_tag: Optional[str] = None,
+    c_term_tag: Optional[str] = None,
+    cleavage_site: Optional[str] = None,
+) -> PlasmidRecord:
+    """Customize a plasmid vector backbone (origins, resistance markers, promoters, tags, proteases).
+
+    Preserves 1-based inclusive feature coordinates and circular topology.
+    """
+    return _customize_backbone(
+        base_name=base_name,
+        origin=origin,
+        resistance=resistance,
+        promoter=promoter,
+        n_term_tag=n_term_tag,
+        c_term_tag=c_term_tag,
+        cleavage_site=cleavage_site,
+    )
+
+
+def recommend_protein(
+    sequence: str,
+    application: str = "xray_crystallography",
+    is_membrane: bool = False,
+    name: str = "Target_Protein",
+) -> ProteinRecommendationResult:
+    """Recommend expression host, affinity/solubility tags, protease, and buffer conditions for target protein."""
+    return _recommend_protein_strategy(
+        sequence=sequence,
+        application=application,
+        is_membrane=is_membrane,
+        target_name=name,
+    )
+
 
 
 

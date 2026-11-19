@@ -71,6 +71,7 @@ SUBCOMMAND_METADATA = {
     "plate": ("biolabcalc.workflows / automation", "handle_plate", "generate_pipetting_map"),
     "scn": ("biolabcalc.workflows", "handle_scn", "build_scn_cloning_workflow"),
     "print-protocol": ("biolabcalc.printable_protocol / protocols", "handle_print_protocol", "format_protocol_markdown, format_protocol_html"),
+    "protein-recommend": ("biolabcalc.protein_recommender", "handle_protein_recommend", "recommend_protein_strategy, analyze_protein_profile"),
 }
 
 MODULE_DESCRIPTIONS = {
@@ -101,6 +102,7 @@ MODULE_DESCRIPTIONS = {
     "printable_protocol": "Bench-ready printable SOP protocol generators with high-contrast print layouts",
     "profile": "Unified BioLabCalc home directory and storage profile resolution across env vars and config.yaml",
     "protein": "Protein spectrophotometric quantification (A280, Bradford, BCA) and molar extinction calculation",
+    "protein_recommender": "Application-specific protein expression host, tag, protease, and buffer strategy recommendations",
     "protocols": "Structured laboratory experimental protocol definitions, timer tracking, and HTML print rendering",
     "restriction_engine": "Restriction endonuclease cleavage prediction, isoschizomers, and fragment size determination",
     "seq_utils": "Core nucleotide sequence utilities: validation, reverse complement, GC content, and 6-frame translation",

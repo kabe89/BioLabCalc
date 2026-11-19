@@ -1,6 +1,6 @@
 # CLI Subcommands & Core Module Map
 
-BioLabCalc provides 46 CLI subcommands and 39 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
+BioLabCalc provides 47 CLI subcommands and 40 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
 
 ---
 
@@ -45,6 +45,7 @@ BioLabCalc provides 46 CLI subcommands and 39 core computational modules. This d
 | `primers` | `biolabcalc.primers` | `handle_primers` | `design_primers, analyze_primer` |
 | `print-protocol` | `biolabcalc.printable_protocol / protocols` | `handle_print_protocol` | `format_protocol_markdown, format_protocol_html` |
 | `protein` | `biolabcalc.protein` | `handle_protein` | `quantify_protein_a280, calculate_extinction_coefficient` |
+| `protein-recommend` | `biolabcalc.protein_recommender` | `handle_protein_recommend` | `recommend_protein_strategy, analyze_protein_profile` |
 | `purity` | `biolabcalc.spectroscopy` | `handle_purity` | `assess_nanodrop_purity` |
 | `rc` | `biolabcalc.seq_utils` | `handle_rc` | `reverse_complement` |
 | `report` | `biolabcalc.lab_report` | `handle_report` | `get_active_report, new_lab_report` |
@@ -59,7 +60,7 @@ BioLabCalc provides 46 CLI subcommands and 39 core computational modules. This d
 
 ## 📦 Core Python Modules Reference
 
-All 39 core Python modules in `src/biolabcalc/` operate with **zero external dependencies** (`dependencies = []`), standard library math, and strict Python 3.8+ AST compatibility:
+All 40 core Python modules in `src/biolabcalc/` operate with **zero external dependencies** (`dependencies = []`), standard library math, and strict Python 3.8+ AST compatibility:
 
 | Module | Primary Scientific & Architectural Role |
 | :--- | :--- |
@@ -90,6 +91,7 @@ All 39 core Python modules in `src/biolabcalc/` operate with **zero external dep
 | `biolabcalc.printable_protocol` | Bench-ready printable SOP protocol generators with high-contrast print layouts |
 | `biolabcalc.profile` | Unified BioLabCalc home directory and storage profile resolution across env vars and config.yaml |
 | `biolabcalc.protein` | Protein spectrophotometric quantification (A280, Bradford, BCA) and molar extinction calculation |
+| `biolabcalc.protein_recommender` | Application-specific protein expression host, tag, protease, and buffer strategy recommendations |
 | `biolabcalc.protocols` | Structured laboratory experimental protocol definitions, timer tracking, and HTML print rendering |
 | `biolabcalc.restriction_engine` | Restriction endonuclease cleavage prediction, isoschizomers, and fragment size determination |
 | `biolabcalc.seq_utils` | Core nucleotide sequence utilities: validation, reverse complement, GC content, and 6-frame translation |
