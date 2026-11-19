@@ -155,20 +155,39 @@ def load_plugin_module(record: PluginRecord) -> Optional[Any]:
             logger.warning("Failed to load entry point plugin %s: %s", record.name, e)
             return None
 
-    elif record.source == "local_file" and record.path_or_module.endswith(".py"):
-        p = Path(record.path_or_module)
-        if not p.is_file():
-            return None
-        try:
-            module_name = f"biolabcalc_plugin_{record.name}"
-            spec = importlib.util.spec_from_file_location(module_name, str(p))
-            if spec and spec.loader:
-                mod = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = mod
-                spec.loader.exec_module(mod)
-                return mod
-        except Exception as e:
-            logger.warning("Failed to load local plugin %s: %s", record.name, e)
-            return None
+    elif record.source == "local_file":
+        target_path = Path(record.path_or_module)
+        py_file: Optional[Path] = None
+
+        if target_path.is_file() and target_path.suffix == ".py":
+            py_file = target_path
+        elif target_path.is_file() and target_path.name == "plugin.json":
+            plugin_dir = target_path.parent
+            entry_name = "main.py"
+            try:
+                manifest_data = json.loads(target_path.read_text(encoding="utf-8"))
+                entry_name = manifest_data.get("entry", "main.py")
+            except Exception:
+                pass
+            candidate = plugin_dir / entry_name
+            if candidate.is_file():
+                py_file = candidate
+            elif (plugin_dir / "__init__.py").is_file():
+                py_file = plugin_dir / "__init__.py"
+            elif (plugin_dir / "main.py").is_file():
+                py_file = plugin_dir / "main.py"
+
+        if py_file and py_file.is_file():
+            try:
+                module_name = f"biolabcalc_plugin_{record.name}"
+                spec = importlib.util.spec_from_file_location(module_name, str(py_file))
+                if spec and spec.loader:
+                    mod = importlib.util.module_from_spec(spec)
+                    sys.modules[module_name] = mod
+                    spec.loader.exec_module(mod)
+                    return mod
+            except Exception as e:
+                logger.warning("Failed to load local plugin %s: %s", record.name, e)
+                return None
 
     return None

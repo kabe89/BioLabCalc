@@ -26,7 +26,8 @@ export class AppController {
   constructor() {
     // Current Active Application State
     this.state = {
-      theme: localStorage.getItem('eln_theme') || 'light',
+      theme: localStorage.getItem('eln_theme') || 'minimal-light',
+      accent: localStorage.getItem('eln_accent') || null,
       userRole: 'Active Researcher', // 'Active Researcher' | 'PI Admin'
       activeCampaignId: 'CAMP-2026-T7RNAP',
       activeTab: 'notebook',
@@ -55,7 +56,7 @@ export class AppController {
    * @returns {void}
    */
   init() {
-    this._applyTheme(this.state.theme);
+    this._applyTheme(this.state.theme, this.state.accent);
     this._bindGlobalEvents();
     this._initWebSocket();
     this._initTabs();

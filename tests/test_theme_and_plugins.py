@@ -104,6 +104,14 @@ class TestThemeConfigAndEngine(unittest.TestCase):
                 data = json.loads(saved_path.read_text(encoding="utf-8"))
                 self.assertEqual(data["theme"], "bench-paper")
                 self.assertEqual(data["accent_hex"], "#059669")
+
+                # Test that manual custom hex colors in theme.json are preserved on load
+                data["bg_hex"] = "#F0F0F0"
+                data["surface_hex"] = "#E5E5E5"
+                saved_path.write_text(json.dumps(data), encoding="utf-8")
+                custom_loaded = load_active_theme()
+                self.assertEqual(custom_loaded.bg_hex, "#F0F0F0")
+                self.assertEqual(custom_loaded.surface_hex, "#E5E5E5")
             finally:
                 if old_home is not None:
                     os.environ["BIOLABCALC_HOME"] = old_home
@@ -150,6 +158,27 @@ class TestPluginDiscovery(unittest.TestCase):
                 self.assertIsNotNone(mod)
                 self.assertEqual(getattr(mod, "PLUGIN_NAME", None), "test_plug")
                 self.assertEqual(mod.get_val(), 42)
+
+                # Test directory plugin with plugin.json manifest
+                pack_dir = plugins_dir / "my_dir_plugin"
+                pack_dir.mkdir(parents=True, exist_ok=True)
+                (pack_dir / "plugin.json").write_text(
+                    json.dumps({"name": "my_dir_plugin", "description": "Manifest plugin", "entry": "entry.py"}),
+                    encoding="utf-8",
+                )
+                (pack_dir / "entry.py").write_text(
+                    "ENTRY_LOADED = True\ndef multiply(a, b): return a * b\n",
+                    encoding="utf-8",
+                )
+
+                discovered_dir = discover_plugins("biolabcalc.plugins")
+                dir_record = next(p for p in discovered_dir if p.name == "my_dir_plugin")
+                self.assertEqual(dir_record.description, "Manifest plugin")
+
+                dir_mod = load_plugin_module(dir_record)
+                self.assertIsNotNone(dir_mod)
+                self.assertTrue(getattr(dir_mod, "ENTRY_LOADED", False))
+                self.assertEqual(dir_mod.multiply(3, 7), 21)
             finally:
                 if old_home is not None:
                     os.environ["BIOLABCALC_HOME"] = old_home

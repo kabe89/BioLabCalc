@@ -221,9 +221,19 @@ def load_active_theme() -> ThemeConfig:
             content = theme_file.read_text(encoding="utf-8")
             data = json.loads(content)
             name = data.get("theme", "minimal-light")
-            accent = data.get("accent_hex")
+            preset = BUILTIN_THEMES.get(name) or BUILTIN_THEMES["minimal-light"]
+            accent = data.get("accent_hex") or preset.accent_hex
             scale = float(data.get("font_scale", 1.0))
-            return get_theme(name, custom_accent=accent, font_scale=scale)
+            return ThemeConfig(
+                name=name,
+                accent_hex=accent,
+                bg_hex=data.get("bg_hex", preset.bg_hex),
+                surface_hex=data.get("surface_hex", preset.surface_hex),
+                ink_hex=data.get("ink_hex", preset.ink_hex),
+                ink_muted_hex=data.get("ink_muted_hex", preset.ink_muted_hex),
+                hairline_hex=data.get("hairline_hex", preset.hairline_hex),
+                font_scale=scale,
+            )
         except Exception:
             pass
 
