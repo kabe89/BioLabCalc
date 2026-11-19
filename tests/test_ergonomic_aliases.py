@@ -205,7 +205,15 @@ class TestErgonomicAliases(unittest.TestCase):
     def test_quickstart_cookbook_execution(self):
         import io
         import contextlib
-        with open("examples/quickstart_cookbook.ipynb", encoding="utf-8") as f:
+        from pathlib import Path
+
+        nb_path = Path(__file__).resolve().parent.parent / "examples" / "quickstart_cookbook.ipynb"
+        if not nb_path.exists():
+            nb_path = Path("examples/quickstart_cookbook.ipynb")
+        if not nb_path.exists():
+            self.skipTest("examples/quickstart_cookbook.ipynb not found (e.g. in stripped distribution)")
+
+        with open(nb_path, encoding="utf-8") as f:
             nb = json.load(f)
         exec_env = {"__name__": "__main__"}
         f_stdout = io.StringIO()

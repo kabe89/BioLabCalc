@@ -13,6 +13,7 @@ include src/biolabcalc/py.typed
 recursive-include scripts *.py
 recursive-include src/biolabcalc *.py *.html *.js *.css *.sql
 recursive-include tests *.py
+recursive-include examples *.py *.ipynb
 recursive-include paper *.md *.bib
 exclude testing_config.yaml
 exclude scripts/patch_tests_syspath.py
