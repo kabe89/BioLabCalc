@@ -128,7 +128,8 @@ bk/
 check_ids.py
 
 # AI & LLM Developer Internal Reference (Git-Ignored)
-.ai_docs/
+.ai_docs/*
+!.ai_docs/CLI_AND_MODULE_MAP.md
 ai_docs/
 .agent/
 .agents/
