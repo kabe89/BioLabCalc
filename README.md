@@ -7,7 +7,7 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kabe89/BioLabCalc/blob/main/examples/quickstart_cookbook.ipynb)
 [![Conda Environment](https://img.shields.io/badge/conda-environment.yml-green.svg)](environment.yml)
 [![Security: CodeQL](https://img.shields.io/badge/security-CodeQL%20passed-success.svg)](https://github.com/kabe89/BioLabCalc/security)
-[![Wiki: 26 Guides](https://img.shields.io/badge/wiki-26%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
+[![Wiki: 24 Guides](https://img.shields.io/badge/wiki-24%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
 [![Tests](https://img.shields.io/badge/tests-569%20passed-brightgreen.svg)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -59,7 +59,7 @@
   - [20. Interactive SVG Plasmid Workbench (`interactive_plasmid`)](#20-interactive-svg-plasmid-workbench)
   - [21. Standard Lab Protocols & SOP Execution (`protocols`)](#21-standard-lab-protocols--sop-execution)
 - [Command-Line Interface (CLI)](#-command-line-interface-cli)
-- [Documentation & 26-Page Wiki Directory](#-documentation--26-page-wiki-directory)
+- [Documentation & 24-Guide Wiki Directory](#-documentation--24-guide-wiki-directory)
 - [Planned Features & Strategic Roadmap](#-planned-features--strategic-roadmap)
 - [Running Tests](#-running-tests)
 - [Contributing](#-contributing)
@@ -759,7 +759,7 @@ biolabcalc pcr -l 650 -t 5.0 -c 30 -v 50.0 -s "ATGCCGTCCAGGCTGCTGGTC"
 
 ---
 
-## 📚 Documentation & 26-Page Wiki Directory
+## 📚 Documentation & 24-Guide Wiki Directory
 
 Comprehensive documentation, scientific derivations, and deployment guides are hosted on the [BioLabCalc GitHub Wiki](https://github.com/kabe89/BioLabCalc/wiki):
 
@@ -768,12 +768,12 @@ Comprehensive documentation, scientific derivations, and deployment guides are h
 | **Getting Started** | [Home](https://github.com/kabe89/BioLabCalc/wiki/Home) · [Getting Started](https://github.com/kabe89/BioLabCalc/wiki/Getting-Started) | System overview, first-run wizard, and environment setup. |
 | **API & CLI Reference** | [CLI Quick Reference](https://github.com/kabe89/BioLabCalc/wiki/CLI-Reference) · [Python API Reference](https://github.com/kabe89/BioLabCalc/wiki/Python-API-Reference) | Complete CLI argument flags and Python API signatures. |
 | **Core Biophysics** | [Core Stoichiometry](https://github.com/kabe89/BioLabCalc/wiki/Core-Calculators-&-Biophysics) · [Solution Prep](https://github.com/kabe89/BioLabCalc/wiki/Solution-Prep-&-Spectroscopy) | Mass/moles math, Beer-Lambert $A_{260}/A_{280}$ derivations, and stock dilutions. |
-| **Chemical Formulations** | [Buffers & Precipitation](https://github.com/kabe89/BioLabCalc/wiki/Buffers-&-Precipitation) | Catalog of biological buffers, Tris temperature shifts, and NTP neutralization. |
+| **Chemical Formulations** | [Buffers & Precipitation](https://github.com/kabe89/BioLabCalc/wiki/Buffers-&-Precipitation) · [Fluorophores & Dye Labeling](https://github.com/kabe89/BioLabCalc/wiki/Fluorophores-&-Dye-Labeling) | Catalog of biological buffers, Tris shifts, fluorescent probes, and live DOL calculations. |
 | **Protein Sciences** | [Protein Quantification](https://github.com/kabe89/BioLabCalc/wiki/Protein-Quantification) · [Western Blotting](https://github.com/kabe89/BioLabCalc/wiki/Western-Blotting-Suite) | Pace (1995) extinction coefficients, wet-tank transfer, and troubleshooting. |
-| **Molecular Assembly** | [Molecular Cloning](https://github.com/kabe89/BioLabCalc/wiki/Molecular-Cloning-&-Assembly) · [PCR Kinetics](https://github.com/kabe89/BioLabCalc/wiki/PCR-Kinetics-&-Primer-Design) | Gibson HiFi, Golden Gate Type IIS, SantaLucia $T_m$, and master mix formulas. |
+| **Molecular Assembly** | [Molecular Cloning](https://github.com/kabe89/BioLabCalc/wiki/Molecular-Cloning-&-Assembly) · [Plasmid Engineering](https://github.com/kabe89/BioLabCalc/wiki/Plasmid-Engineering-&-Restriction-Workbench) · [PCR Kinetics](https://github.com/kabe89/BioLabCalc/wiki/PCR-Kinetics-&-Primer-Design) | Gibson HiFi, restriction enzyme digestion, feature maps, and primer design. |
 | **Transcription & Growth**| [In Vitro Transcription](https://github.com/kabe89/BioLabCalc/wiki/In-Vitro-Transcription-(IVT)) · [Bacterial Growth](https://github.com/kabe89/BioLabCalc/wiki/Bacterial-Growth-Modeling) | IVT capping efficiency (CleanCap), modified NTPs, and E. coli doubling kinetics. |
 | **Visualization Tools** | [Gel Electrophoresis](https://github.com/kabe89/BioLabCalc/wiki/Gel-Electrophoresis-&-Image-Annotator) · [Excel Integration](https://github.com/kabe89/BioLabCalc/wiki/Interactive-Excel-Integration) | Interactive gel annotator and 7-tab Excel workbook generation. |
-| **ELN & Multi-Modal LIMS**| [ELN Architecture](https://github.com/kabe89/BioLabCalc/wiki/Electronic-Lab-Notebook-(ELN)) · [SOP Management](https://github.com/kabe89/BioLabCalc/wiki/SOP-&-Protocol-Management) | Multi-user network concurrency, immutable protocol forking, and execution checklists. |
+| **ELN & Multi-Modal LIMS**| [ELN Architecture](https://github.com/kabe89/BioLabCalc/wiki/Electronic-Lab-Notebook-(ELN)) · [SOP Management](https://github.com/kabe89/BioLabCalc/wiki/SOP-&-Protocol-Management) · [Local RAG Engine](https://github.com/kabe89/BioLabCalc/wiki/RAG-&-Local-AI-Assistant) | Concurrency, immutable protocol forking, offline embeddings, and AI chat. |
 | **Data & Instrument Parsing**| [Instrument Data Parsers](https://github.com/kabe89/BioLabCalc/wiki/Instrument-Data-Parsers) · [Freezer LIMS](https://github.com/kabe89/BioLabCalc/wiki/Inventory-&-Freezer-LIMS) | AKTA FPLC, pCLAMP ephys, NanoDrop, Bio-Rad gel parsing, and 2D storage grids. |
 | **Compliance & Operations**| [GxP & Audit Trails](https://github.com/kabe89/BioLabCalc/wiki/GxP-Compliance-&-Audit-Trails) · [Developer Guide](https://github.com/kabe89/BioLabCalc/wiki/Developer-&-Deployment-Guide) | 21 CFR Part 11 append-only audit trail, network storage configuration, and Docker. |
 

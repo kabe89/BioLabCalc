@@ -160,17 +160,17 @@ def generate_updated_readme(
 
     # 2. Update Wiki Badge: [![Wiki: <N> Guides](https://img.shields.io/badge/wiki-<N>%20guides-blue.svg)](...)
     wiki_badge_pattern = r"\[!\[Wiki:\s*\d+\s*Guides\]\(https://img\.shields\.io/badge/wiki-\d+%20guides-blue\.svg\)\]\(https://github\.com/kabe89/BioLabCalc/wiki\)"
-    new_wiki_badge = f"[![Wiki: {wiki_total} Guides](https://img.shields.io/badge/wiki-{wiki_total}%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)"
+    new_wiki_badge = f"[![Wiki: {wiki_guides} Guides](https://img.shields.io/badge/wiki-{wiki_guides}%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)"
     text = re.sub(wiki_badge_pattern, new_wiki_badge, text)
 
     # 3. Update Wiki Section Header if present: ## 📚 Documentation & <N>-Page Wiki Directory
     wiki_header_pattern = r"## 📚 Documentation & \d+-Page Wiki Directory"
-    new_wiki_header = f"## 📚 Documentation & {wiki_total}-Page Wiki Directory"
+    new_wiki_header = f"## 📚 Documentation & {wiki_guides}-Page Wiki Directory"
     text = re.sub(wiki_header_pattern, new_wiki_header, text)
 
     # 4. Update Table of Contents Wiki entry: - [Documentation & <N>-Page Wiki Directory](#...)
     wiki_toc_pattern = r"- \[Documentation & \d+-Page Wiki Directory\]\(#-documentation--\d+-page-wiki-directory\)"
-    new_wiki_toc = f"- [Documentation & {wiki_total}-Page Wiki Directory](#-documentation--{wiki_total}-page-wiki-directory)"
+    new_wiki_toc = f"- [Documentation & {wiki_guides}-Page Wiki Directory](#-documentation--{wiki_guides}-page-wiki-directory)"
     text = re.sub(wiki_toc_pattern, new_wiki_toc, text)
 
     # 5. Update Feature Comparison Matrix version: BioLabCalc (v<X.Y.Z>)
