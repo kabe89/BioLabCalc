@@ -52,6 +52,21 @@ def check_ast_python38(root: Path) -> list[str]:
                             f"{path}:{getattr(node, 'lineno', 0)}: Python 3.8 SyntaxError: f-string expression part cannot include a backslash ({val_seg})"
                         )
 
+        # Check for .is_integer() calls that might be called on int (int.is_integer() was added in Python 3.12).
+        # On Python 3.8-3.11, int does not have .is_integer(), so callers must use float(...).is_integer().
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "is_integer":
+                val = node.func.value
+                is_safe = False
+                if isinstance(val, ast.Call) and isinstance(val.func, ast.Name) and val.func.id == "float":
+                    is_safe = True
+                elif isinstance(val, ast.Constant) and isinstance(val.value, float):
+                    is_safe = True
+                if not is_safe:
+                    errors.append(
+                        f"{path}:{getattr(node, 'lineno', 0)}: Unsafe .is_integer() call on potential int (int.is_integer was added in Python 3.12, use float(...).is_integer() for Python 3.8+)"
+                    )
+
         # Check for unguarded PEP 604 union (X | Y) or PEP 585 generics (list[X])
         has_future_annotations = False
         for node in tree.body:

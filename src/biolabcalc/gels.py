@@ -581,7 +581,8 @@ class SDSPageSimulationResult:
             glow_attr = ' filter="url(#sdsGlow)"' if b.is_reference else ''
             b_weight = "bold" if (b.is_reference or st.bold_ladder_labels) else "normal"
             svg.append(f'<rect x="{lad_x + 2}" y="{y - band_h / 2:.1f}" width="{well_w - 4}" height="{band_h:.1f}" rx="1" fill="{color}"{glow_attr}/>')
-            svg.append(f'<text x="{lad_x - int(5 * scale)}" y="{y + 3 * scale:.1f}" fill="{color}" font-family="{font_family}" font-size="{ladder_size:.1f}" font-weight="{b_weight}" text-anchor="end">{int(b.size) if b.size.is_integer() else b.size} {html.escape(str(b.unit))}</text>')
+            size_display = int(b.size) if float(b.size).is_integer() else b.size
+            svg.append(f'<text x="{lad_x - int(5 * scale)}" y="{y + 3 * scale:.1f}" fill="{color}" font-family="{font_family}" font-size="{ladder_size:.1f}" font-weight="{b_weight}" text-anchor="end">{size_display} {html.escape(str(b.unit))}</text>')
 
         # Draw sample bands
         for lane_idx, lane in enumerate(self.sample_lanes):
