@@ -3329,7 +3329,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_sds.add_argument("-s", "--seq", default=None, help="Target protein amino acid sequence (or '-' for stdin)")
     p_sds.add_argument("-f", "--file", default=None, help="Path to protein sequence file (plain text or FASTA)")
     p_sds.add_argument("-e", "--enzyme", default=None, help="Protease enzyme for digestion (TEV, HRV_3C, Thrombin, Factor_Xa, Enterokinase, Ulp1_SUMO, Trypsin, Chymotrypsin, LysC, PNGase_F)")
-    p_sds.add_argument("--gel", default="4-20%", help="Polyacrylamide gel percentage (default: 4-20%)")
+    p_sds.add_argument("--gel", default="4-20%", help="Polyacrylamide gel percentage (default: %(default)s)")
     p_sds.add_argument("--non-reducing", action="store_true", help="Run under non-reducing conditions (-DTT, models disulfide multimers)")
     p_sds.add_argument("--ladder", default="protein_broad_range", help="Protein molecular weight ladder key")
     p_sds.add_argument("-o", "--out", default=None, help="Output file path for SVG or HTML gel visualization")

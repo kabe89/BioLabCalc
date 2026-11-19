@@ -250,6 +250,13 @@ class SQLiteStore:
                     pass
                 self._conn = None
 
+    def __del__(self) -> None:
+        """Destructor ensuring connection cleanup."""
+        try:
+            self.close()
+        except Exception:
+            pass
+
 
 _GLOBAL_STORE: Optional[SQLiteStore] = None
 _STORE_LOCK = threading.RLock()

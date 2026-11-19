@@ -305,6 +305,17 @@ def export_arrive_report_html(experiment: MouseExperimentRecord) -> str:
             f"</tr>"
         )
 
+    subjects_table_body = (
+        "".join(subject_rows)
+        if subject_rows
+        else "<tr><td colspan='8' style='text-align: center; padding: 12px; color: #94A3B8;'>No animal subjects registered</td></tr>"
+    )
+    obs_table_body = (
+        "".join(obs_rows)
+        if obs_rows
+        else "<tr><td colspan='7' style='text-align: center; padding: 12px; color: #94A3B8;'>No longitudinal observations logged</td></tr>"
+    )
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -454,7 +465,7 @@ def export_arrive_report_html(experiment: MouseExperimentRecord) -> str:
         </tr>
       </thead>
       <tbody>
-        {''.join(subject_rows) if subject_rows else '<tr><td colspan=\"8\" style=\"text-align: center; padding: 12px; color: #94A3B8;\">No animal subjects registered</td></tr>'}
+        {subjects_table_body}
       </tbody>
     </table>
   </div>
@@ -476,7 +487,7 @@ def export_arrive_report_html(experiment: MouseExperimentRecord) -> str:
         </tr>
       </thead>
       <tbody>
-        {''.join(obs_rows) if obs_rows else '<tr><td colspan=\"7\" style=\"text-align: center; padding: 12px; color: #94A3B8;\">No longitudinal observations logged</td></tr>'}
+        {obs_table_body}
       </tbody>
     </table>
   </div>

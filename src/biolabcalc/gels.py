@@ -625,6 +625,11 @@ class SDSPageSimulationResult:
                     f"</tr>"
                 )
 
+        events_section = (
+            f"<h4 style='font-size: 14px; margin: 16px 0 6px 0; color: #1E293B;'>Cleavage & Modification Events</h4><ul style='font-size: 13px; color: #334155; padding-left: 20px; margin: 0;'>{events_html}</ul>"
+            if events_html
+            else ""
+        )
         return (
             f"<div style='font-family: system-ui, -apple-system, sans-serif; max-width: 820px; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px; background: #FFFFFF;'>"
             f"<h3 style='margin: 0 0 8px 0; font-size: 16px; color: #0F172A;'>SDS-PAGE Gel Simulation</h3>"
@@ -635,7 +640,7 @@ class SDSPageSimulationResult:
             f"<thead><tr style='background: #F8FAFC; border-bottom: 2px solid #CBD5E1; font-size: 12px; color: #475569;'>"
             f"<th style='padding: 6px 10px;'>Sample</th><th style='padding: 6px 10px;'>MW (kDa)</th><th style='padding: 6px 10px;'>Rf</th><th style='padding: 6px 10px;'>State</th><th style='padding: 6px 10px;'>Notes</th>"
             f"</tr></thead><tbody>{''.join(table_rows)}</tbody></table>"
-            f"{(f'<h4 style=\"font-size: 14px; margin: 16px 0 6px 0; color: #1E293B;\">Cleavage & Modification Events</h4><ul style=\"font-size: 13px; color: #334155; padding-left: 20px; margin: 0;\">{events_html}</ul>' if events_html else '')}"
+            f"{events_section}"
             f"</div>"
         )
 

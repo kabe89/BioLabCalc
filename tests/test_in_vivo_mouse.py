@@ -129,63 +129,66 @@ class TestInVivoMouse(unittest.TestCase):
     def test_in_vivo_service_persistence(self):
         """Test SQLite persistence of strains, subjects, observations, and experiment records."""
         store = SQLiteStore(":memory:")
-        svc = InVivoService(store=store)
+        try:
+            svc = InVivoService(store=store)
 
-        # 1. Strain creation
-        strain = svc.create_strain(
-            name="C57BL/6J",
-            rrid="RRID:IMSR_JAX:000664",
-            stock_number="000664",
-            genetic_background="C57BL/6J",
-            modified_alleles=["WT"],
-            vendor_or_source="Jackson Laboratory",
-        )
-        strain_id = strain["strain_id"]
-        self.assertIsNotNone(svc.get_strain(strain_id))
-        self.assertEqual(len(svc.list_strains()), 1)
+            # 1. Strain creation
+            strain = svc.create_strain(
+                name="C57BL/6J",
+                rrid="RRID:IMSR_JAX:000664",
+                stock_number="000664",
+                genetic_background="C57BL/6J",
+                modified_alleles=["WT"],
+                vendor_or_source="Jackson Laboratory",
+            )
+            strain_id = strain["strain_id"]
+            self.assertIsNotNone(svc.get_strain(strain_id))
+            self.assertEqual(len(svc.list_strains()), 1)
 
-        # 2. Subject enrollment
-        sub = svc.create_subject(
-            ear_tag="EAR_01",
-            strain_id=strain_id,
-            sex="F",
-            baseline_weight_g=22.0,
-            cohort="Cohort-A",
-        )
-        sub_id = sub["subject_id"]
-        self.assertEqual(sub_id, "EAR_01")
-        self.assertEqual(len(svc.list_subjects(cohort="Cohort-A")), 1)
+            # 2. Subject enrollment
+            sub = svc.create_subject(
+                ear_tag="EAR_01",
+                strain_id=strain_id,
+                sex="F",
+                baseline_weight_g=22.0,
+                cohort="Cohort-A",
+            )
+            sub_id = sub["subject_id"]
+            self.assertEqual(sub_id, "EAR_01")
+            self.assertEqual(len(svc.list_subjects(cohort="Cohort-A")), 1)
 
-        # 3. Longitudinal observation with humane endpoint
-        obs_norm = svc.log_observation(subject_id=sub_id, weight_g=21.5, clinical_score=0)
-        self.assertFalse(obs_norm["is_humane_endpoint"])
+            # 3. Longitudinal observation with humane endpoint
+            obs_norm = svc.log_observation(subject_id=sub_id, weight_g=21.5, clinical_score=0)
+            self.assertFalse(obs_norm["is_humane_endpoint"])
 
-        # Severe weight loss (22.0 -> 18.0 = -18.2% loss)
-        obs_crit = svc.log_observation(subject_id=sub_id, weight_g=18.0, clinical_score=1)
-        self.assertTrue(obs_crit["is_humane_endpoint"])
+            # Severe weight loss (22.0 -> 18.0 = -18.2% loss)
+            obs_crit = svc.log_observation(subject_id=sub_id, weight_g=18.0, clinical_score=1)
+            self.assertTrue(obs_crit["is_humane_endpoint"])
 
-        # Verify subject status transitioned to humane_endpoint
-        updated_sub = svc.get_subject(sub_id)
-        self.assertEqual(updated_sub["status"], "humane_endpoint")
+            # Verify subject status transitioned to humane_endpoint
+            updated_sub = svc.get_subject(sub_id)
+            self.assertEqual(updated_sub["status"], "humane_endpoint")
 
-        # 4. Experiment creation and tissue linking
-        exp = svc.create_experiment(
-            iacuc_protocol_number="IACUC-TEST-99",
-            title="Preclinical Longevity Test",
-            primary_investigator="Dr. Watson",
-            cohorts=["Cohort-A"],
-            subject_ids=[sub_id],
-        )
-        exp_id = exp["experiment_id"]
-        svc.link_harvested_tissue(exp_id, "LIMS_TUBE_888")
+            # 4. Experiment creation and tissue linking
+            exp = svc.create_experiment(
+                iacuc_protocol_number="IACUC-TEST-99",
+                title="Preclinical Longevity Test",
+                primary_investigator="Dr. Watson",
+                cohorts=["Cohort-A"],
+                subject_ids=[sub_id],
+            )
+            exp_id = exp["experiment_id"]
+            svc.link_harvested_tissue(exp_id, "LIMS_TUBE_888")
 
-        exp_fetched = svc.get_experiment(exp_id)
-        self.assertIn("LIMS_TUBE_888", exp_fetched["harvested_tissue_tube_ids"])
+            exp_fetched = svc.get_experiment(exp_id)
+            self.assertIn("LIMS_TUBE_888", exp_fetched["harvested_tissue_tube_ids"])
 
-        # 5. Export ARRIVE report
-        rep_html = svc.export_arrive_report(exp_id, format="html")
-        self.assertIn("IACUC-TEST-99", rep_html)
-        self.assertIn("LIMS_TUBE_888", rep_html)
+            # 5. Export ARRIVE report
+            rep_html = svc.export_arrive_report(exp_id, format="html")
+            self.assertIn("IACUC-TEST-99", rep_html)
+            self.assertIn("LIMS_TUBE_888", rep_html)
+        finally:
+            store.close()
 
     def test_in_vivo_rest_routes(self):
         """Test ASGI route handlers for in-vivo REST endpoints."""

@@ -41,6 +41,15 @@ def check_ast_python38(root: Path) -> list[str]:
             errors.append(f"{path}:{e.lineno}: Python 3.8 SyntaxError: {e}")
             continue
 
+        # Check for Python 3.12+ f-string backslashes (forbidden in Python 3.8-3.11)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FormattedValue):
+                seg = ast.get_source_segment(source, node) or ""
+                if "\\" in seg:
+                    errors.append(
+                        f"{path}:{getattr(node, 'lineno', 0)}: Python 3.8 SyntaxError: f-string expression part cannot include a backslash ({seg})"
+                    )
+
         # Check for unguarded PEP 604 union (X | Y) or PEP 585 generics (list[X])
         has_future_annotations = False
         for node in tree.body:
@@ -209,6 +218,23 @@ def check_cli_subcommands(root: Path) -> list[str]:
 
     if missing:
         errors.append(f".ai_docs/CLI_AND_MODULE_MAP.md is missing CLI subparsers: {', '.join(missing)}")
+
+    # Verify argparse help formatting validity across all subparsers (catches stray % on Python 3.14/3.15)
+    try:
+        src_dir = str(root / "src")
+        if src_dir not in sys.path:
+            sys.path.insert(0, src_dir)
+        from biolabcalc.cli import build_parser
+        parser = build_parser()
+        for action in getattr(parser._subparsers, "_actions", []):
+            if hasattr(action, "choices") and action.choices:
+                for sub_name, sub_parser in action.choices.items():
+                    try:
+                        sub_parser.format_help()
+                    except Exception as exc:
+                        errors.append(f"CLI subparser '{sub_name}' has invalid help string: {exc}")
+    except Exception as e:
+        errors.append(f"Failed to build CLI parser: {e}")
 
     return errors
 
