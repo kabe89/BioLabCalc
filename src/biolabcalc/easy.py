@@ -62,6 +62,10 @@ from .interactive_plasmid import render_plasmid_map_svg
 
 
 
+from .protocols import generate_pcr_protocol as _generate_pcr_protocol, LabProtocol
+from .gels import simulate_sds_page as _simulate_sds_page, SDSPageSimulationResult, ProteaseSpec, PROTEASE_ENZYME_CATALOG
+
+
 def dilute(
     c1: Optional[Union[str, float]] = None,
     v1: Optional[Union[str, float]] = None,
@@ -1122,6 +1126,50 @@ def recommend_protein(
         application=application,
         is_membrane=is_membrane,
         target_name=name,
+    )
+
+
+def generate_pcr_protocol(
+    pcr_result: Optional[Any] = None,
+    polymerase: str = "Q5",
+    amplicon_len_bp: int = 1000,
+    primer_fwd_tm: float = 60.0,
+    primer_rev_tm: float = 60.0,
+    num_reactions: int = 1,
+    reaction_volume_ul: float = 50.0,
+    touchdown: bool = False,
+    gc_percent: float = 50.0,
+    template_name: str = "Template DNA",
+) -> LabProtocol:
+    """Generate a comprehensive bench PCR protocol with master-mix and thermocycler steps."""
+    return _generate_pcr_protocol(
+        pcr_result=pcr_result,
+        polymerase=polymerase,
+        amplicon_len_bp=amplicon_len_bp,
+        primer_fwd_tm=primer_fwd_tm,
+        primer_rev_tm=primer_rev_tm,
+        num_reactions=num_reactions,
+        reaction_volume_ul=reaction_volume_ul,
+        touchdown=touchdown,
+        gc_percent=gc_percent,
+        template_name=template_name,
+    )
+
+
+def simulate_sds_page(
+    protein_sequences: Union[str, List[str], Dict[str, str]],
+    enzyme: Optional[str] = None,
+    gel_percent: str = "4-20%",
+    reducing: bool = True,
+    ladder_key: str = "protein_broad_range",
+) -> SDSPageSimulationResult:
+    """Simulate SDS-PAGE gel electrophoresis migration, protease digestion, and redox multimers."""
+    return _simulate_sds_page(
+        protein_sequences=protein_sequences,
+        enzyme=enzyme,
+        gel_percent=gel_percent,
+        reducing=reducing,
+        ladder_key=ladder_key,
     )
 
 

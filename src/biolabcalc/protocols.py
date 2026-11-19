@@ -6,7 +6,7 @@ reagent formulations, incubation parameters, bench safety notes, and troubleshoo
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 
 @dataclass(frozen=True)
@@ -1524,3 +1524,221 @@ def export_all_protocols_markdown(output_filepath: str) -> None:
 
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write("\n".join(md_blocks))
+
+
+def generate_pcr_protocol(
+    pcr_result: Optional[Any] = None,
+    polymerase: str = "Q5",
+    amplicon_len_bp: int = 1000,
+    primer_fwd_tm: float = 60.0,
+    primer_rev_tm: float = 60.0,
+    num_reactions: int = 1,
+    reaction_volume_ul: float = 50.0,
+    touchdown: bool = False,
+    gc_percent: float = 50.0,
+    template_name: str = "Template DNA",
+    fwd_primer_name: str = "Forward Primer",
+    rev_primer_name: str = "Reverse Primer",
+) -> LabProtocol:
+    """Generate a comprehensive, ready-to-bench LabProtocol for PCR amplification.
+
+    Produces both a scaled master mix pipetting table and an optimized thermocycler
+    program table, exportable to printable HTML via format_protocol_html() or Markdown.
+    """
+    from .pcr import get_pcr_polymerase, build_master_mix, optimize_pcr_protocol
+
+    if pcr_result is not None:
+        amplicon_len_bp = getattr(pcr_result, "amplicon_length_bp", amplicon_len_bp)
+        polymerase = getattr(pcr_result, "polymerase", polymerase) or polymerase
+
+    poly_prof = get_pcr_polymerase(polymerase)
+    opt = optimize_pcr_protocol(
+        primer_fwd_tm=primer_fwd_tm,
+        primer_rev_tm=primer_rev_tm,
+        amplicon_len_bp=amplicon_len_bp,
+        polymerase=poly_prof.name,
+        gc_percent=gc_percent,
+    )
+
+    # Master mix items
+    mm_items = build_master_mix(
+        num_reactions=num_reactions,
+        reaction_volume_ul=reaction_volume_ul,
+        buffer_conc=poly_prof.buffer_conc,
+        dntp_final_mm=poly_prof.recommended_dntp_mm,
+    )
+
+    reagents = []
+    for item in mm_items:
+        vol_str = (
+            f"{item.volume_per_reaction_ul:.1f} µL (total {item.total_volume_ul:.1f} µL for {num_reactions} rxns)"
+            if num_reactions > 1
+            else f"{item.volume_per_reaction_ul:.1f} µL"
+        )
+        note = ""
+        if "Water" in item.component:
+            note = "Add first to reaction vessel"
+        elif "Buffer" in item.component:
+            note = f"Vortex and pulse-spin prior to pipetting; provides {poly_prof.mgcl2_default_mm} mM Mg2+"
+        elif "Polymerase" in item.component:
+            note = f"Keep at -20°C until use; add last to master mix; {poly_prof.fidelity_desc}"
+        elif "Template" in item.component:
+            note = f"Add {item.volume_per_reaction_ul:.1f} µL per individual tube (do not include in common master mix)"
+
+        reagents.append(
+            ProtocolReagent(
+                name=item.component,
+                concentration=item.final_concentration,
+                amount_or_volume=vol_str,
+                notes=note,
+            )
+        )
+
+    # Thermocycler steps
+    steps = [
+        ProtocolStep(
+            step_number=1,
+            title="Master Mix Preparation",
+            instruction=(
+                f"On ice, assemble the PCR master mix in a sterile 1.5 mL microcentrifuge tube by combining "
+                f"Nuclease-Free Water, {poly_prof.buffer_conc} Buffer, dNTPs (10 mM), {fwd_primer_name}, "
+                f"and {rev_primer_name}. Gently invert 5 times and pulse-spin. Add {poly_prof.name} DNA Polymerase "
+                f"immediately prior to dispensing. Distribute {reaction_volume_ul - 2.0:.1f} µL into each 0.2 mL PCR tube, "
+                f"then add 2.0 µL of {template_name} to each well. Cap tightly and pulse-spin to ensure all liquid is at the bottom."
+            ),
+            temperature="4°C (on ice)",
+            duration="5–10 min",
+            tip="Always add DNA polymerase last to prevent primer degradation by 3'->5' exonuclease proofreading activity.",
+        )
+    ]
+
+    if touchdown:
+        steps.append(
+            ProtocolStep(
+                step_number=2,
+                title="Thermocycler Phase 1: Touchdown Cycling (10 Cycles)",
+                instruction=(
+                    f"Initial Denaturation: {opt.denaturation_temp_celsius:.0f}°C for 30–60 s. "
+                    f"Then run 10 cycles: Denaturation at {opt.denaturation_temp_celsius:.0f}°C for 10 s; "
+                    f"Annealing starting at {opt.touchdown_initial_ta:.1f}°C and decreasing by 0.5°C per cycle "
+                    f"(down to {opt.touchdown_initial_ta - 5.0:.1f}°C) for 20 s; "
+                    f"Extension at {opt.extension_temp_celsius:.0f}°C for {opt.extension_time_seconds} s."
+                ),
+                temperature=f"{opt.denaturation_temp_celsius:.0f}°C / {opt.extension_temp_celsius:.0f}°C",
+                duration=f"~{int(10 * (30 + opt.extension_time_seconds) / 60)} min",
+                tip="Touchdown cycling enriches specific target amplicons by starting above the primer Tm and stepping down.",
+            )
+        )
+        steps.append(
+            ProtocolStep(
+                step_number=3,
+                title="Thermocycler Phase 2: Constant Cycling (25 Cycles)",
+                instruction=(
+                    f"Run 25 cycles at constant annealing temperature: "
+                    f"Denaturation at {opt.denaturation_temp_celsius:.0f}°C for 10 s; "
+                    f"Annealing at {opt.annealing_temp_celsius:.1f}°C for 20 s; "
+                    f"Extension at {opt.extension_temp_celsius:.0f}°C for {opt.extension_time_seconds} s."
+                ),
+                temperature=f"{opt.denaturation_temp_celsius:.0f}°C / {opt.annealing_temp_celsius:.1f}°C / {opt.extension_temp_celsius:.0f}°C",
+                duration=f"~{int(25 * (30 + opt.extension_time_seconds) / 60)} min",
+                tip="Keep extension times matched to amplicon length (~25–30 s/kb for high-fidelity polymerases).",
+            )
+        )
+        steps.append(
+            ProtocolStep(
+                step_number=4,
+                title="Final Extension & Storage",
+                instruction=(
+                    f"Final Extension: {opt.extension_temp_celsius:.0f}°C for 5 min to ensure full-length end filling. "
+                    f"Hold at 4°C indefinitely until sample retrieval. Store products at 4°C for up to 1 week or at -20°C long-term."
+                ),
+                temperature="72°C then 4°C",
+                duration="5 min + Hold",
+                tip="Never leave PCR reactions at 4°C inside the thermocycler overnight to preserve peltier longevity.",
+            )
+        )
+    else:
+        steps.append(
+            ProtocolStep(
+                step_number=2,
+                title="Thermocycler Amplification (30–35 Cycles)",
+                instruction=(
+                    f"Initial Denaturation: {opt.denaturation_temp_celsius:.0f}°C for 30–60 s (or 2 min for standard Taq). "
+                    f"Run 30–35 cycles of: "
+                    f"[1] Denaturation: {opt.denaturation_temp_celsius:.0f}°C for 10–15 s; "
+                    f"[2] Annealing: {opt.annealing_temp_celsius:.1f}°C for 20 s; "
+                    f"[3] Extension: {opt.extension_temp_celsius:.0f}°C for {opt.extension_time_seconds} s. "
+                    f"Final Extension: {opt.extension_temp_celsius:.0f}°C for 5 min, then hold at 4°C."
+                ),
+                temperature=f"{opt.denaturation_temp_celsius:.0f}°C / {opt.annealing_temp_celsius:.1f}°C / {opt.extension_temp_celsius:.0f}°C",
+                duration=f"~{int(30 * (35 + opt.extension_time_seconds) / 60 + 7)} min",
+                tip="For high GC amplicons (≥65%), add 3% to 5% DMSO or 1.0 M betaine to prevent secondary structure stall.",
+            )
+        )
+        steps.append(
+            ProtocolStep(
+                step_number=3,
+                title="Analysis & Agarose Gel Verification",
+                instruction=(
+                    f"Load 5 µL of PCR product with DNA loading dye onto a 1.0%–1.5% agarose gel in 1X TAE/TBE buffer. "
+                    f"Run alongside a 1 kb or 100 bp DNA ladder (see biolabcalc gel) at 90–110 V for 45 min to verify the expected "
+                    f"{amplicon_len_bp} bp band size."
+                ),
+                temperature="Room temperature (20–25°C)",
+                duration="45–60 min",
+                tip="A single crisp band at the predicted molecular weight confirms high-efficiency amplification.",
+            )
+        )
+
+    troubleshooting = [
+        TroubleshootingItem(
+            issue="No product or faint band",
+            possible_cause="Annealing temperature too high, insufficient template, or degraded dNTPs",
+            solution="Lower annealing temperature by 2–3°C, verify template concentration, or run a touchdown PCR program.",
+        ),
+        TroubleshootingItem(
+            issue="Non-specific bands / high-molecular-weight smear",
+            possible_cause="Annealing temperature too low, excessive cycle number (plateau overcycling), or excessive primer concentration",
+            solution="Raise annealing temperature by 2°C, reduce cycle count to 28–30 cycles, or verify primer specificity with BLAST.",
+        ),
+        TroubleshootingItem(
+            issue="Primer-dimer bands (<100 bp)",
+            possible_cause="Excess primer concentration relative to template, or low annealing temperature during initial cycles",
+            solution="Decrease primer concentration from 0.4 µM to 0.2 µM, or implement touchdown PCR.",
+        ),
+    ]
+
+    safety_notes = (
+        "Wear standard laboratory PPE (nitrile gloves, lab coat, safety glasses).",
+        "Caution: Thermocycler heated lid reaches 105°C; avoid touching hot surfaces.",
+        "When analyzing products on agarose gels, handle ethidium bromide or fluorescent nucleic acid dyes with care in designated waste containers.",
+    )
+
+    materials = (
+        "Thermal cycler with heated lid (set to 105°C)",
+        "Sterile thin-wall 0.2 mL PCR strip tubes or 96-well PCR plate with optical caps",
+        "P2, P10, P20, and P200 micropipettes with sterile aerosol-barrier filter tips",
+        "Crushed ice bucket or pre-chilled -20°C PCR tube cooling rack",
+        "Microcentrifuge equipped with strip-tube rotor adapter",
+    )
+
+    return LabProtocol(
+        protocol_id=f"pcr_{poly_prof.name.lower()}_{amplicon_len_bp}bp",
+        title=f"PCR Amplification Protocol ({poly_prof.name}, {amplicon_len_bp} bp Amplicon, {num_reactions} Reaction{'s' if num_reactions > 1 else ''})",
+        category="Molecular Biology / PCR",
+        summary=(
+            f"Optimized bench PCR amplification of a {amplicon_len_bp} bp target using {poly_prof.name} DNA Polymerase "
+            f"({poly_prof.fidelity_desc}). Scaled for {num_reactions} reaction(s) at {reaction_volume_ul:.1f} µL volume."
+        ),
+        estimated_time=f"~{int(30 * (35 + opt.extension_time_seconds) / 60 + 15)} min",
+        skill_level="Basic",
+        safety_notes=safety_notes,
+        reagents=tuple(reagents),
+        materials_equipment=materials,
+        steps=tuple(steps),
+        troubleshooting=tuple(troubleshooting),
+        references=(
+            f"{poly_prof.name} High-Fidelity DNA Polymerase Manual & Selection Guide (NEB / Vendor Technical Bulletin).",
+            "Innis, M. A., et al. (1990). PCR Protocols: A Guide to Methods and Applications. Academic Press.",
+        ),
+    )

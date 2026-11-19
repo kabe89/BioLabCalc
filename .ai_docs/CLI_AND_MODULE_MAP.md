@@ -1,6 +1,6 @@
 # CLI Subcommands & Core Module Map
 
-BioLabCalc provides 47 CLI subcommands and 40 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
+BioLabCalc provides 49 CLI subcommands and 40 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
 
 ---
 
@@ -38,6 +38,7 @@ BioLabCalc provides 47 CLI subcommands and 40 core computational modules. This d
 | `pci` | `biolabcalc.precipitation` | `handle_pci` | `calculate_phenol_chloroform_extraction` |
 | `pcr` | `biolabcalc.pcr` | `handle_pcr` | `calculate_pcr_kinetics` |
 | `pcr-opt` | `biolabcalc.pcr` | `handle_pcr_opt` | `optimize_pcr_protocol` |
+| `pcr-protocol` | `biolabcalc.protocols / pcr` | `handle_pcr_protocol` | `generate_pcr_protocol` |
 | `plasmid` | `biolabcalc.plasmid` | `handle_plasmid` | `load_plasmid, parse_genbank, export_genbank, auto_annotate_plasmid` |
 | `plate` | `biolabcalc.workflows / automation` | `handle_plate` | `generate_pipetting_map` |
 | `portable` | `biolabcalc.portable` | `handle_portable` | `check_portable_environment` |
@@ -50,6 +51,7 @@ BioLabCalc provides 47 CLI subcommands and 40 core computational modules. This d
 | `rc` | `biolabcalc.seq_utils` | `handle_rc` | `reverse_complement` |
 | `report` | `biolabcalc.lab_report` | `handle_report` | `get_active_report, new_lab_report` |
 | `scn` | `biolabcalc.workflows` | `handle_scn` | `build_scn_cloning_workflow` |
+| `sds-page` | `biolabcalc.gels` | `handle_sds_page` | `simulate_sds_page` |
 | `seq` | `biolabcalc.sequence_store` | `handle_seq` | `save_sequence, get_sequence, list_sequences, delete_sequence` |
 | `setup` | `biolabcalc.setup_wizard` | `handle_setup` | `run_setup_wizard` |
 | `translate` | `biolabcalc.seq_utils` | `handle_translate` | `translate_dna` |

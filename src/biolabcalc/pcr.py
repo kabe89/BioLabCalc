@@ -3,9 +3,138 @@
 from __future__ import annotations
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from .seq_utils import clean_sequence, count_bases
 from .molecular_weight import calculate_dna_mw, mass_to_copy_number, copy_number_to_mass, AVOGADRO
+
+
+@dataclass(frozen=True)
+class PCRPolymeraseProfile:
+    name: str
+    fidelity_vs_taq: float
+    extension_rate_sec_per_kb: int
+    annealing_offset_celsius: float
+    denaturation_temp_celsius: float
+    extension_temp_celsius: float
+    half_life_95c_min: float
+    buffer_conc: str
+    mgcl2_default_mm: float
+    recommended_dntp_mm: float
+    fidelity_desc: str
+
+
+PCR_POLYMERASE_CATALOG: Dict[str, PCRPolymeraseProfile] = {
+    "Q5": PCRPolymeraseProfile(
+        name="Q5",
+        fidelity_vs_taq=280.0,
+        extension_rate_sec_per_kb=25,
+        annealing_offset_celsius=1.0,
+        denaturation_temp_celsius=98.0,
+        extension_temp_celsius=72.0,
+        half_life_95c_min=60.0,
+        buffer_conc="5X",
+        mgcl2_default_mm=2.0,
+        recommended_dntp_mm=0.2,
+        fidelity_desc="Ultra-high fidelity (~280X Taq); ideal for molecular cloning and mutagenesis.",
+    ),
+    "Phusion": PCRPolymeraseProfile(
+        name="Phusion",
+        fidelity_vs_taq=50.0,
+        extension_rate_sec_per_kb=25,
+        annealing_offset_celsius=1.0,
+        denaturation_temp_celsius=98.0,
+        extension_temp_celsius=72.0,
+        half_life_95c_min=60.0,
+        buffer_conc="5X",
+        mgcl2_default_mm=1.5,
+        recommended_dntp_mm=0.2,
+        fidelity_desc="High fidelity (~50X Taq); fast processivity and high yield.",
+    ),
+    "KAPA_HiFi": PCRPolymeraseProfile(
+        name="KAPA_HiFi",
+        fidelity_vs_taq=100.0,
+        extension_rate_sec_per_kb=15,
+        annealing_offset_celsius=-2.0,
+        denaturation_temp_celsius=95.0,
+        extension_temp_celsius=72.0,
+        half_life_95c_min=90.0,
+        buffer_conc="5X",
+        mgcl2_default_mm=2.5,
+        recommended_dntp_mm=0.3,
+        fidelity_desc="High fidelity (~100X Taq); engineered for extreme GC/AT-rich templates and NGS libraries.",
+    ),
+    "Taq": PCRPolymeraseProfile(
+        name="Taq",
+        fidelity_vs_taq=1.0,
+        extension_rate_sec_per_kb=60,
+        annealing_offset_celsius=-3.0,
+        denaturation_temp_celsius=95.0,
+        extension_temp_celsius=72.0,
+        half_life_95c_min=40.0,
+        buffer_conc="10X",
+        mgcl2_default_mm=1.5,
+        recommended_dntp_mm=0.2,
+        fidelity_desc="Standard fidelity (1X baseline); routine analytical PCR and colony screening.",
+    ),
+    "OneTaq": PCRPolymeraseProfile(
+        name="OneTaq",
+        fidelity_vs_taq=2.0,
+        extension_rate_sec_per_kb=60,
+        annealing_offset_celsius=-3.0,
+        denaturation_temp_celsius=95.0,
+        extension_temp_celsius=68.0,
+        half_life_95c_min=40.0,
+        buffer_conc="5X",
+        mgcl2_default_mm=1.8,
+        recommended_dntp_mm=0.2,
+        fidelity_desc="Optimized Taq blend with hot-start aptamer (~2X Taq); robust across GC/AT extremes.",
+    ),
+    "PrimeSTAR": PCRPolymeraseProfile(
+        name="PrimeSTAR",
+        fidelity_vs_taq=40.0,
+        extension_rate_sec_per_kb=30,
+        annealing_offset_celsius=-2.0,
+        denaturation_temp_celsius=98.0,
+        extension_temp_celsius=72.0,
+        half_life_95c_min=60.0,
+        buffer_conc="5X",
+        mgcl2_default_mm=1.5,
+        recommended_dntp_mm=0.2,
+        fidelity_desc="High fidelity (~40X Taq) with exceptional elongation through difficult secondary structures.",
+    ),
+}
+
+
+def get_pcr_polymerase(name: str = "Taq") -> PCRPolymeraseProfile:
+    """Retrieve PCR polymerase profile by name or alias (case-insensitive)."""
+    norm = name.strip().lower().replace("-", "_").replace(" ", "_")
+    alias_map = {
+        "q5": "Q5",
+        "phusion": "Phusion",
+        "kapa": "KAPA_HiFi",
+        "kapa_hifi": "KAPA_HiFi",
+        "kapahifi": "KAPA_HiFi",
+        "taq": "Taq",
+        "standard_taq": "Taq",
+        "onetaq": "OneTaq",
+        "one_taq": "OneTaq",
+        "primestar": "PrimeSTAR",
+        "prime_star": "PrimeSTAR",
+    }
+    key = alias_map.get(norm, "Taq")
+    return PCR_POLYMERASE_CATALOG.get(key, PCR_POLYMERASE_CATALOG["Taq"])
+
+
+@dataclass(frozen=True)
+class PCRCycleState:
+    cycle: int
+    amplicon_copies: float
+    amplicon_ng: float
+    effective_efficiency: float
+    phase: str
+    primer_remaining_pct: float
+    dntp_remaining_pct: float
+    active_enzyme_fraction: float
 
 
 @dataclass(frozen=True)
@@ -27,6 +156,13 @@ class PCRResult:
     dntp_exhaustion_cycle: Optional[int]
     theoretical_max_amplicon_ug: float
     limiting_reagent: str = "dNTPs"
+    cycle_trajectory: Tuple[PCRCycleState, ...] = ()
+    polymerase: str = "Taq"
+    optimal_cycle_cutoff: Optional[int] = None
+
+    def __post_init__(self):
+        if isinstance(self.cycle_trajectory, (list, set, tuple)):
+            object.__setattr__(self, "cycle_trajectory", tuple(self.cycle_trajectory))
 
     @property
     def length_bp(self) -> int:
@@ -164,8 +300,10 @@ def calculate_pcr_kinetics(
     amplicon_gc_pct: float = 50.0,
     forward_primer_nm: float = 400.0,
     reverse_primer_nm: float = 400.0,
+    polymerase: str = "Taq",
+    cycle_denat_sec: float = 30.0,
 ) -> PCRResult:
-    """Model PCR amplification kinetics, dNTP/primer consumption, and plateau limits."""
+    """Model PCR amplification kinetics, cycle-by-cycle trajectory, dNTP/primer consumption, and plateau limits."""
     if amplicon_len_bp <= 0:
         raise ValueError("Amplicon length must be greater than zero.")
     if template_ng <= 0:
@@ -182,6 +320,8 @@ def calculate_pcr_kinetics(
         raise ValueError("Primer concentrations must be positive numbers.")
     if dntp_conc_mm <= 0:
         raise ValueError("dNTP concentration must be positive.")
+
+    poly_profile = get_pcr_polymerase(polymerase)
 
     # Calculate double-stranded DNA MW via centralized calculate_dna_mw
     amplicon_mw = calculate_dna_mw(length=amplicon_len_bp, double_stranded=True).molecular_weight
@@ -234,20 +374,75 @@ def calculate_pcr_kinetics(
 
     theoretical_max_ug = (max_amplicon_copies / AVOGADRO) * amplicon_mw * 1e6
 
-    # Model exponential growth cycle-by-cycle until plateau or cycles finish
+    # Model cycle-by-cycle exponential -> linear -> plateau kinetics
+    trajectory: List[PCRCycleState] = []
     exhaustion_cycle: Optional[int] = None
+    optimal_cutoff: Optional[int] = None
     current_copies = n0
     amplicon_copies_produced = 0.0
 
     for c in range(1, cycles + 1):
-        delta_copies = current_copies * efficiency
-        if amplicon_copies_produced + delta_copies >= max_amplicon_copies:
-            amplicon_copies_produced = max_amplicon_copies
+        # Enzyme thermal inactivation at 95°C (exponential decay)
+        denat_mins = (c * cycle_denat_sec) / 60.0
+        active_enzyme = 2.0 ** (-denat_mins / max(1.0, poly_profile.half_life_95c_min))
+
+        # Primer and dNTP depletion factors
+        primer_rem_pct = max(0.0, (1.0 - (amplicon_copies_produced / max(1.0, max_primer_copies))) * 100.0)
+        dntp_rem_pct = max(0.0, (1.0 - (amplicon_copies_produced / max(1.0, max_dntp_copies))) * 100.0)
+
+        # Product re-annealing inhibition (KI ~ 0.5 * max_primer_copies)
+        ki = 0.5 * max_primer_copies
+        reanneal_factor = 1.0 / (1.0 + (amplicon_copies_produced / max(1.0, ki)))
+
+        effective_eff = (
+            efficiency
+            * min(1.0, primer_rem_pct / 100.0)
+            * min(1.0, dntp_rem_pct / 100.0)
+            * active_enzyme
+            * reanneal_factor
+        )
+
+        if effective_eff >= 0.70 * efficiency:
+            phase = "exponential"
+        elif effective_eff >= 0.08 * efficiency:
+            phase = "linear"
+        else:
+            phase = "plateau"
+
+        delta_copies = current_copies * effective_eff
+        if exhaustion_cycle is None and (
+            amplicon_copies_produced + delta_copies >= 0.95 * max_amplicon_copies
+            or primer_rem_pct <= 5.0
+            or dntp_rem_pct <= 5.0
+        ):
             exhaustion_cycle = c
-            current_copies = n0 + amplicon_copies_produced
-            break
+
+        if amplicon_copies_produced + delta_copies >= max_amplicon_copies:
+            delta_copies = max(0.0, max_amplicon_copies - amplicon_copies_produced)
+            amplicon_copies_produced = max_amplicon_copies
+            phase = "plateau"
+            if exhaustion_cycle is None:
+                exhaustion_cycle = c
+
         amplicon_copies_produced += delta_copies
         current_copies += delta_copies
+
+        cycle_ng = copy_number_to_mass(amplicon_copies_produced, amplicon_mw, target_unit="ng")
+        trajectory.append(
+            PCRCycleState(
+                cycle=c,
+                amplicon_copies=round(amplicon_copies_produced, 2),
+                amplicon_ng=round(cycle_ng, 4 if cycle_ng < 0.1 else 2),
+                effective_efficiency=round(effective_eff, 4),
+                phase=phase,
+                primer_remaining_pct=round(primer_rem_pct, 1),
+                dntp_remaining_pct=round(dntp_rem_pct, 1),
+                active_enzyme_fraction=round(active_enzyme, 3),
+            )
+        )
+
+        if optimal_cutoff is None and (amplicon_copies_produced >= 0.90 * max_amplicon_copies or phase == "plateau"):
+            optimal_cutoff = c
 
     final_copies = amplicon_copies_produced
     amplicon_pmol = (final_copies / AVOGADRO) * 1e12
@@ -285,6 +480,9 @@ def calculate_pcr_kinetics(
         dntp_exhaustion_cycle=exhaustion_cycle,
         theoretical_max_amplicon_ug=round(theoretical_max_ug, 2),
         limiting_reagent=limiting_reagent,
+        cycle_trajectory=tuple(trajectory),
+        polymerase=poly_profile.name,
+        optimal_cycle_cutoff=optimal_cutoff,
     )
 
 

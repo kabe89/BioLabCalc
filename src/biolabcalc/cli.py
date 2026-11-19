@@ -20,7 +20,8 @@ from .lab_report import get_active_report, new_lab_report
 from .primers import design_primers, analyze_primer
 from .fluorescence import apply_fluorophore_modification, calculate_degree_of_labeling, get_fluorophore
 from .spectroscopy import prepare_standard_solution, assess_nanodrop_purity
-from .gels import simulate_gel
+from .gels import simulate_gel, simulate_sds_page
+from .protocols import generate_pcr_protocol, format_protocol_markdown, format_protocol_html
 from .ecoli_growth import calculate_ecoli_growth, estimate_plasmid_yield, optimize_protein_induction
 try:
     from .excel_extension import generate_lab_notebook_template, batch_process_excel
@@ -2426,7 +2427,184 @@ def handle_protein_recommend(args: argparse.Namespace) -> None:
         print("=" * 70)
 
 
+def handle_pcr_protocol(args: argparse.Namespace) -> None:
+    proto = generate_pcr_protocol(
+        polymerase=getattr(args, "polymerase", "Q5"),
+        amplicon_len_bp=getattr(args, "template_len", 1000),
+        primer_fwd_tm=getattr(args, "fwd_tm", 60.0),
+        primer_rev_tm=getattr(args, "rev_tm", 60.0),
+        num_reactions=getattr(args, "reactions", 1),
+        reaction_volume_ul=getattr(args, "volume", 50.0),
+        touchdown=getattr(args, "touchdown", False),
+        gc_percent=getattr(args, "gc", 50.0),
+    )
+
+    fmt = getattr(args, "format", "text")
+    out_path = getattr(args, "out", None)
+
+    if getattr(args, "json", False) or fmt == "json":
+        data = {
+            "protocol_id": proto.protocol_id,
+            "title": proto.title,
+            "category": proto.category,
+            "summary": proto.summary,
+            "estimated_time": proto.estimated_time,
+            "skill_level": proto.skill_level,
+            "reagents": [
+                {
+                    "name": r.name,
+                    "concentration": r.concentration,
+                    "volume": r.amount_or_volume,
+                    "notes": r.notes,
+                }
+                for r in proto.reagents
+            ],
+            "steps": [
+                {
+                    "step_number": s.step_number,
+                    "title": s.title,
+                    "instruction": s.instruction,
+                    "temperature": s.temperature,
+                    "duration": s.duration,
+                    "tip": s.tip,
+                }
+                for s in proto.steps
+            ],
+        }
+        _dump_json(data, getattr(args, "compact", False))
+        return
+
+    if fmt == "html" or (out_path and out_path.endswith(".html")):
+        content = format_protocol_html(proto)
+    elif fmt == "md" or (out_path and out_path.endswith(".md")):
+        content = format_protocol_markdown(proto)
+    else:
+        lines = [
+            "=" * 70,
+            proto.title.center(70),
+            "=" * 70,
+            f"Category:       {proto.category}",
+            f"Estimated Time: {proto.estimated_time}",
+            f"Summary:        {proto.summary}",
+            "-" * 70,
+            "MASTER MIX PIPETTING TABLE:",
+        ]
+        for r in proto.reagents:
+            lines.append(f"  * {r.name:<32s} | {r.amount_or_volume:<20s} | {r.concentration}")
+        lines.append("-" * 70)
+        lines.append("THERMOCYCLER PROGRAM:")
+        for s in proto.steps:
+            lines.append(f"  Step {s.step_number}: {s.title}")
+            lines.append(f"    {s.instruction}")
+            if s.temperature or s.duration:
+                lines.append(f"    Params: {s.temperature or '-'} | {s.duration or '-'}")
+            if s.tip:
+                lines.append(f"    Tip: {s.tip}")
+        lines.append("=" * 70)
+        content = "\n".join(lines)
+
+    if out_path:
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"PCR protocol saved to: {out_path}")
+    else:
+        print(content)
+
+
+def handle_sds_page(args: argparse.Namespace) -> None:
+    raw_seq = getattr(args, "seq", None)
+    file_path = getattr(args, "file", None)
+    if raw_seq == "-" or (not raw_seq and not file_path and not sys.stdin.isatty()):
+        raw_seq = sys.stdin.read().strip()
+    elif file_path:
+        with open(file_path, "r", encoding="utf-8") as f:
+            raw_seq = f.read().strip()
+
+    if not raw_seq:
+        print("Error: Target protein amino acid sequence required via --seq, --file, or stdin.", file=sys.stderr)
+        sys.exit(1)
+
+    reducing = not getattr(args, "non_reducing", False)
+    enzyme = getattr(args, "enzyme", None)
+    gel_percent = getattr(args, "gel", "4-20%")
+    ladder_key = getattr(args, "ladder", "protein_broad_range")
+
+    res = simulate_sds_page(
+        protein_sequences=raw_seq,
+        enzyme=enzyme,
+        gel_percent=gel_percent,
+        reducing=reducing,
+        ladder_key=ladder_key,
+    )
+
+    out_path = getattr(args, "out", None)
+
+    if getattr(args, "json", False):
+        data = {
+            "ladder_name": res.ladder_name,
+            "gel_percent": res.gel_percent,
+            "reducing": res.reducing,
+            "enzyme": res.enzyme,
+            "summary": res.summary,
+            "cleavage_events": list(res.cleavage_events),
+            "sample_lanes": [
+                {
+                    "lane_index": lane.lane_index,
+                    "sample_name": lane.sample_name,
+                    "condition": lane.condition,
+                    "bands": [
+                        {
+                            "mw_kda": b.mw_kda,
+                            "rf": b.relative_migration_rf,
+                            "label": b.label,
+                            "is_cleaved": b.is_cleaved,
+                            "notes": b.notes,
+                        }
+                        for b in lane.bands
+                    ],
+                }
+                for lane in res.sample_lanes
+            ],
+        }
+        _dump_json(data, getattr(args, "compact", False))
+        return
+
+    if out_path:
+        if out_path.endswith(".html"):
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(res.to_html())
+            print(f"SDS-PAGE simulation HTML report saved to: {out_path}")
+        else:
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(res.to_svg())
+            print(f"SDS-PAGE simulation SVG saved to: {out_path}")
+        return
+
+    # Text output
+    print("=" * 70)
+    print("SDS-PAGE GEL ELECTROPHORESIS SIMULATION".center(70))
+    print("=" * 70)
+    print(f"Gel Matrix:       {res.gel_percent}")
+    print(f"Redox Condition:  {'Reducing (+DTT)' if res.reducing else 'Non-Reducing (-DTT)'}")
+    print(f"Protease Enzyme:  {res.enzyme or 'None'}")
+    print(f"Ladder:           {res.ladder_name}")
+    print("-" * 70)
+    for lane in res.sample_lanes:
+        print(f"Lane {lane.lane_index}: {lane.sample_name} ({lane.condition})")
+        for b in lane.bands:
+            status = "[Cleaved]" if b.is_cleaved else "[Monomer]"
+            print(f"  * {b.mw_kda:6.2f} kDa | Rf={b.relative_migration_rf:.3f} | {status} {b.label} ({b.notes})")
+    if res.cleavage_events:
+        print("-" * 70)
+        print("CLEAVAGE & MODIFICATION EVENTS:")
+        for ev in res.cleavage_events:
+            print(f"  * {ev}")
+    print("=" * 70)
+
+
 COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
+    "pcr-protocol": handle_pcr_protocol,
+    "sds-page": handle_sds_page,
     "protein-recommend": handle_protein_recommend,
     "dilute": handle_dilute,
     "wizard": handle_wizard,
@@ -2989,6 +3167,33 @@ def build_parser() -> argparse.ArgumentParser:
     p_prec.add_argument("-n", "--name", default="Target_Protein", help="Target protein identifier/name")
     p_prec.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     p_prec.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
+
+    # 41. pcr-protocol (PCR Bench Protocol & Master Mix Generator)
+    p_pcrp = subparsers.add_parser("pcr-protocol", parents=[common], help="Generate ready-to-bench PCR pipetting protocol and thermocycler program")
+    p_pcrp.add_argument("-l", "--template-len", type=int, default=1000, help="Amplicon target length in base pairs (default: 1000)")
+    p_pcrp.add_argument("-p", "--polymerase", default="Q5", help="Polymerase name (Q5, Phusion, KAPA_HiFi, Taq, OneTaq, PrimeSTAR)")
+    p_pcrp.add_argument("--fwd-tm", type=float, default=60.0, help="Forward primer melting temperature Tm in Celsius (default: 60.0)")
+    p_pcrp.add_argument("--rev-tm", type=float, default=60.0, help="Reverse primer melting temperature Tm in Celsius (default: 60.0)")
+    p_pcrp.add_argument("-r", "--reactions", type=int, default=1, help="Number of reactions for scaled master mix (default: 1)")
+    p_pcrp.add_argument("-v", "--volume", type=float, default=50.0, help="Total reaction volume in microliters (default: 50.0)")
+    p_pcrp.add_argument("--touchdown", action="store_true", help="Generate touchdown cycling thermocycler program")
+    p_pcrp.add_argument("--gc", type=float, default=50.0, help="Amplicon GC percentage (default: 50.0)")
+    p_pcrp.add_argument("--format", choices=["text", "html", "md", "json"], default="text", help="Output display format (default: text)")
+    p_pcrp.add_argument("-o", "--out", default=None, help="Output file path (e.g. pcr_protocol.html or pcr_protocol.md)")
+    p_pcrp.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+    p_pcrp.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
+
+    # 42. sds-page (Enzyme-Supported SDS-PAGE Gel Simulation)
+    p_sds = subparsers.add_parser("sds-page", parents=[common], help="Simulate SDS-PAGE protein migration, protease cleavage fragments, and redox states")
+    p_sds.add_argument("-s", "--seq", default=None, help="Target protein amino acid sequence (or '-' for stdin)")
+    p_sds.add_argument("-f", "--file", default=None, help="Path to protein sequence file (plain text or FASTA)")
+    p_sds.add_argument("-e", "--enzyme", default=None, help="Protease enzyme for digestion (TEV, HRV_3C, Thrombin, Factor_Xa, Enterokinase, Ulp1_SUMO, Trypsin, Chymotrypsin, LysC, PNGase_F)")
+    p_sds.add_argument("--gel", default="4-20%", help="Polyacrylamide gel percentage (default: 4-20%)")
+    p_sds.add_argument("--non-reducing", action="store_true", help="Run under non-reducing conditions (-DTT, models disulfide multimers)")
+    p_sds.add_argument("--ladder", default="protein_broad_range", help="Protein molecular weight ladder key")
+    p_sds.add_argument("-o", "--out", default=None, help="Output file path for SVG or HTML gel visualization")
+    p_sds.add_argument("--json", action="store_true", help="Output simulation details in JSON format")
+    p_sds.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
 
     return parser
 

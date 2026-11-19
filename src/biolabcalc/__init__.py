@@ -99,6 +99,10 @@ from .pcr import (
     MasterMixItem,
     PCRMasterMix,
     PCROptimizationResult,
+    PCRPolymeraseProfile,
+    PCR_POLYMERASE_CATALOG,
+    get_pcr_polymerase,
+    PCRCycleState,
 )
 
 from .protein import (
@@ -146,6 +150,13 @@ from .gels import (
     GelTypographyConfig,
     LaneMetadata,
     format_lane_number,
+    ProteaseSpec,
+    PROTEASE_ENZYME_CATALOG,
+    get_protease_enzyme,
+    SDSPageBand,
+    SDSPageLane,
+    SDSPageSimulationResult,
+    simulate_sds_page,
 )
 
 from .printable_protocol import (
@@ -339,6 +350,7 @@ from .protocols import (
     get_protocol,
     format_protocol_markdown,
     export_all_protocols_markdown,
+    generate_pcr_protocol,
 )
 
 try:

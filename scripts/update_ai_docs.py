@@ -72,6 +72,8 @@ SUBCOMMAND_METADATA = {
     "scn": ("biolabcalc.workflows", "handle_scn", "build_scn_cloning_workflow"),
     "print-protocol": ("biolabcalc.printable_protocol / protocols", "handle_print_protocol", "format_protocol_markdown, format_protocol_html"),
     "protein-recommend": ("biolabcalc.protein_recommender", "handle_protein_recommend", "recommend_protein_strategy, analyze_protein_profile"),
+    "pcr-protocol": ("biolabcalc.protocols / pcr", "handle_pcr_protocol", "generate_pcr_protocol"),
+    "sds-page": ("biolabcalc.gels", "handle_sds_page", "simulate_sds_page"),
 }
 
 MODULE_DESCRIPTIONS = {
