@@ -1,6 +1,6 @@
 # CLI Subcommands & Core Module Map
 
-BioLabCalc provides 49 CLI subcommands and 40 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
+BioLabCalc provides 50 CLI subcommands and 41 core computational modules. This document maps each CLI subcommand and core library module to its underlying implementation, handler, and public Python API.
 
 ---
 
@@ -32,6 +32,7 @@ BioLabCalc provides 49 CLI subcommands and 40 core computational modules. This d
 | `ivt` | `biolabcalc.transcription` | `handle_ivt` | `calculate_ivt_yield` |
 | `ivt-time` | `biolabcalc.transcription` | `handle_ivt_time` | `optimize_transcription_time` |
 | `ligate` | `biolabcalc.cloning` | `handle_ligate` | `calculate_ligation` |
+| `mouse` | `biolabcalc.in_vivo` | `handle_mouse` | `calculate_mouse_dose, evaluate_mouse_welfare, export_arrive_report_html` |
 | `mw` | `biolabcalc.molecular_weight` | `handle_mw` | `calculate_dna_mw, calculate_rna_mw, calculate_protein_mw` |
 | `nanodrop` | `biolabcalc.spectroscopy` | `handle_nanodrop` | `prepare_standard_solution, assess_nanodrop_purity` |
 | `ntp-ph` | `biolabcalc.buffers` | `handle_ntp_ph` | `calculate_ntp_ph_adjustment` |
@@ -62,7 +63,7 @@ BioLabCalc provides 49 CLI subcommands and 40 core computational modules. This d
 
 ## 📦 Core Python Modules Reference
 
-All 40 core Python modules in `src/biolabcalc/` operate with **zero external dependencies** (`dependencies = []`), standard library math, and strict Python 3.8+ AST compatibility:
+All 41 core Python modules in `src/biolabcalc/` operate with **zero external dependencies** (`dependencies = []`), standard library math, and strict Python 3.8+ AST compatibility:
 
 | Module | Primary Scientific & Architectural Role |
 | :--- | :--- |
@@ -80,6 +81,7 @@ All 40 core Python modules in `src/biolabcalc/` operate with **zero external dep
 | `biolabcalc.fluorescence` | Fluorophore labeling degree calculation (DOL), extinction correction, and fluorescence recovery |
 | `biolabcalc.gel_annotator` | Agarose and SDS-PAGE gel image annotation, band detection, and publication figure generation |
 | `biolabcalc.gels` | Gel electrophoresis migration simulation, molecular weight estimation, and RF curve fitting |
+| `biolabcalc.in_vivo` | Preclinical mouse model documentation, dose calculations, route volume limits, welfare monitoring, and ARRIVE 2.0 reports |
 | `biolabcalc.interactive_gel` | Browser-based standalone interactive gel visualization, band quantification, and annotation app |
 | `biolabcalc.interactive_plasmid` | Interactive vector plasmid map generator with circular/linear SVG rendering and annotation editor |
 | `biolabcalc.lab_report` | Standardized laboratory experiment report builder with statistical analysis, HTML, and Excel export |

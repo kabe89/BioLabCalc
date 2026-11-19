@@ -22,6 +22,7 @@ from .fluorescence import apply_fluorophore_modification, calculate_degree_of_la
 from .spectroscopy import prepare_standard_solution, assess_nanodrop_purity
 from .gels import simulate_gel, simulate_sds_page
 from .protocols import generate_pcr_protocol, format_protocol_markdown, format_protocol_html
+from .in_vivo import calculate_mouse_dose, evaluate_mouse_welfare, export_arrive_report_html, MouseExperimentRecord
 from .ecoli_growth import calculate_ecoli_growth, estimate_plasmid_yield, optimize_protein_induction
 try:
     from .excel_extension import generate_lab_notebook_template, batch_process_excel
@@ -2602,7 +2603,147 @@ def handle_sds_page(args: argparse.Namespace) -> None:
     print("=" * 70)
 
 
+def handle_mouse(args: argparse.Namespace) -> None:
+    sub = getattr(args, "mouse_command", None) or "dose"
+    if sub == "dose":
+        weight = getattr(args, "weight", 25.0)
+        dose = getattr(args, "dose", 10.0)
+        conc = getattr(args, "conc", 2.0)
+        route = getattr(args, "route", "IP")
+        res = calculate_mouse_dose(weight_g=weight, dose_mg_kg=dose, stock_conc_mg_ml=conc, route=route)
+        if getattr(args, "json", False):
+            _dump_json(
+                {
+                    "weight_g": res.weight_g,
+                    "dose_mg_kg": res.dose_mg_kg,
+                    "stock_conc_mg_ml": res.stock_conc_mg_ml,
+                    "route": res.route,
+                    "calculated_dose_mg": res.calculated_dose_mg,
+                    "injection_volume_ul": res.injection_volume_ul,
+                    "volume_per_bodyweight_ml_kg": res.volume_per_bodyweight_ml_kg,
+                    "max_recommended_volume_ul": res.max_recommended_volume_ul,
+                    "is_safe_volume": res.is_safe_volume,
+                    "safety_warning": res.safety_warning,
+                },
+                getattr(args, "compact", False),
+            )
+            return
+
+        print("=" * 70)
+        print("IN-VIVO MOUSE DOSE CALCULATION".center(70))
+        print("=" * 70)
+        print(f"Subject Body Weight:      {res.weight_g:.1f} g")
+        print(f"Target Dose:              {res.dose_mg_kg:.2f} mg/kg")
+        print(f"Stock Concentration:      {res.stock_conc_mg_ml:.2f} mg/mL")
+        print(f"Administration Route:     {res.route}")
+        print("-" * 70)
+        print(f"Calculated Absolute Dose: {res.calculated_dose_mg:.4f} mg")
+        print(f"Injection Volume:         {res.injection_volume_ul:.1f} µL ({res.volume_per_bodyweight_ml_kg:.1f} mL/kg)")
+        print(f"Max Recommended Volume:   {res.max_recommended_volume_ul:.1f} µL")
+        if res.is_safe_volume:
+            print(f"Volume Safety Status:     [SAFE] Within route guidelines")
+        else:
+            print(f"Volume Safety Status:     [WARNING] Exceeds route guidelines!")
+            print(f"Alert:                    {res.safety_warning}")
+        print("=" * 70)
+
+    elif sub == "welfare":
+        baseline = getattr(args, "baseline", 25.0)
+        current = getattr(args, "weight", 25.0)
+        score = getattr(args, "clinical", 0)
+        signs_raw = getattr(args, "signs", None)
+        signs = [s.strip() for s in signs_raw.split(",")] if signs_raw else None
+        loss_max = getattr(args, "loss_max", 15.0)
+        obs = evaluate_mouse_welfare(
+            baseline_weight_g=baseline,
+            current_weight_g=current,
+            clinical_score=score,
+            max_loss_pct=loss_max,
+            clinical_signs=signs,
+        )
+        if getattr(args, "json", False):
+            _dump_json(
+                {
+                    "weight_g": obs.weight_g,
+                    "baseline_weight_g": obs.baseline_weight_g,
+                    "weight_change_pct": obs.weight_change_pct,
+                    "clinical_score": obs.clinical_score,
+                    "clinical_signs": list(obs.clinical_signs),
+                    "is_humane_endpoint": obs.is_humane_endpoint,
+                    "endpoint_reasons": list(obs.endpoint_reasons),
+                    "action_taken": obs.action_taken,
+                },
+                getattr(args, "compact", False),
+            )
+            return
+
+        print("=" * 70)
+        print("MOUSE WELFARE & CLINICAL SCORING EVALUATION".center(70))
+        print("=" * 70)
+        print(f"Baseline Weight:          {obs.baseline_weight_g:.1f} g")
+        print(f"Current Weight:           {obs.weight_g:.1f} g")
+        print(f"Weight Change:            {obs.weight_change_pct:+.1f}%")
+        print(f"Clinical Score:           {obs.clinical_score}/3")
+        print(f"Clinical Signs:           {', '.join(obs.clinical_signs) if obs.clinical_signs else 'None'}")
+        print("-" * 70)
+        if obs.is_humane_endpoint:
+            print(f"Humane Endpoint Status:   [CRITICAL] Intervention Required!")
+            for r in obs.endpoint_reasons:
+                print(f"  * Reason:               {r}")
+            print(f"Action:                   {obs.action_taken}")
+        else:
+            print(f"Humane Endpoint Status:   [NORMAL] Acceptable study tolerance")
+            print(f"Action:                   {obs.action_taken}")
+        print("=" * 70)
+
+    elif sub in ("arrive", "arrive-demo"):
+        from .in_vivo import MouseExperimentRecord, MouseSubject, MouseObservation, export_arrive_report_html, export_arrive_report_markdown
+        title = getattr(args, "title", "Efficacy and Tolerability Evaluation in Preclinical Mouse Model")
+        iacuc = getattr(args, "iacuc", "IACUC-2026-042")
+        pi = getattr(args, "pi", "Dr. Jane Doe")
+        out_path = getattr(args, "out", None)
+
+        demo_sub = (
+            MouseSubject("M01", "C57BL/6J", "M", "2026-01-10", "WT", "Cage-A", "", 26.2, "active", "Vehicle"),
+            MouseSubject("M02", "C57BL/6J", "M", "2026-01-10", "WT", "Cage-A", "", 25.8, "active", "Treatment-10mg"),
+            MouseSubject("M03", "C57BL/6J", "F", "2026-01-12", "WT", "Cage-B", "", 22.4, "active", "Treatment-10mg"),
+        )
+        demo_obs = (
+            MouseObservation("obs_1", "M01", "Day 0", 26.2, 26.2, 0.0, 0, (), False, (), "Baseline recorded"),
+            MouseObservation("obs_2", "M02", "Day 3", 24.9, 25.8, -3.5, 0, (), False, (), "Normal tolerance"),
+            MouseObservation("obs_3", "M03", "Day 3", 22.0, 22.4, -1.8, 0, (), False, (), "Normal tolerance"),
+        )
+        rec = MouseExperimentRecord(
+            experiment_id="exp_demo_01",
+            iacuc_protocol_number=iacuc,
+            title=title,
+            hypothesis_or_objective="Evaluate therapeutic efficacy and weight tolerance in randomized cohorts.",
+            primary_investigator=pi,
+            experimental_design_type="Randomized controlled parallel cohort study",
+            sample_size_rationale="G*Power analysis at 80% power, alpha=0.05",
+            randomization_procedure="Weight-stratified block randomization",
+            blinding_procedure="Formulations coded A/B by independent investigator",
+            cohorts=("Vehicle Control", "Treatment 10 mg/kg"),
+            subjects=demo_sub,
+            observations=demo_obs,
+            harvested_tissue_tube_ids=("TUBE_FREEZER_001", "TUBE_FREEZER_002"),
+        )
+        fmt = getattr(args, "format", "html")
+        if fmt == "md" or (out_path and out_path.endswith(".md")):
+            rep = export_arrive_report_markdown(rec)
+        else:
+            rep = export_arrive_report_html(rec)
+
+        if out_path:
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(rep)
+            print(f"ARRIVE 2.0 report written to: {out_path}")
+        else:
+            print(rep)
+
+
 COMMAND_DISPATCH: Dict[str, Callable[[argparse.Namespace], None]] = {
+    "mouse": handle_mouse,
     "pcr-protocol": handle_pcr_protocol,
     "sds-page": handle_sds_page,
     "protein-recommend": handle_protein_recommend,
@@ -3194,6 +3335,34 @@ def build_parser() -> argparse.ArgumentParser:
     p_sds.add_argument("-o", "--out", default=None, help="Output file path for SVG or HTML gel visualization")
     p_sds.add_argument("--json", action="store_true", help="Output simulation details in JSON format")
     p_sds.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
+
+    # 43. mouse (In-Vivo Mouse Model Dosing, Welfare & ARRIVE 2.0 Reporting)
+    p_mouse = subparsers.add_parser("mouse", parents=[common], help="In-vivo mouse dose calculation, welfare monitoring, and ARRIVE 2.0 report generation")
+    mouse_subs = p_mouse.add_subparsers(dest="mouse_command", help="Mouse subcommands: dose, welfare, arrive")
+
+    p_mdose = mouse_subs.add_parser("dose", help="Calculate compound injection volume and route safety caps")
+    p_mdose.add_argument("-w", "--weight", type=float, default=25.0, help="Mouse body weight in grams (default: 25.0)")
+    p_mdose.add_argument("-d", "--dose", type=float, default=10.0, help="Target dose in mg/kg (default: 10.0)")
+    p_mdose.add_argument("-c", "--conc", type=float, default=2.0, help="Working stock solution concentration in mg/mL (default: 2.0)")
+    p_mdose.add_argument("-r", "--route", choices=["IP", "IV", "SC", "PO"], default="IP", help="Administration route (default: IP)")
+    p_mdose.add_argument("--json", action="store_true", help="Output results in JSON format")
+    p_mdose.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
+
+    p_mwelf = mouse_subs.add_parser("welfare", help="Evaluate body weight loss, clinical scoring, and humane endpoints")
+    p_mwelf.add_argument("-b", "--baseline", type=float, default=25.0, help="Pre-study baseline weight in grams (default: 25.0)")
+    p_mwelf.add_argument("-w", "--weight", type=float, default=25.0, help="Current body weight in grams (default: 25.0)")
+    p_mwelf.add_argument("-s", "--clinical", type=int, default=0, choices=[0, 1, 2, 3], help="Clinical score 0-3 (default: 0)")
+    p_mwelf.add_argument("--signs", default=None, help="Comma-separated observed clinical symptoms")
+    p_mwelf.add_argument("--loss-max", type=float, default=15.0, help="Humane endpoint weight loss threshold percent (default: 15.0)")
+    p_mwelf.add_argument("--json", action="store_true", help="Output results in JSON format")
+    p_mwelf.add_argument("--compact", action="store_true", help="Compact JSON output without indentation")
+
+    p_marr = mouse_subs.add_parser("arrive", help="Export ARRIVE 2.0 structured study report (HTML or Markdown)")
+    p_marr.add_argument("-t", "--title", default="Preclinical In-Vivo Study", help="Study title")
+    p_marr.add_argument("-i", "--iacuc", default="IACUC-2026-001", help="Approved IACUC protocol number")
+    p_marr.add_argument("-p", "--pi", default="Principal Investigator", help="Principal investigator name")
+    p_marr.add_argument("-o", "--out", default=None, help="Output file path (e.g. arrive_report.html or arrive_report.md)")
+    p_marr.add_argument("--format", choices=["html", "md"], default="html", help="Report format (default: html)")
 
     return parser
 

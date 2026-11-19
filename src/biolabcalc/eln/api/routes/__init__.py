@@ -16,6 +16,7 @@ from .sequences import router as sequences_router
 from .sops import router as sops_router
 from .theme import router as theme_router
 from .timepoints import router as timepoints_router
+from .in_vivo import router as in_vivo_router
 
 ALL_ROUTERS = [
     campaigns_router,
@@ -29,6 +30,7 @@ ALL_ROUTERS = [
     sops_router,
     search_router,
     theme_router,
+    in_vivo_router,
 ]
 
 # Dynamically mount custom experiments and approvals routers when available

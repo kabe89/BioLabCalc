@@ -506,4 +506,112 @@ CREATE INDEX IF NOT EXISTS idx_inventory_tubes_barcode ON inventory_tubes (barco
 CREATE INDEX IF NOT EXISTS idx_freezer_boxes_barcode ON freezer_boxes (barcode);
 CREATE INDEX IF NOT EXISTS idx_hierarchy_parent ON storage_hierarchy_nodes (parent_id);
 
+-- ----------------------------------------------------------------------------
+-- In-Vivo Mouse Models & ARRIVE 2.0 (Milestone 4)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS mouse_strains (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    rrid VARCHAR(128),
+    stock_number VARCHAR(128),
+    genetic_background VARCHAR(128) NOT NULL DEFAULT 'C57BL/6J',
+    modified_alleles_json JSONB,
+    phenotype_notes TEXT,
+    vendor_or_source VARCHAR(255) DEFAULT 'Jackson Laboratory',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS mouse_subjects (
+    id VARCHAR(64) PRIMARY KEY,
+    ear_tag VARCHAR(128) NOT NULL,
+    strain_id VARCHAR(64) NOT NULL,
+    sex VARCHAR(8) NOT NULL DEFAULT 'M',
+    date_of_birth DATE,
+    genotype VARCHAR(64) NOT NULL DEFAULT 'WT',
+    cage_id VARCHAR(64),
+    baseline_weight_g NUMERIC(6, 2) NOT NULL DEFAULT 25.0,
+    status VARCHAR(64) NOT NULL DEFAULT 'active',
+    assigned_cohort VARCHAR(128),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS mouse_observations (
+    id VARCHAR(64) PRIMARY KEY,
+    subject_id VARCHAR(64) NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    weight_g NUMERIC(6, 2) NOT NULL,
+    baseline_weight_g NUMERIC(6, 2) NOT NULL,
+    weight_change_pct NUMERIC(6, 2) NOT NULL,
+    clinical_score INTEGER NOT NULL DEFAULT 0,
+    clinical_signs_json JSONB,
+    is_humane_endpoint BOOLEAN NOT NULL DEFAULT FALSE,
+    endpoint_reasons_json JSONB,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS mouse_experiments (
+    id VARCHAR(64) PRIMARY KEY,
+    iacuc_protocol_number VARCHAR(128) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    primary_investigator VARCHAR(255) NOT NULL,
+    hypothesis_or_objective TEXT,
+    experimental_design_type VARCHAR(128) NOT NULL DEFAULT 'parallel_cohort',
+    sample_size_rationale TEXT,
+    randomization_procedure TEXT,
+    blinding_procedure TEXT,
+    inclusion_exclusion_criteria TEXT,
+    cohorts_json JSONB,
+    harvested_tissue_tube_ids_json JSONB,
+    adverse_events_summary TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------------------------------------------------------
+-- Custom Logging, Progress Reports & Purchases (Milestone 5)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS custom_log_entries (
+    log_id VARCHAR(64) PRIMARY KEY,
+    category VARCHAR(64) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(128) NOT NULL,
+    tags_json JSONB,
+    metrics_json JSONB,
+    body_md TEXT NOT NULL,
+    linked_entity_ids_json JSONB,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS progress_reports (
+    report_id VARCHAR(64) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    template_type VARCHAR(64) NOT NULL DEFAULT 'standard',
+    summary_md TEXT NOT NULL,
+    metrics_snapshot_json JSONB,
+    created_by VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    order_id VARCHAR(64) PRIMARY KEY,
+    item_name VARCHAR(255) NOT NULL,
+    vendor VARCHAR(255) NOT NULL,
+    catalog_number VARCHAR(128),
+    lot_number VARCHAR(128),
+    category VARCHAR(64) NOT NULL DEFAULT 'consumable',
+    quantity NUMERIC(10, 2) NOT NULL DEFAULT 1.0,
+    unit VARCHAR(32) NOT NULL DEFAULT 'unit',
+    unit_price_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
+    total_cost_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.0,
+    grant_code VARCHAR(128),
+    requested_by VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'REQUESTED',
+    ordered_at TIMESTAMP WITH TIME ZONE,
+    received_at TIMESTAMP WITH TIME ZONE,
+    linked_inventory_id VARCHAR(64),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- End of PostgreSQL 16+ DDL

@@ -1173,6 +1173,43 @@ def simulate_sds_page(
     )
 
 
+def calculate_mouse_dose(
+    weight_g: float,
+    dose_mg_kg: float,
+    stock_conc_mg_ml: float,
+    route: str = "IP",
+) -> Any:
+    """Calculate mouse dose and injection volume with route safety volume checking."""
+    from .in_vivo import calculate_mouse_dose as _calc_dose
+    return _calc_dose(
+        weight_g=weight_g,
+        dose_mg_kg=dose_mg_kg,
+        stock_conc_mg_ml=stock_conc_mg_ml,
+        route=route,
+    )
+
+
+def evaluate_mouse_welfare(
+    baseline_weight_g: float,
+    current_weight_g: float,
+    clinical_score: int = 0,
+    max_loss_pct: float = 15.0,
+    clinical_signs: Optional[Sequence[str]] = None,
+    subject_id: str = "mouse_1",
+) -> Any:
+    """Evaluate mouse body weight loss and clinical scoring against ARRIVE 2.0 humane endpoints."""
+    from .in_vivo import evaluate_mouse_welfare as _eval_welfare
+    return _eval_welfare(
+        baseline_weight_g=baseline_weight_g,
+        current_weight_g=current_weight_g,
+        clinical_score=clinical_score,
+        max_loss_pct=max_loss_pct,
+        clinical_signs=clinical_signs,
+        subject_id=subject_id,
+    )
+
+
+
 
 
 

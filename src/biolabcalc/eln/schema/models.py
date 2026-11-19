@@ -939,5 +939,74 @@ class RagDocumentChunk(BaseModel):
     created_at = DateTimeColumn(nullable=False, auto_now=True)
 
 
+class MouseStrain(BaseModel):
+    """Mouse genetic strain model adhering to ARRIVE 2.0 reporting standards."""
+    __tablename__ = "mouse_strains"
+
+    id = UUIDColumn(primary_key=True)
+    name = StringColumn(nullable=False)
+    rrid = StringColumn(nullable=True)
+    stock_number = StringColumn(nullable=True)
+    genetic_background = StringColumn(nullable=False, default="C57BL/6J")
+    modified_alleles_json = JSONColumn(nullable=True)
+    phenotype_notes = StringColumn(nullable=True)
+    vendor_or_source = StringColumn(nullable=True, default="Jackson Laboratory")
+    created_at = DateTimeColumn(nullable=False, auto_now=True)
+
+
+class MouseSubject(BaseModel):
+    """Enrolled mouse subject tracking sex, genotype, and baseline weight."""
+    __tablename__ = "mouse_subjects"
+
+    id = UUIDColumn(primary_key=True)
+    ear_tag = StringColumn(nullable=False)
+    strain_id = StringColumn(nullable=False)
+    sex = StringColumn(nullable=False, default="M")
+    date_of_birth = StringColumn(nullable=True)
+    genotype = StringColumn(nullable=False, default="WT")
+    cage_id = StringColumn(nullable=True)
+    baseline_weight_g = FloatColumn(nullable=False, default=25.0)
+    status = StringColumn(nullable=False, default="active")
+    assigned_cohort = StringColumn(nullable=True)
+    created_at = DateTimeColumn(nullable=False, auto_now=True)
+
+
+class MouseObservation(BaseModel):
+    """Longitudinal observation record evaluating body weight changes and humane endpoints."""
+    __tablename__ = "mouse_observations"
+
+    id = UUIDColumn(primary_key=True)
+    subject_id = StringColumn(nullable=False)
+    timestamp = DateTimeColumn(nullable=False, auto_now=True)
+    weight_g = FloatColumn(nullable=False)
+    baseline_weight_g = FloatColumn(nullable=False)
+    weight_change_pct = FloatColumn(nullable=False)
+    clinical_score = IntegerColumn(nullable=False, default=0)
+    clinical_signs_json = JSONColumn(nullable=True)
+    is_humane_endpoint = BooleanColumn(nullable=False, default=False)
+    endpoint_reasons_json = JSONColumn(nullable=True)
+    notes = StringColumn(nullable=True)
+
+
+class MouseExperiment(BaseModel):
+    """ARRIVE 2.0 comprehensive in-vivo study record."""
+    __tablename__ = "mouse_experiments"
+
+    id = UUIDColumn(primary_key=True)
+    iacuc_protocol_number = StringColumn(nullable=False)
+    title = StringColumn(nullable=False)
+    primary_investigator = StringColumn(nullable=False)
+    hypothesis_or_objective = StringColumn(nullable=True)
+    experimental_design_type = StringColumn(nullable=False, default="parallel_cohort")
+    sample_size_rationale = StringColumn(nullable=True)
+    randomization_procedure = StringColumn(nullable=True)
+    blinding_procedure = StringColumn(nullable=True)
+    inclusion_exclusion_criteria = StringColumn(nullable=True)
+    cohorts_json = JSONColumn(nullable=True)
+    harvested_tissue_tube_ids_json = JSONColumn(nullable=True)
+    adverse_events_summary = StringColumn(nullable=True)
+    created_at = DateTimeColumn(nullable=False, auto_now=True)
+
+
 # Alias Base for SQLAlchemy compatibility
 Base = BaseModel

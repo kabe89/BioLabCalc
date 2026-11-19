@@ -74,6 +74,7 @@ SUBCOMMAND_METADATA = {
     "protein-recommend": ("biolabcalc.protein_recommender", "handle_protein_recommend", "recommend_protein_strategy, analyze_protein_profile"),
     "pcr-protocol": ("biolabcalc.protocols / pcr", "handle_pcr_protocol", "generate_pcr_protocol"),
     "sds-page": ("biolabcalc.gels", "handle_sds_page", "simulate_sds_page"),
+    "mouse": ("biolabcalc.in_vivo", "handle_mouse", "calculate_mouse_dose, evaluate_mouse_welfare, export_arrive_report_html"),
 }
 
 MODULE_DESCRIPTIONS = {
@@ -91,6 +92,7 @@ MODULE_DESCRIPTIONS = {
     "fluorescence": "Fluorophore labeling degree calculation (DOL), extinction correction, and fluorescence recovery",
     "gel_annotator": "Agarose and SDS-PAGE gel image annotation, band detection, and publication figure generation",
     "gels": "Gel electrophoresis migration simulation, molecular weight estimation, and RF curve fitting",
+    "in_vivo": "Preclinical mouse model documentation, dose calculations, route volume limits, welfare monitoring, and ARRIVE 2.0 reports",
     "interactive_gel": "Browser-based standalone interactive gel visualization, band quantification, and annotation app",
     "interactive_plasmid": "Interactive vector plasmid map generator with circular/linear SVG rendering and annotation editor",
     "lab_report": "Standardized laboratory experiment report builder with statistical analysis, HTML, and Excel export",

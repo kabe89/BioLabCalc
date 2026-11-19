@@ -371,6 +371,18 @@ except Exception:
     generate_lab_notebook_template = None
     export_analysis_to_excel = None
 
+from .in_vivo import (
+    MouseStrainModel,
+    MouseSubject,
+    MouseDoseCalculation,
+    MouseObservation,
+    MouseExperimentRecord,
+    calculate_mouse_dose,
+    evaluate_mouse_welfare,
+    export_arrive_report_html,
+    export_arrive_report_markdown,
+)
+
 from . import eln
 from . import easy
 
