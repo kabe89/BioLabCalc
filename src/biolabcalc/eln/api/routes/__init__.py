@@ -17,6 +17,8 @@ from .sops import router as sops_router
 from .theme import router as theme_router
 from .timepoints import router as timepoints_router
 from .in_vivo import router as in_vivo_router
+from .progress_reports import router as progress_reports_router
+from .purchases import router as purchases_router
 
 ALL_ROUTERS = [
     campaigns_router,
@@ -31,6 +33,8 @@ ALL_ROUTERS = [
     search_router,
     theme_router,
     in_vivo_router,
+    progress_reports_router,
+    purchases_router,
 ]
 
 # Dynamically mount custom experiments and approvals routers when available

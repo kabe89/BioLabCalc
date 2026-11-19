@@ -127,6 +127,18 @@
       <span>🛡️ Peer Review & Approvals</span>
       <span class="tab-badge">Seals</span>
     </button>
+    <button class="nav-tab-btn" data-tab="in-vivo">
+      <span>🐭 In Vivo Colony</span>
+      <span class="tab-badge">ARRIVE</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="purchases">
+      <span>📦 Purchase Orders</span>
+      <span class="tab-badge">LIMS</span>
+    </button>
+    <button class="nav-tab-btn" data-tab="progress-reports">
+      <span>📊 Progress Reports</span>
+      <span class="tab-badge">Rollup</span>
+    </button>
   </nav>
 
   <!-- =========================================================================
@@ -761,6 +773,373 @@
           <div style="display:flex; justify-content:flex-end; gap:10px;">
             <button class="btn btn-outline" id="btn-request-changes">Request Modifications</button>
             <button class="btn btn-primary" id="btn-sign-approval">✍️ Sign & Affix Digital Seal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 11: In Vivo Colony & ARRIVE 2.0 Management
+         ----------------------------------------------------------------------- -->
+    <div id="tab-in-vivo" class="tab-pane">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="card-title">🐭 In Vivo Colony Management & ARRIVE 2.0 Compliance</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Active Cohort:</label>
+            <select id="in-vivo-strain-select" style="padding:4px 8px; border-radius:6px; border:1px solid var(--border); font-size:0.85rem; background:var(--card-bg); color:var(--text-primary);">
+              <option value="C57BL/6J" selected>C57BL/6J (Inbred Wild-Type)</option>
+              <option value="BALB/c">BALB/c (Immunology & Hybridoma)</option>
+              <option value="NSG">NOD.Cg-Prkdc&lt;scid&gt; Il2rg&lt;tm1Wjl&gt;/SzJ (NSG)</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- In Vivo Dose & Safety Calculator -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:10px; color:var(--accent);">💉 Dose & Route Volume Calculator</h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Body Weight (g):</label>
+                  <input type="number" id="iv-calc-weight" value="25.0" step="0.1" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                </div>
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Target Dose (mg/kg):</label>
+                  <input type="number" id="iv-calc-dose" value="10.0" step="0.5" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                </div>
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Stock Conc (mg/mL):</label>
+                  <input type="number" id="iv-calc-conc" value="2.0" step="0.1" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                </div>
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Route:</label>
+                  <select id="iv-calc-route" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                    <option value="IP" selected>Intraperitoneal (IP)</option>
+                    <option value="IV">Intravenous (IV)</option>
+                    <option value="SC">Subcutaneous (SC)</option>
+                    <option value="PO">Oral Gavage (PO)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:12px; padding:10px; background:var(--card-bg); border-radius:6px; border:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Injection Volume:</span>
+                  <span style="font-size:1.1rem; font-weight:700; color:var(--text-primary);" id="iv-calc-vol-disp">125.0 µL (0.125 mL)</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Route Safety Status:</span>
+                  <span class="badge" id="iv-calc-status-badge" style="background:#2ecc7122; color:#2ecc71; font-weight:700;">SAFE VOLUME</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ARRIVE 2.0 Compliance & Export -->
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:10px; color:var(--text-primary);">📋 ARRIVE 2.0 Essential 10 Study Profile</h4>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+                IACUC Protocol: <strong>IACUC-2026-088-A</strong> • Ethical Review: <strong>Approved</strong>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem; margin-bottom:12px;">
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Randomized cohort assignment (Body weight stratified)
+                </label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Operator & investigator blinding maintained
+                </label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" checked disabled> Humane endpoint alert active (≥15% body weight loss)
+                </label>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-outline btn-sm" id="btn-export-arrive-md">Export ARRIVE (Markdown)</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-export-arrive-html">Export ARRIVE (HTML)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject Cohort Table -->
+          <div class="data-table-wrap">
+            <table class="scientific-table" id="in-vivo-subjects-table">
+              <thead>
+                <tr>
+                  <th>Subject ID</th>
+                  <th>Strain</th>
+                  <th>Sex</th>
+                  <th>Age (wk)</th>
+                  <th>Baseline (g)</th>
+                  <th>Current (g)</th>
+                  <th>Δ Weight (%)</th>
+                  <th>Clinical Score</th>
+                  <th>Welfare Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>M-001</code></td>
+                  <td>C57BL/6J</td>
+                  <td>Male</td>
+                  <td>8</td>
+                  <td>25.2</td>
+                  <td>25.0</td>
+                  <td>-0.8%</td>
+                  <td>0</td>
+                  <td><span class="badge" style="background:#2ecc7122; color:#2ecc71;">HEALTHY</span></td>
+                </tr>
+                <tr>
+                  <td><code>M-002</code></td>
+                  <td>C57BL/6J</td>
+                  <td>Male</td>
+                  <td>8</td>
+                  <td>24.8</td>
+                  <td>24.5</td>
+                  <td>-1.2%</td>
+                  <td>0</td>
+                  <td><span class="badge" style="background:#2ecc7122; color:#2ecc71;">HEALTHY</span></td>
+                </tr>
+                <tr>
+                  <td><code>M-003</code></td>
+                  <td>C57BL/6J</td>
+                  <td>Female</td>
+                  <td>8</td>
+                  <td>20.5</td>
+                  <td>19.8</td>
+                  <td>-3.4%</td>
+                  <td>1</td>
+                  <td><span class="badge" style="background:#f39c1222; color:#f39c12;">MONITORED</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 12: Purchase Orders & Consumable Inventory Sync
+         ----------------------------------------------------------------------- -->
+    <div id="tab-purchases" class="tab-pane">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="card-title">📦 Purchase Orders & Consumable Inventory Sync</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" id="btn-export-purchases-csv">📥 Export Orders (CSV)</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Summary Metrics -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;">
+            <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+              <div style="font-size:0.75rem; color:var(--text-muted);">Total Spend:</div>
+              <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);" id="po-summary-total">$1,485.50</div>
+            </div>
+            <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+              <div style="font-size:0.75rem; color:var(--text-muted);">Active POs:</div>
+              <div style="font-size:1.1rem; font-weight:700; color:var(--accent);" id="po-summary-active">3</div>
+            </div>
+            <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+              <div style="font-size:0.75rem; color:var(--text-muted);">Pending Delivery:</div>
+              <div style="font-size:1.1rem; font-weight:700; color:#f39c12;" id="po-summary-pending">1</div>
+            </div>
+            <div style="background:var(--bg-app); padding:10px; border-radius:6px; border:1px solid var(--border);">
+              <div style="font-size:0.75rem; color:var(--text-muted);">Stocked Lots:</div>
+              <div style="font-size:1.1rem; font-weight:700; color:#2ecc71;" id="po-summary-stocked">5</div>
+            </div>
+          </div>
+
+          <!-- Purchase Orders Table -->
+          <div class="data-table-wrap" style="margin-bottom:16px;">
+            <table class="scientific-table" id="purchases-table">
+              <thead>
+                <tr>
+                  <th>PO #</th>
+                  <th>Item Description</th>
+                  <th>Catalog #</th>
+                  <th>Vendor</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                  <th>Grant Code</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>PO-2026-001</code></td>
+                  <td>Q5 High-Fidelity 2X Master Mix</td>
+                  <td>M0492L</td>
+                  <td>New England Biolabs</td>
+                  <td>2</td>
+                  <td>$325.00</td>
+                  <td>$650.00</td>
+                  <td>NIH-R01-GM12345</td>
+                  <td><span class="badge" style="background:#2ecc7122; color:#2ecc71;">STOCKED</span></td>
+                  <td><span style="font-size:0.8rem; color:var(--text-muted);">Indexed in Freezer</span></td>
+                </tr>
+                <tr>
+                  <td><code>PO-2026-002</code></td>
+                  <td>CleanCap Reagent AG (3' OMe)</td>
+                  <td>N-7413</td>
+                  <td>TriLink BioTechnologies</td>
+                  <td>1</td>
+                  <td>$540.00</td>
+                  <td>$540.00</td>
+                  <td>NIH-R01-GM12345</td>
+                  <td><span class="badge" style="background:#f39c1222; color:#f39c12;">RECEIVED</span></td>
+                  <td><button class="btn btn-outline btn-sm btn-receive-po" data-poid="PO-2026-002">Receive & Stock</button></td>
+                </tr>
+                <tr>
+                  <td><code>PO-2026-003</code></td>
+                  <td>4-20% Mini-PROTEAN TGX Precast Gels (10-pk)</td>
+                  <td>4561094</td>
+                  <td>Bio-Rad Laboratories</td>
+                  <td>1</td>
+                  <td>$295.50</td>
+                  <td>$295.50</td>
+                  <td>LAB-DISCRETIONARY</td>
+                  <td><span class="badge" style="background:#3498db22; color:#3498db;">ORDERED</span></td>
+                  <td><button class="btn btn-outline btn-sm btn-receive-po" data-poid="PO-2026-003">Receive & Stock</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Add Purchase Order Form -->
+          <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+            <h4 style="font-size:0.9rem; margin-bottom:10px; color:var(--accent);">➕ Request New Consumable Purchase</h4>
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; font-size:0.85rem; margin-bottom:10px;">
+              <div style="grid-column: span 2;">
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Item Description:</label>
+                <input type="text" id="po-new-item" placeholder="e.g. IPTG Dioxane-Free 50g" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+              </div>
+              <div>
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Catalog #:</label>
+                <input type="text" id="po-new-cat" placeholder="e.g. I6758-50G" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+              </div>
+              <div>
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Vendor:</label>
+                <input type="text" id="po-new-vendor" placeholder="e.g. Sigma-Aldrich" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+              </div>
+              <div>
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Quantity:</label>
+                <input type="number" id="po-new-qty" value="1" min="1" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+              </div>
+              <div>
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Unit Price ($):</label>
+                <input type="number" id="po-new-price" value="85.00" step="0.01" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Grant / Project Code:</label>
+                <input type="text" id="po-new-grant" value="NIH-R01-GM12345" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-submit-po">Create Purchase Order</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -----------------------------------------------------------------------
+         Tab 13: Progress Reporting & Log Rollups
+         ----------------------------------------------------------------------- -->
+    <div id="tab-progress-reports" class="tab-pane">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="card-title">📊 Progress Reports & Custom Bench Logs</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" id="btn-export-rollup-md">Export Rollup (MD)</button>
+            <button class="btn btn-primary btn-sm" id="btn-export-rollup-html">Export Rollup (HTML)</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <!-- New Log Entry Form -->
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:10px; color:var(--accent);">✍️ Record Custom Bench Log Entry</h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; margin-bottom:10px;">
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Category:</label>
+                  <select id="log-category-select" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                    <option value="bench_daily" selected>Daily Bench Note</option>
+                    <option value="weekly_pi">Weekly PI Meeting</option>
+                    <option value="mouse_colony">In Vivo Colony Log</option>
+                    <option value="troubleshooting">Troubleshooting & Incident</option>
+                    <option value="grant_milestone">Grant Milestone</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Entry Title:</label>
+                  <input type="text" id="log-title-input" placeholder="Summary title..." style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                <label style="color:var(--text-muted); display:block; margin-bottom:4px; font-size:0.85rem;">Log Notes / Markdown:</label>
+                <textarea id="log-content-input" rows="4" placeholder="Experimental observations, anomalies, or meeting takeaways..." style="width:100%; padding:8px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary); font-family:inherit; font-size:0.85rem;"></textarea>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary btn-sm" id="btn-save-log-entry">Save Entry</button>
+              </div>
+            </div>
+
+            <!-- Rollup Generator Filter -->
+            <div style="background:var(--bg-app); padding:14px; border-radius:8px; border:1px solid var(--border);">
+              <h4 style="font-size:0.9rem; margin-bottom:10px; color:var(--text-primary);">🗓️ Generate Period Rollup</h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; margin-bottom:12px;">
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">Start Date:</label>
+                  <input type="date" id="rollup-start-date" value="2026-11-01" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                </div>
+                <div>
+                  <label style="color:var(--text-muted); display:block; margin-bottom:4px;">End Date:</label>
+                  <input type="date" id="rollup-end-date" value="2026-11-30" style="width:100%; padding:6px 10px; border-radius:4px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-primary);">
+                </div>
+              </div>
+              <div style="padding:10px; background:var(--card-bg); border-radius:6px; border:1px solid var(--border); margin-bottom:12px; font-size:0.8rem; color:var(--text-muted);">
+                Generates a unified executive summary aggregating all bench logs, in vivo animal assessments, and purchase orders over the selected period.
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-generate-rollup" style="width:100%;">🔄 Compile Progress Rollup</button>
+            </div>
+          </div>
+
+          <!-- Recent Log Feed -->
+          <div class="data-table-wrap">
+            <table class="scientific-table" id="progress-logs-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Category</th>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>2026-11-19 10:15</td>
+                  <td><span class="badge" style="background:#3498db22; color:#3498db;">bench_daily</span></td>
+                  <td><strong>Ni-NTA Column Elution</strong></td>
+                  <td>Dr. Elena Rostova</td>
+                  <td>Fractions B4-B8 pooled, total volume 5.0 mL, estimated conc 3.85 mg/mL.</td>
+                </tr>
+                <tr>
+                  <td>2026-11-18 16:45</td>
+                  <td><span class="badge" style="background:#9b59b622; color:#9b59b6;">mouse_colony</span></td>
+                  <td><strong>Cohort Baseline Weighed</strong></td>
+                  <td>Dr. Elena Rostova</td>
+                  <td>Subjects M-001 through M-003 weighed prior to IVT mRNA test injection.</td>
+                </tr>
+                <tr>
+                  <td>2026-11-17 14:00</td>
+                  <td><span class="badge" style="background:#2ecc7122; color:#2ecc71;">grant_milestone</span></td>
+                  <td><strong>Milestone 2 Achieved</strong></td>
+                  <td>Dr. Elena Rostova</td>
+                  <td>Completed construct verification and test expression ahead of schedule.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

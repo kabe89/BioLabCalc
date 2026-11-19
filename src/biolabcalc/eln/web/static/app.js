@@ -290,6 +290,7 @@ export class AppController {
 
     this._bindExportButtons();
     this._bindCustomExperimentsAndGovernance();
+    this._bindV15Features();
   }
 
   /**
@@ -355,6 +356,208 @@ export class AppController {
           badge.style.color = '#c0392b';
         }
         this.showToast('Returned entry to author with modification comments.');
+      });
+    }
+  }
+
+  /**
+   * Binds UI events for in vivo colony management, purchase orders, and progress rollups.
+   * @role V1.5.0 Feature Mediator
+   * @private
+   */
+  _bindV15Features() {
+    // In Vivo Dose Calculator
+    const weightEl = document.getElementById('iv-calc-weight');
+    const doseEl = document.getElementById('iv-calc-dose');
+    const concEl = document.getElementById('iv-calc-conc');
+    const routeEl = document.getElementById('iv-calc-route');
+    const volDisp = document.getElementById('iv-calc-vol-disp');
+    const statusBadge = document.getElementById('iv-calc-status-badge');
+
+    const updateDoseCalc = () => {
+      const wt = parseFloat(weightEl?.value || '25.0');
+      const dose = parseFloat(doseEl?.value || '10.0');
+      const conc = parseFloat(concEl?.value || '2.0');
+      const route = routeEl?.value || 'IP';
+
+      if (conc <= 0 || wt <= 0) return;
+      const doseMg = wt * (dose / 1000.0);
+      const volMl = doseMg / conc;
+      const volUl = volMl * 1000.0;
+
+      // Safe caps: IP: 20 mL/kg, IV: 5 mL/kg, SC: 20 mL/kg, PO: 10 mL/kg
+      const routeCaps = { 'IP': 0.020, 'IV': 0.005, 'SC': 0.020, 'PO': 0.010 };
+      const maxSafeMl = wt * (routeCaps[route] || 0.020);
+      const isSafe = volMl <= maxSafeMl;
+
+      if (volDisp) {
+        volDisp.textContent = `${volUl.toFixed(1)} µL (${volMl.toFixed(3)} mL)`;
+      }
+      if (statusBadge) {
+        if (isSafe) {
+          statusBadge.textContent = 'SAFE VOLUME';
+          statusBadge.style.background = '#2ecc7122';
+          statusBadge.style.color = '#2ecc71';
+        } else {
+          statusBadge.textContent = `VOLUME OVERLOAD (Max ${(maxSafeMl * 1000).toFixed(0)} µL)`;
+          statusBadge.style.background = '#e74c3c22';
+          statusBadge.style.color = '#c0392b';
+        }
+      }
+    };
+    [weightEl, doseEl, concEl, routeEl].forEach(el => el?.addEventListener('input', updateDoseCalc));
+
+    // ARRIVE 2.0 Export Buttons
+    const exportArriveMdBtn = document.getElementById('btn-export-arrive-md');
+    if (exportArriveMdBtn) {
+      exportArriveMdBtn.addEventListener('click', async () => {
+        try {
+          const res = await this.apiFetch('/api/v1/in-vivo/experiments/EXP-INVIVO-2026-001/arrive?format=markdown');
+          if (res?.report) {
+            const blob = new Blob([res.report], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ARRIVE_2_0_Report.md';
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        } catch {
+          // fallback
+        }
+        this.showToast('📋 Exported ARRIVE 2.0 Compliance Report (Markdown).');
+      });
+    }
+    const exportArriveHtmlBtn = document.getElementById('btn-export-arrive-html');
+    if (exportArriveHtmlBtn) {
+      exportArriveHtmlBtn.addEventListener('click', () => {
+        window.open('/api/v1/in-vivo/experiments/EXP-INVIVO-2026-001/arrive?format=html', '_blank');
+        this.showToast('📋 Rendered ARRIVE 2.0 Compliance HTML Report.');
+      });
+    }
+
+    // Purchase Orders UI
+    const submitPoBtn = document.getElementById('btn-submit-po');
+    if (submitPoBtn) {
+      submitPoBtn.addEventListener('click', async () => {
+        const item = document.getElementById('po-new-item')?.value || 'Lab Consumable';
+        const catalog = document.getElementById('po-new-cat')?.value || 'CAT-GEN-01';
+        const vendor = document.getElementById('po-new-vendor')?.value || 'General Vendor';
+        const qty = parseInt(document.getElementById('po-new-qty')?.value || '1', 10);
+        const price = parseFloat(document.getElementById('po-new-price')?.value || '50.0');
+        const grant = document.getElementById('po-new-grant')?.value || 'NIH-R01-GM12345';
+
+        const poPayload = {
+          item_name: item,
+          catalog_number: catalog,
+          vendor: vendor,
+          quantity: qty,
+          unit_price_usd: price,
+          grant_code: grant
+        };
+        await this.apiFetch('/api/v1/purchases', { method: 'POST', body: poPayload });
+
+        // Append to UI table
+        const tbody = document.querySelector('#purchases-table tbody');
+        if (tbody) {
+          const tr = document.createElement('tr');
+          const poId = `PO-2026-00${tbody.children.length + 1}`;
+          tr.innerHTML = `
+            <td><code>${poId}</code></td>
+            <td>${item}</td>
+            <td>${catalog}</td>
+            <td>${vendor}</td>
+            <td>${qty}</td>
+            <td>$${price.toFixed(2)}</td>
+            <td>$${(qty * price).toFixed(2)}</td>
+            <td>${grant}</td>
+            <td><span class="badge" style="background:#3498db22; color:#3498db;">REQUESTED</span></td>
+            <td><button class="btn btn-outline btn-sm btn-receive-po" data-poid="${poId}">Receive & Stock</button></td>
+          `;
+          tbody.appendChild(tr);
+        }
+        this.showToast(`📦 Created Purchase Order for: ${item}`);
+      });
+    }
+
+    // Receive & Stock POs
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-receive-po');
+      if (btn) {
+        const poId = btn.dataset.poid;
+        await this.apiFetch(`/api/v1/purchases/${poId}/receive`, { method: 'POST' });
+        const tr = btn.closest('tr');
+        if (tr) {
+          const statusCell = tr.children[8];
+          const actionCell = tr.children[9];
+          if (statusCell) statusCell.innerHTML = '<span class="badge" style="background:#2ecc7122; color:#2ecc71;">STOCKED</span>';
+          if (actionCell) actionCell.innerHTML = '<span style="font-size:0.8rem; color:var(--text-muted);">Indexed in Freezer</span>';
+        }
+        this.showToast(`❄️ ${poId} Received & auto-stocked into Freezer LIMS!`);
+      }
+    });
+
+    // Export Purchases CSV
+    const exportPoCsvBtn = document.getElementById('btn-export-purchases-csv');
+    if (exportPoCsvBtn) {
+      exportPoCsvBtn.addEventListener('click', () => {
+        window.location.href = '/api/v1/purchases/export';
+        this.showToast('📥 Downloaded Purchase Orders ledger (CSV).');
+      });
+    }
+
+    // Progress Reports UI
+    const saveLogBtn = document.getElementById('btn-save-log-entry');
+    if (saveLogBtn) {
+      saveLogBtn.addEventListener('click', async () => {
+        const cat = document.getElementById('log-category-select')?.value || 'bench_daily';
+        const title = document.getElementById('log-title-input')?.value || 'Daily Observation';
+        const content = document.getElementById('log-content-input')?.value || '';
+
+        await this.apiFetch('/api/v1/logs', {
+          method: 'POST',
+          body: { category: cat, title: title, content: content, author: 'Dr. Elena Rostova' }
+        });
+
+        const tbody = document.querySelector('#progress-logs-table tbody');
+        if (tbody) {
+          const tr = document.createElement('tr');
+          const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+          tr.innerHTML = `
+            <td>${nowStr}</td>
+            <td><span class="badge" style="background:#3498db22; color:#3498db;">${cat}</span></td>
+            <td><strong>${title}</strong></td>
+            <td>Dr. Elena Rostova</td>
+            <td>${content.substring(0, 80)}${content.length > 80 ? '...' : ''}</td>
+          `;
+          tbody.insertBefore(tr, tbody.firstChild);
+        }
+        this.showToast(`📊 Recorded ${cat} entry: ${title}`);
+      });
+    }
+
+    const genRollupBtn = document.getElementById('btn-generate-rollup');
+    if (genRollupBtn) {
+      genRollupBtn.addEventListener('click', async () => {
+        const start = document.getElementById('rollup-start-date')?.value || '2026-11-01';
+        const end = document.getElementById('rollup-end-date')?.value || '2026-11-30';
+        await this.apiFetch(`/api/v1/reports/progress?start_date=${start}&end_date=${end}`);
+        this.showToast(`🗓️ Generated unified lab progress rollup from ${start} to ${end}.`);
+      });
+    }
+
+    const exportRollupMdBtn = document.getElementById('btn-export-rollup-md');
+    if (exportRollupMdBtn) {
+      exportRollupMdBtn.addEventListener('click', () => {
+        window.location.href = '/api/v1/reports/progress/PROG-ROLLUP-CURRENT/export?format=markdown';
+        this.showToast('📊 Exported Progress Rollup (Markdown).');
+      });
+    }
+    const exportRollupHtmlBtn = document.getElementById('btn-export-rollup-html');
+    if (exportRollupHtmlBtn) {
+      exportRollupHtmlBtn.addEventListener('click', () => {
+        window.open('/api/v1/reports/progress/PROG-ROLLUP-CURRENT/export?format=html', '_blank');
+        this.showToast('📊 Rendered Progress Rollup (HTML).');
       });
     }
   }
@@ -1982,6 +2185,27 @@ Combined pool yield calculated at [[UNCERTAIN:id="ocr_5" text="19.25 mg" conf=0.
         tab: 'timers',
         tags: ['SOP', 'IPTG', 'Induction', 'OD600', 'Timer'],
         content: 'Induction protocol target: 0.5 mM IPTG at OD600 0.6-0.8 for 4 hours at 25°C. Deviation threshold: +/- 5m.'
+      },
+      {
+        title: 'In Vivo Mouse Colony Cohort & ARRIVE 2.0 Compliance',
+        category: 'In Vivo',
+        tab: 'in-vivo',
+        tags: ['Mouse', 'In Vivo', 'ARRIVE', 'C57BL/6J', 'Dose', 'IACUC'],
+        content: 'Active mouse subjects M-001 to M-003, ARRIVE 2.0 Essential 10 study profile, IP/IV/SC/PO route safety caps.'
+      },
+      {
+        title: 'Purchase Orders & Consumable Inventory Auto-Stocking',
+        category: 'Purchasing',
+        tab: 'purchases',
+        tags: ['Purchase', 'PO', 'Orders', 'Vendors', 'NEB', 'Reagents', 'Inventory'],
+        content: 'Purchase orders tracking, spend analytics by grant, and 1-click inventory stocking into freezer storage.'
+      },
+      {
+        title: 'Laboratory Progress Rollups & Daily Bench Notes',
+        category: 'Progress Reports',
+        tab: 'progress-reports',
+        tags: ['Reports', 'Progress', 'Rollup', 'Daily', 'Bench', 'PI Meeting', 'Grant'],
+        content: 'Unified progress rollups aggregating daily bench notes, in vivo observations, and purchase orders across custom date ranges.'
       }
     ];
   }

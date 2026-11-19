@@ -240,6 +240,16 @@ class SQLiteStore:
                 if not self._is_memory:
                     conn.close()
 
+    def close(self) -> None:
+        """Close active database connection if open."""
+        with self._lock:
+            if self._conn is not None:
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+                self._conn = None
+
 
 _GLOBAL_STORE: Optional[SQLiteStore] = None
 _STORE_LOCK = threading.RLock()

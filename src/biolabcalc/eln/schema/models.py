@@ -1008,5 +1008,59 @@ class MouseExperiment(BaseModel):
     created_at = DateTimeColumn(nullable=False, auto_now=True)
 
 
+class CustomLogEntry(BaseModel):
+    """Custom structured or freeform lab notebook log entry."""
+    __tablename__ = "custom_log_entries"
+
+    id = UUIDColumn(primary_key=True)
+    category = StringColumn(nullable=False, default="bench_daily")
+    title = StringColumn(nullable=False)
+    author = StringColumn(nullable=False, default="active_researcher")
+    tags_json = JSONColumn(nullable=True)
+    metrics_json = JSONColumn(nullable=True)
+    body_md = StringColumn(nullable=False, default="")
+    linked_entity_ids_json = JSONColumn(nullable=True)
+    created_at = DateTimeColumn(nullable=False, auto_now=True)
+
+
+class ProgressReport(BaseModel):
+    """Periodic research progress report rolling up experiments, observations, and purchases."""
+    __tablename__ = "progress_reports"
+
+    id = UUIDColumn(primary_key=True)
+    title = StringColumn(nullable=False)
+    period_start = StringColumn(nullable=False)
+    period_end = StringColumn(nullable=False)
+    template_type = StringColumn(nullable=False, default="standard")
+    summary_md = StringColumn(nullable=False, default="")
+    metrics_snapshot_json = JSONColumn(nullable=True)
+    created_by = StringColumn(nullable=False, default="active_researcher")
+    created_at = DateTimeColumn(nullable=False, auto_now=True)
+
+
+class PurchaseOrder(BaseModel):
+    """Reagent, consumable, and equipment purchase order record."""
+    __tablename__ = "purchase_orders"
+
+    id = UUIDColumn(primary_key=True)
+    item_name = StringColumn(nullable=False)
+    vendor = StringColumn(nullable=False)
+    catalog_number = StringColumn(nullable=True)
+    lot_number = StringColumn(nullable=True)
+    category = StringColumn(nullable=False, default="consumable")
+    quantity = FloatColumn(nullable=False, default=1.0)
+    unit = StringColumn(nullable=False, default="unit")
+    unit_price_usd = FloatColumn(nullable=False, default=0.0)
+    total_cost_usd = FloatColumn(nullable=False, default=0.0)
+    grant_code = StringColumn(nullable=True)
+    requested_by = StringColumn(nullable=False, default="active_researcher")
+    status = StringColumn(nullable=False, default="REQUESTED")
+    ordered_at = DateTimeColumn(nullable=True)
+    received_at = DateTimeColumn(nullable=True)
+    linked_inventory_id = StringColumn(nullable=True)
+    notes = StringColumn(nullable=True)
+    created_at = DateTimeColumn(nullable=False, auto_now=True)
+
+
 # Alias Base for SQLAlchemy compatibility
 Base = BaseModel
