@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'src/biolabcalc/**'
-      - 'scripts/build_pages_demo.py'
-      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
