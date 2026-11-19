@@ -16,6 +16,10 @@ import posixpath
 import threading
 import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+try:
+    from http.server import ThreadingHTTPServer
+except ImportError:
+    ThreadingHTTPServer = HTTPServer
 from typing import Optional, Dict, Any
 
 from .config import load_config, anonymize_ip, anonymize_path
@@ -85,7 +89,8 @@ def launch_eln_server(
     effective_quiet = quiet if quiet is not None else cfg_server.get("quiet", False)
     effective_anonymize = anonymize if anonymize is not None else cfg_sec.get("anonymize_logs", True)
 
-    storage_dir = cfg_db.get("storage_dir") or get_default_storage_dir()
+    env_storage = os.environ.get("BIOLABCALC_STORAGE_DIR") or os.environ.get("BIOLABCALC_HOME")
+    storage_dir = env_storage or cfg_db.get("storage_dir") or get_default_storage_dir()
     db_path = os.path.join(storage_dir, "eln_lims.db")
     effective_db_url = db_url or cfg_db.get("url") or f"sqlite:///{db_path}"
 
@@ -218,6 +223,14 @@ def _launch_fallback_server(
         def do_GET(self):
             raw_path = self.path.split("?")[0]
             parsed_path = posixpath.normpath(raw_path)
+            if parsed_path in ("/health", "/api/health"):
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(b'{"status": "healthy", "service": "BioLabCalc ELN"}\n')
+                return
+
             if parsed_path.startswith("/api/"):
                 self._handle_api("GET")
                 return
@@ -308,7 +321,7 @@ def _launch_fallback_server(
         def log_message(self, format, *args):
             pass
 
-    server = HTTPServer((host, port), ELNRequestHandler)
+    server = ThreadingHTTPServer((host, port), ELNRequestHandler)
     actual_port = server.server_address[1]
     server_url = f"http://{host}:{actual_port}"
     if not quiet:

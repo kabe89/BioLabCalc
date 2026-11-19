@@ -38,13 +38,17 @@ jobs:
       - name: Verify sdist unpacked test execution
         run: |
           python -c "
-          import glob, subprocess, sys, tarfile, tempfile
+          import glob, os, subprocess, sys, tarfile, tempfile
           sdist = sorted(glob.glob('dist/biolabcalc-*.tar.gz'))[-1]
           with tempfile.TemporaryDirectory() as tmp:
               with tarfile.open(sdist, 'r:gz') as tar:
                   tar.extractall(tmp)
               unpacked = glob.glob(f'{tmp}/biolabcalc-*')[0]
-              res = subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests'], cwd=unpacked)
+              res = subprocess.run(
+                  [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests'],
+                  cwd=unpacked,
+                  env={**os.environ, 'PYTHONPATH': 'src'}
+              )
               assert res.returncode == 0, 'sdist isolated test run failed!'
           print('SDIST ISOLATED VERIFICATION PASSED!')
           "
@@ -67,7 +71,7 @@ jobs:
       id-token: write
     steps:
       - name: Download dist artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
           path: dist/

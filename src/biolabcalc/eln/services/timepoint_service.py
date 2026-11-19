@@ -8,6 +8,7 @@ and real-time countdown timer orchestration.
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 import uuid
@@ -16,6 +17,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from .audit_service import get_audit_service
+from ..storage.sqlite_store import SQLiteStore, get_sqlite_store
+
+logger = logging.getLogger("biolabcalc.eln.services.timepoint_service")
 
 
 def _parse_iso_datetime(dt_str_or_obj: Any) -> datetime:
@@ -197,6 +201,16 @@ class LiveTimer:
         self.status = "stopped"
         return self.tick()
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize timer configuration for persistence."""
+        return {
+            "timer_id": self.timer_id,
+            "name": self.name,
+            "target_duration_seconds": self.target_duration_seconds,
+            "entry_id": self.entry_id,
+            "metadata": self.metadata,
+        }
+
 
 class TimepointService:
     """
@@ -206,18 +220,45 @@ class TimepointService:
     benchmarks, and coordinates live active timers.
     """
 
-    def __init__(self, deviation_tolerance_seconds: float = 60.0) -> None:
+    def __init__(self, deviation_tolerance_seconds: float = 60.0, store: Optional[SQLiteStore] = None) -> None:
         """
-        Initialize TimepointService.
+        Initialize TimepointService with SQLite persistence.
 
         Parameter deviation_tolerance_seconds (float): Grace window before marking a duration
         as deviated (default: 60.0s).
         """
         self._lock = threading.RLock()
+        self._store = store or get_sqlite_store()
         self._timepoints: Dict[str, Timepoint] = {}
         self._live_timers: Dict[str, LiveTimer] = {}
         self._tolerance_seconds = deviation_tolerance_seconds
         self._audit_service = get_audit_service()
+        self._load_from_store()
+
+    def _load_from_store(self) -> None:
+        try:
+            for item in self._store.list_entities("timepoint"):
+                tp = Timepoint(**item)
+                self._timepoints[tp.timepoint_id] = tp
+            for item in self._store.list_entities("live_timer"):
+                timer = LiveTimer(**item)
+                self._live_timers[timer.timer_id] = timer
+        except Exception as e:
+            logger.warning(f"Error loading timepoints from SQLite: {e}")
+
+    def _save_timepoint(self, timepoint: Timepoint) -> None:
+        self._timepoints[timepoint.timepoint_id] = timepoint
+        try:
+            self._store.put_entity("timepoint", timepoint.timepoint_id, timepoint.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist timepoint {timepoint.timepoint_id}: {e}")
+
+    def _save_timer(self, timer: LiveTimer) -> None:
+        self._live_timers[timer.timer_id] = timer
+        try:
+            self._store.put_entity("live_timer", timer.timer_id, timer.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist live timer {timer.timer_id}: {e}")
 
     def record_timepoint(
         self,
@@ -283,7 +324,7 @@ class TimepointService:
                 notes=notes,
                 created_by=created_by,
             )
-            self._timepoints[timepoint_id] = timepoint
+            self._save_timepoint(timepoint)
 
             # Log audit event if deviation detected or for record
             if is_deviated:
@@ -328,7 +369,7 @@ class TimepointService:
                 entry_id=entry_id,
                 metadata=metadata,
             )
-            self._live_timers[timer_id] = timer
+            self._save_timer(timer)
             return timer
 
     def get_live_timer(self, timer_id: str) -> Optional[LiveTimer]:
@@ -360,6 +401,10 @@ class TimepointService:
         with self._lock:
             timer = self._live_timers.pop(timer_id, None)
             if timer:
+                try:
+                    self._store.delete_entity("live_timer", timer_id)
+                except Exception:
+                    pass
                 return timer.stop()
             return None
 
@@ -379,6 +424,16 @@ class TimepointService:
 
         """
         with self._lock:
+            for tid in list(self._timepoints.keys()):
+                try:
+                    self._store.delete_entity("timepoint", tid)
+                except Exception:
+                    pass
+            for lid in list(self._live_timers.keys()):
+                try:
+                    self._store.delete_entity("live_timer", lid)
+                except Exception:
+                    pass
             self._timepoints.clear()
             self._live_timers.clear()
 

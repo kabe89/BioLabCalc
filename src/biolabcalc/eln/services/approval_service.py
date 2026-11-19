@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import threading
 import uuid
@@ -26,6 +27,9 @@ from ..api.auth import (
     AuthorizationError,
 )
 from .audit_service import AuditService, get_audit_service
+from ..storage.sqlite_store import SQLiteStore, get_sqlite_store
+
+logger = logging.getLogger("biolabcalc.eln.services.approval_service")
 
 
 class ApprovalPolicy(str, Enum):
@@ -185,14 +189,60 @@ class ApprovalService:
     and 21 CFR Part 11 electronic records compliance for the ELN & LIMS pipeline.
     """
 
-    def __init__(self, audit_service: Optional[AuditService] = None) -> None:
+    def __init__(self, audit_service: Optional[AuditService] = None, store: Optional[SQLiteStore] = None) -> None:
         """
-        Initialize the approval service with thread safety lock and in-memory registry.
+        Initialize the approval service with SQLite persistence, thread safety lock and registry.
         """
         self._lock = threading.RLock()
+        self._store = store or get_sqlite_store()
         self._records: Dict[str, ApprovalRecord] = {}
         self._history: Dict[str, List[ApprovalHistoryEvent]] = {}
         self._audit_service = audit_service or get_audit_service()
+        self._load_from_store()
+
+    def _load_from_store(self) -> None:
+        try:
+            for item in self._store.list_entities("approval_record"):
+                rec = ApprovalRecord(
+                    entry_id=item["entry_id"],
+                    author_id=item.get("author_id", ""),
+                    policy=normalize_policy(item.get("policy", ApprovalPolicy.PEER_REVIEW)),
+                    status=normalize_status(item.get("status", ApprovalStatus.DRAFT)),
+                    designated_reviewer_id=item.get("designated_reviewer_id"),
+                    data_digest=item.get("data_digest", ""),
+                    reviewer_id=item.get("reviewer_id"),
+                    reviewer_role=item.get("reviewer_role"),
+                    review_notes=item.get("review_notes", ""),
+                    revision_comments=item.get("revision_comments"),
+                    checklists_verified=item.get("checklists_verified", False),
+                    signature_hash=item.get("signature_hash"),
+                    timestamp=item.get("timestamp"),
+                    submitted_at=item.get("submitted_at", ""),
+                    created_at=item.get("created_at", ""),
+                    updated_at=item.get("updated_at", ""),
+                    metadata=item.get("metadata", {}),
+                )
+                self._records[rec.entry_id] = rec
+
+            for item in self._store.list_entities("approval_history"):
+                ev = ApprovalHistoryEvent(**item)
+                self._history.setdefault(ev.entry_id, []).append(ev)
+        except Exception as e:
+            logger.warning(f"Error loading approvals from SQLite: {e}")
+
+    def _save_record(self, record: ApprovalRecord) -> None:
+        self._records[record.entry_id] = record
+        try:
+            self._store.put_entity("approval_record", record.entry_id, record.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist approval record {record.entry_id}: {e}")
+
+    def _save_history(self, event: ApprovalHistoryEvent) -> None:
+        self._history.setdefault(event.entry_id, []).append(event)
+        try:
+            self._store.put_entity("approval_history", event.event_id, event.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist approval history {event.event_id}: {e}")
 
     @staticmethod
     def verify_seal(
@@ -298,7 +348,7 @@ class ApprovalService:
                     updated_at=now_iso,
                     metadata=meta,
                 )
-                self._records[entry_id] = record
+                self._save_record(record)
 
                 action = "RESUBMIT_AND_AUTO_FINALIZE" if is_resubmission else "SUBMIT_AND_AUTO_FINALIZE"
                 self._record_history_event(
@@ -334,7 +384,7 @@ class ApprovalService:
                 updated_at=now_iso,
                 metadata=meta,
             )
-            self._records[entry_id] = record
+            self._save_record(record)
 
             action = "RESUBMIT" if is_resubmission else "SUBMIT"
             self._record_history_event(
@@ -458,6 +508,7 @@ class ApprovalService:
             record.signature_hash = signature_hash
             record.timestamp = now_iso
             record.updated_at = now_iso
+            self._save_record(record)
 
             self._record_history_event(
                 entry_id=entry_id,
@@ -545,6 +596,7 @@ class ApprovalService:
             record.reviewer_role = reviewer_role
             record.revision_comments = revision_comments
             record.updated_at = now_iso
+            self._save_record(record)
 
             self._record_history_event(
                 entry_id=entry_id,
@@ -627,6 +679,17 @@ class ApprovalService:
         Clear all in-memory records and history. For test harness setup only.
         """
         with self._lock:
+            for eid in list(self._records.keys()):
+                try:
+                    self._store.delete_entity("approval_record", eid)
+                except Exception:
+                    pass
+            for events in self._history.values():
+                for ev in events:
+                    try:
+                        self._store.delete_entity("approval_history", ev.event_id)
+                    except Exception:
+                        pass
             self._records.clear()
             self._history.clear()
 
@@ -657,9 +720,7 @@ class ApprovalService:
             metadata=dict(metadata or {}),
         )
 
-        if entry_id not in self._history:
-            self._history[entry_id] = []
-        self._history[entry_id].append(evt)
+        self._save_history(evt)
 
         # Mirror to global audit service
         try:

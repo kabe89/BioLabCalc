@@ -130,6 +130,8 @@ check_ids.py
 # AI & LLM Developer Internal Reference (Git-Ignored)
 .ai_docs/
 ai_docs/
+.agent/
+.agents/
 
 # Growth, Marketing & Star Strategy (Git-Ignored)
 *star_plan*
@@ -142,5 +144,8 @@ outreach/
 marketing/
 .marketing/
 
-
+# Local Audit Dossiers and Scratch Notes (Git-Ignored)
+audit/
+.audit/
+*.docx
 

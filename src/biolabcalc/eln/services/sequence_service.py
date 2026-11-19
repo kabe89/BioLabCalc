@@ -7,6 +7,7 @@ calculations (Tm, GC%, MW, pI, e280, A0.1%) for primers, plasmids, aptamers, and
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 import threading
@@ -19,6 +20,9 @@ from ...molecular_weight import calculate_dna_mw, calculate_protein_mw, calculat
 from ...protein import calculate_extinction_coefficient
 from ...seq_utils import calculate_gc_content, clean_sequence, count_bases
 from .audit_service import get_audit_service
+from ..storage.sqlite_store import SQLiteStore, get_sqlite_store
+
+logger = logging.getLogger("biolabcalc.eln.services.sequence_service")
 
 # EMBOSS / Bjellqvist pKa values for amino acid side chains and termini
 PKA_VALUES: Dict[str, float] = {
@@ -165,15 +169,35 @@ class SequenceService:
     and spectrophotometric calculations, and provides lookup endpoints.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, store: Optional[SQLiteStore] = None) -> None:
         """
-        Initialize SequenceService and pre-seed core laboratory constructs (e.g. pET-28a-T7RNAP).
-
+        Initialize SequenceService with SQLite persistence and pre-seed core laboratory constructs.
         """
         self._lock = threading.RLock()
+        self._store = store or get_sqlite_store()
         self._registry: Dict[str, SequenceEntity] = {}
         self._audit_service = get_audit_service()
         self._seed_standard_constructs()
+        self._load_from_store()
+
+    def _load_from_store(self) -> None:
+        try:
+            items = self._store.list_entities("sequence")
+            for item in items:
+                try:
+                    entity = SequenceEntity(**item)
+                    self._registry[entity.entity_id] = entity
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.warning(f"Error loading sequences from SQLite: {e}")
+
+    def _save_sequence(self, entity: SequenceEntity) -> None:
+        self._registry[entity.entity_id] = entity
+        try:
+            self._store.put_entity("sequence", entity.entity_id, entity.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist sequence {entity.entity_id}: {e}")
 
     def _seed_standard_constructs(self) -> None:
         """
@@ -346,7 +370,7 @@ class SequenceService:
                 created_by=created_by,
                 created_at=now_iso,
             )
-            self._registry[entity_id] = entity
+            self._save_sequence(entity)
 
             self._audit_service.record_event(
                 entity_type="sequence",
@@ -388,6 +412,11 @@ class SequenceService:
 
         """
         with self._lock:
+            for eid in list(self._registry.keys()):
+                try:
+                    self._store.delete_entity("sequence", eid)
+                except Exception:
+                    pass
             self._registry.clear()
             self._seed_standard_constructs()
 

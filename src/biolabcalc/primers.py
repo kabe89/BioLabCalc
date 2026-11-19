@@ -465,7 +465,11 @@ def calculate_tm_santalucia(
         x = 4.0
 
     # Tm in Kelvin: dH / (dS + R * ln(Ct / x))
-    tm_kelvin = (dh_total * 1000.0) / (ds_salt_corrected + R_GAS_CAL * math.log(c_t / x))
+    denom = ds_salt_corrected + R_GAS_CAL * math.log(c_t / x)
+    if abs(denom) < 1e-12:
+        tm_kelvin = 0.0
+    else:
+        tm_kelvin = (dh_total * 1000.0) / denom
     tm_celsius = tm_kelvin - 273.15
 
     # dG at 37 C (310.15 K) in kcal/mol

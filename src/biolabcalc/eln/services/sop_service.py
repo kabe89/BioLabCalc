@@ -9,6 +9,7 @@ and structured step checklists.
 from __future__ import annotations
 
 import copy
+import logging
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -16,6 +17,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from .audit_service import get_audit_service
+from ..storage.sqlite_store import SQLiteStore, get_sqlite_store
+
+logger = logging.getLogger("biolabcalc.eln.services.sop_service")
 
 
 @dataclass
@@ -162,15 +166,71 @@ class SOPService:
     notebook entries with parameter lock-in.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, store: Optional[SQLiteStore] = None) -> None:
         """
-        Initialize SOPService repository.
-
+        Initialize SOPService repository with SQLite persistence and thread synchronization.
         """
         self._lock = threading.RLock()
+        self._store = store or get_sqlite_store()
         self._sops: Dict[str, MasterSOP] = {}
         self._forks: Dict[str, SOPFork] = {}
         self._audit_service = get_audit_service()
+        self._load_from_store()
+
+    def _load_from_store(self) -> None:
+        try:
+            for item in self._store.list_entities("sop"):
+                steps = [SOPStep(**s) if isinstance(s, dict) else s for s in item.get("steps", [])]
+                sop = MasterSOP(
+                    sop_id=item["sop_id"],
+                    title=item.get("title", ""),
+                    version=item.get("version", "1.0"),
+                    category=item.get("category", ""),
+                    description=item.get("description", ""),
+                    parameters=item.get("parameters", {}),
+                    steps=steps,
+                    status=item.get("status", "draft"),
+                    created_by=item.get("created_by", "unknown"),
+                    created_at=item.get("created_at", ""),
+                    updated_at=item.get("updated_at", ""),
+                )
+                self._sops[sop.sop_id] = sop
+
+            for item in self._store.list_entities("sop_fork"):
+                step_execs = [
+                    StepExecution(**s) if isinstance(s, dict) else s
+                    for s in item.get("step_executions", [])
+                ]
+                fork = SOPFork(
+                    fork_id=item["fork_id"],
+                    sop_id=item.get("sop_id", ""),
+                    sop_version=item.get("sop_version", "1.0"),
+                    sop_title=item.get("sop_title", ""),
+                    entry_id=item.get("entry_id", ""),
+                    forked_by=item.get("forked_by", "unknown"),
+                    forked_at=item.get("forked_at", ""),
+                    locked_parameters=item.get("locked_parameters", {}),
+                    step_executions=step_execs,
+                    is_completed=item.get("is_completed", False),
+                    completed_at=item.get("completed_at"),
+                )
+                self._forks[fork.fork_id] = fork
+        except Exception as e:
+            logger.warning(f"Error loading SOPs/forks from SQLite: {e}")
+
+    def _save_sop(self, sop: MasterSOP) -> None:
+        self._sops[sop.sop_id] = sop
+        try:
+            self._store.put_entity("sop", sop.sop_id, sop.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist SOP {sop.sop_id}: {e}")
+
+    def _save_fork(self, fork: SOPFork) -> None:
+        self._forks[fork.fork_id] = fork
+        try:
+            self._store.put_entity("sop_fork", fork.fork_id, fork.to_dict())
+        except Exception as e:
+            logger.warning(f"Failed to persist SOP fork {fork.fork_id}: {e}")
 
     def create_sop(
         self,
@@ -225,7 +285,7 @@ class SOPService:
                 created_at=now_iso,
                 updated_at=now_iso,
             )
-            self._sops[sop_id] = sop
+            self._save_sop(sop)
 
             self._audit_service.record_event(
                 entity_type="sop",
@@ -254,6 +314,7 @@ class SOPService:
             prev_state = sop.to_dict()
             sop.status = "approved"
             sop.updated_at = datetime.now(timezone.utc).isoformat()
+            self._save_sop(sop)
 
             self._audit_service.record_event(
                 entity_type="sop",
@@ -353,7 +414,7 @@ class SOPService:
                 step_executions=step_execs,
                 is_completed=False,
             )
-            self._forks[fork_id] = fork
+            self._save_fork(fork)
 
             self._audit_service.record_event(
                 entity_type="sop_fork",
@@ -421,6 +482,8 @@ class SOPService:
                 fork.is_completed = True
                 fork.completed_at = now_iso
 
+            self._save_fork(fork)
+
             self._audit_service.record_event(
                 entity_type="sop_fork",
                 entity_id=fork_id,
@@ -438,6 +501,16 @@ class SOPService:
 
         """
         with self._lock:
+            for sid in list(self._sops.keys()):
+                try:
+                    self._store.delete_entity("sop", sid)
+                except Exception:
+                    pass
+            for fid in list(self._forks.keys()):
+                try:
+                    self._store.delete_entity("sop_fork", fid)
+                except Exception:
+                    pass
             self._sops.clear()
             self._forks.clear()
 

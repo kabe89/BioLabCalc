@@ -61,7 +61,35 @@ else:
     THIN_BORDER = HEADER_BORDER = None
 
 
+def _configure_print_setup(
+    ws: Any,
+    orientation: str = "landscape",
+    title_rows: Optional[str] = None,
+    fit_to_width: int = 1,
+    fit_to_height: int = 0,
+) -> None:
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = fit_to_width
+    ws.page_setup.fitToHeight = fit_to_height
+    ws.page_setup.orientation = (
+        getattr(ws, "ORIENTATION_LANDSCAPE", "landscape")
+        if orientation == "landscape"
+        else getattr(ws, "ORIENTATION_PORTRAIT", "portrait")
+    )
+    ws.page_setup.paperSize = getattr(ws, "PAPERSIZE_LETTER", 1)
+    ws.page_margins.left = 0.4
+    ws.page_margins.right = 0.4
+    ws.page_margins.top = 0.5
+    ws.page_margins.bottom = 0.5
+    if title_rows:
+        ws.print_title_rows = title_rows
+
+
+_apply_print_setup = _configure_print_setup
+
+
 def _autofit_columns(ws, min_width=12, padding=3):
+    _configure_print_setup(ws)
     for col in ws.columns:
         max_len = 0
         col_letter = get_column_letter(col[0].column)
@@ -73,7 +101,7 @@ def _autofit_columns(ws, min_width=12, padding=3):
                 val_len += 3
             if val_len > max_len:
                 max_len = val_len
-        ws.column_dimensions[col_letter].width = max(min_width, max_len + padding)
+        ws.column_dimensions[col_letter].width = min(max(min_width, max_len + padding), 50)
 
 
 def generate_lab_notebook_template(output_path: str) -> str:
@@ -786,12 +814,14 @@ def _build_analysis_excel(
 def batch_process_excel(input_path: str, output_path: str) -> str:
     """Read a batch table of sequences from an input Excel file, calculate properties, and write an annotated output workbook."""
     in_wb = openpyxl.load_workbook(input_path)
-    out_wb = openpyxl.Workbook()
+    out_wb = None
     try:
+        out_wb = openpyxl.Workbook()
         return _run_batch_process_excel(in_wb, out_wb, output_path)
     finally:
         in_wb.close()
-        out_wb.close()
+        if out_wb is not None:
+            out_wb.close()
 
 
 def _run_batch_process_excel(in_wb: Any, out_wb: Any, output_path: str) -> str:
@@ -869,9 +899,5 @@ def _run_batch_process_excel(in_wb: Any, out_wb: Any, output_path: str) -> str:
 
     _autofit_columns(out_ws)
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    try:
-        out_wb.save(output_path)
-    finally:
-        in_wb.close()
-        out_wb.close()
+    out_wb.save(output_path)
     return output_path

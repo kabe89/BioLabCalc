@@ -98,6 +98,27 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return result
 
 
+def _strip_yaml_comment(text: str) -> str:
+    """Strip unquoted inline # comments from a YAML line or value."""
+    in_single = False
+    in_double = False
+    escaped = False
+    for i, ch in enumerate(text):
+        if escaped:
+            escaped = False
+            continue
+        if ch == "\\" and (in_single or in_double):
+            escaped = True
+            continue
+        if ch == "'" and not in_double:
+            in_single = not in_single
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+        elif ch == "#" and not in_single and not in_double:
+            return text[:i].rstrip()
+    return text.rstrip()
+
+
 def parse_simple_yaml(text: str) -> Dict[str, Any]:
     """
     Zero-dependency YAML parser for nested dictionaries, lists, and primitives.
@@ -111,13 +132,12 @@ def parse_simple_yaml(text: str) -> Dict[str, Any]:
     current_section: Optional[str] = None
 
     for raw_line in text.splitlines():
-        line = raw_line.rstrip()
-        # Skip comments and blank lines
+        line = _strip_yaml_comment(raw_line)
         stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
+        if not stripped:
             continue
 
-        indent = len(line) - len(line.lstrip())
+        indent = len(raw_line) - len(raw_line.lstrip())
 
         if ":" in stripped:
             key_part, val_part = stripped.split(":", 1)
@@ -217,7 +237,7 @@ def find_config_file(explicit_path: Optional[str] = None) -> Optional[Path]:
             return p
 
     cwd = Path.cwd()
-    for candidate in [cwd / "config.yaml", cwd / "eln_config.yaml", cwd / "testing_config.yaml"]:
+    for candidate in [cwd / "config.yaml", cwd / "eln_config.yaml"]:
         if candidate.is_file():
             return candidate
 

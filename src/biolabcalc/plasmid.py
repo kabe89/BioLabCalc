@@ -826,11 +826,13 @@ def parse_genbank(gb_text_or_path: str) -> PlasmidRecord:
                 loc_clean = loc_clean[11:-1].strip()
 
             loc_clean = loc_clean.replace("<", "").replace(">", "")
-            join_m = re.match(r"join\((\d+)\.\.(\d+),\s*(\d+)\.\.(\d+)\)", loc_clean)
-            if join_m:
-                s1, e1, s2, e2 = map(int, join_m.groups())
-                start_coord = s1
-                end_coord = e2
+            if "join(" in loc_clean:
+                join_coords = re.findall(r"(\d+)\.\.(\d+)", loc_clean)
+                if join_coords:
+                    start_coord = int(join_coords[0][0])
+                    end_coord = int(join_coords[-1][1])
+                else:
+                    continue
             else:
                 range_m = re.match(r"(\d+)\.\.(\d+)", loc_clean)
                 if range_m:
@@ -972,7 +974,18 @@ def export_genbank(plasmid: PlasmidRecord, filepath: Optional[str] = None) -> st
 # Plasmid JSON Storage
 # ---------------------------------------------------------------------------
 
-DEFAULT_PLASMIDS_PATH: str = os.path.expanduser("~/.biolabcalc/plasmids.json")
+def get_default_plasmids_path() -> str:
+    env_path = os.environ.get("BIOLABCALC_PLASMID_PATH")
+    if env_path:
+        return env_path
+    try:
+        from .profile import get_profile_dir
+        return str(get_profile_dir() / "plasmids.json")
+    except Exception:
+        return os.path.expanduser("~/.biolabcalc/plasmids.json")
+
+
+DEFAULT_PLASMIDS_PATH: str = get_default_plasmids_path()
 
 
 def _feature_to_dict(feat: PlasmidFeature) -> Dict[str, Any]:
@@ -1036,7 +1049,7 @@ def _plasmid_from_dict(d: Dict[str, Any]) -> PlasmidRecord:
 
 
 def _load_user_plasmids(filepath: Optional[str] = None) -> Dict[str, PlasmidRecord]:
-    target_path = filepath if filepath is not None else DEFAULT_PLASMIDS_PATH
+    target_path = filepath if filepath is not None else get_default_plasmids_path()
     if not os.path.exists(target_path):
         return {}
     try:
@@ -1059,7 +1072,7 @@ def _load_user_plasmids(filepath: Optional[str] = None) -> Dict[str, PlasmidReco
 
 
 def _save_user_plasmids(records: Dict[str, PlasmidRecord], filepath: Optional[str] = None) -> None:
-    target_path = filepath if filepath is not None else DEFAULT_PLASMIDS_PATH
+    target_path = filepath if filepath is not None else get_default_plasmids_path()
     dir_name = os.path.dirname(os.path.abspath(target_path))
     if dir_name and not os.path.exists(dir_name):
         os.makedirs(dir_name, exist_ok=True)

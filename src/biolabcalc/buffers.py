@@ -721,14 +721,18 @@ def get_custom_buffers_path() -> str:
     if env_path:
         return env_path
     try:
-        home_path = os.path.expanduser("~/.biolabcalc/custom_buffers.json")
-        os.makedirs(os.path.dirname(home_path), exist_ok=True)
-        return home_path
-    except (PermissionError, OSError):
-        import tempfile
-        tmp_dir = os.path.join(tempfile.gettempdir(), ".biolabcalc")
-        os.makedirs(tmp_dir, exist_ok=True)
-        return os.path.join(tmp_dir, "custom_buffers.json")
+        from .profile import get_profile_dir
+        return str(get_profile_dir() / "custom_buffers.json")
+    except Exception:
+        try:
+            home_path = os.path.expanduser("~/.biolabcalc/custom_buffers.json")
+            os.makedirs(os.path.dirname(home_path), exist_ok=True)
+            return home_path
+        except (PermissionError, OSError):
+            import tempfile
+            tmp_dir = os.path.join(tempfile.gettempdir(), ".biolabcalc")
+            os.makedirs(tmp_dir, exist_ok=True)
+            return os.path.join(tmp_dir, "custom_buffers.json")
 
 
 CUSTOM_BUFFERS_PATH = get_custom_buffers_path()
@@ -755,8 +759,8 @@ class CustomBufferComponent:
             return (self.name, grams, "g", molar_str, mw_str)
 
         elif self.comp_type == "stock":
-            if self.stock_concentration_mm is None or self.target_concentration_mm is None:
-                raise ValueError(f"Stock component '{self.name}' requires target_concentration_mm and stock_concentration_mm.")
+            if self.stock_concentration_mm is None or self.target_concentration_mm is None or self.stock_concentration_mm <= 0:
+                raise ValueError(f"Stock component '{self.name}' requires target_concentration_mm and positive stock_concentration_mm.")
             vol_ml = round((self.target_concentration_mm * 1000.0) / self.stock_concentration_mm, 3)
             molar_str = f"{self.target_concentration_mm:g} mM" if self.target_concentration_mm < 1000 else f"{self.target_concentration_mm/1000:g} M"
             stock_str = f"From {self.stock_concentration_mm:g} mM stock" if self.stock_concentration_mm < 1000 else f"From {self.stock_concentration_mm/1000:g} M stock"

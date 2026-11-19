@@ -274,6 +274,8 @@ def analyze_counter_selex(
     adjustment, and scores subunit interface selectivity.
     """
     all_keys = sorted(set(target_counts.keys()) | set(counter_counts.keys()))
+    if alpha_smoothing <= 0:
+        raise ValueError("alpha_smoothing must be positive to ensure Dirichlet smoothing and avoid division by zero.")
     K = max(len(all_keys), 1)
 
     total_target = sum(target_counts.values())

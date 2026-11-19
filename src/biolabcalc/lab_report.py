@@ -15,7 +15,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Tuple, Any, Union
 
 
-@dataclass
+@dataclass(frozen=True)
 class MeasurementRecord:
     sample_id: str
     parameter: str
@@ -34,7 +34,7 @@ class MeasurementRecord:
         return None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ParameterStatistics:
     sample_id: str
     parameter: str
@@ -45,6 +45,33 @@ class ParameterStatistics:
     cv_percent: float
     min_value: float
     max_value: float
+
+
+def _configure_print_setup(
+    ws: Any,
+    orientation: str = "landscape",
+    title_rows: Optional[str] = None,
+    fit_to_width: int = 1,
+    fit_to_height: int = 0,
+) -> None:
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = fit_to_width
+    ws.page_setup.fitToHeight = fit_to_height
+    ws.page_setup.orientation = (
+        getattr(ws, "ORIENTATION_LANDSCAPE", "landscape")
+        if orientation == "landscape"
+        else getattr(ws, "ORIENTATION_PORTRAIT", "portrait")
+    )
+    ws.page_setup.paperSize = getattr(ws, "PAPERSIZE_LETTER", 1)
+    ws.page_margins.left = 0.4
+    ws.page_margins.right = 0.4
+    ws.page_margins.top = 0.5
+    ws.page_margins.bottom = 0.5
+    if title_rows:
+        ws.print_title_rows = title_rows
+
+
+_apply_print_setup = _configure_print_setup
 
 
 class LabReport:
@@ -292,11 +319,202 @@ class LabReport:
 
         return md_text
 
+    def to_html(self, filepath: Optional[str] = None) -> str:
+        """Export the lab report to a clean, printable HTML document."""
+        import html
+
+        def esc(val: Any) -> str:
+            return html.escape(str(val) if val is not None else "")
+
+        rows_html = []
+        for r in self.records:
+            tgt_str = f"{r.target_or_expected:g}" if r.target_or_expected is not None else "-"
+            dev_str = f"{r.percent_deviation:+.1f}%" if r.percent_deviation is not None else "-"
+            status_color = "#16A34A" if r.status == "PASS" else ("#CA8A04" if r.status == "FLAG" else "#DC2626")
+            rows_html.append(
+                f"<tr>"
+                f"<td><code>{esc(r.sample_id)}</code></td>"
+                f"<td>{esc(r.parameter)}</td>"
+                f"<td><strong>{r.value:g}</strong></td>"
+                f"<td>{esc(r.unit)}</td>"
+                f"<td>{esc(tgt_str)}</td>"
+                f"<td>{esc(dev_str)}</td>"
+                f"<td style='color: {status_color}; font-weight: bold;'>{esc(r.status)}</td>"
+                f"<td>{esc(r.notes)}</td>"
+                f"</tr>"
+            )
+
+        stats = self.calculate_statistics()
+        reps = [s for s in stats if s.count > 1]
+        reps_html = ""
+        if reps:
+            rep_rows = []
+            for s in reps:
+                rep_rows.append(
+                    f"<tr>"
+                    f"<td><code>{esc(s.sample_id)}</code></td>"
+                    f"<td>{esc(s.parameter)}</td>"
+                    f"<td>{s.count}</td>"
+                    f"<td><strong>{s.mean:g} ± {s.std_dev:g}</strong> {esc(s.unit)}</td>"
+                    f"<td>{s.cv_percent:.1f}%</td>"
+                    f"<td>[{s.min_value:g}, {s.max_value:g}]</td>"
+                    f"</tr>"
+                )
+            reps_html = f"""
+            <h2 style="font-size: 16px; color: #1E293B; margin-top: 24px;">📈 Replicate Statistics (Mean, SD, %CV)</h2>
+            <table>
+                <thead>
+                    <tr><th>Sample ID</th><th>Parameter</th><th>N</th><th>Mean ± SD</th><th>%CV</th><th>Range [Min, Max]</th></tr>
+                </thead>
+                <tbody>{''.join(rep_rows)}</tbody>
+            </table>
+            """
+
+        conclusions_html = ""
+        if self.conclusions:
+            c_items = "".join(f"<li>{esc(c)}</li>" for c in self.conclusions)
+            conclusions_html = f"""
+            <h2 style="font-size: 16px; color: #1E293B; margin-top: 24px;">📝 Key Conclusions & Observations</h2>
+            <ul style="line-height: 1.6; color: #334155;">{c_items}</ul>
+            """
+
+        html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{esc(self.title)}</title>
+<style>
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #0F172A;
+    background: #F8FAFC;
+    margin: 0;
+    padding: 24px;
+  }}
+  .container {{
+    max-width: 900px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 32px;
+  }}
+  .header {{
+    border-bottom: 2px solid #E2E8F0;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }}
+  h1 {{ margin: 0 0 8px 0; font-size: 24px; color: #1E293B; }}
+  .meta-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    font-size: 13px;
+    color: #64748B;
+    margin-bottom: 16px;
+  }}
+  .meta-item strong {{ color: #1E293B; }}
+  table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+  }}
+  th, td {{
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #E2E8F0;
+  }}
+  th {{
+    background: #F1F5F9;
+    color: #475569;
+    font-weight: 600;
+  }}
+  code {{
+    background: #F1F5F9;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+  }}
+  .btn-print {{
+    background: #2563EB;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }}
+  .btn-print:hover {{ background: #1D4ED8; }}
+  @media print {{
+    .no-print, button {{ display: none !important; }}
+    body, .container {{
+      background: #FFFFFF !important;
+      color: #000000 !important;
+      margin: 0;
+      padding: 0;
+      box-shadow: none !important;
+      max-width: 100% !important;
+    }}
+    table {{ page-break-inside: auto; }}
+    tr {{ page-break-inside: avoid; page-break-after: auto; }}
+  }}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="no-print" style="text-align: right;">
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </div>
+  <div class="header">
+    <h1>🔬 {esc(self.title)}</h1>
+    <div class="meta-grid">
+      <div class="meta-item"><strong>Date:</strong> {esc(self.date)}</div>
+      <div class="meta-item"><strong>Experimenter:</strong> {esc(self.experimenter)}</div>
+      <div class="meta-item"><strong>Project:</strong> {esc(self.project)}</div>
+    </div>
+    {f"<p style='color: #475569; font-size: 14px; margin: 8px 0 0 0;'><strong>Objective:</strong> {esc(self.objective)}</p>" if self.objective else ""}
+  </div>
+
+  <h2 style="font-size: 16px; color: #1E293B;">📊 Experimental Data & Measurements</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Sample ID</th><th>Parameter</th><th>Value</th><th>Unit</th><th>Target</th><th>Deviation</th><th>QC</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {''.join(rows_html)}
+    </tbody>
+  </table>
+
+  {reps_html}
+  {conclusions_html}
+</div>
+</body>
+</html>
+"""
+        if filepath:
+            dir_name = os.path.dirname(os.path.abspath(filepath))
+            if dir_name and not os.path.exists(dir_name):
+                os.makedirs(dir_name, exist_ok=True)
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(html_content)
+
+        return html_content
+
     def to_excel(self, filepath: str) -> str:
         """Export the lab report to a styled Microsoft Excel workbook with formulas and QC formatting."""
-        import openpyxl
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-        from openpyxl.utils import get_column_letter
+        try:
+            import openpyxl
+        except ImportError:
+            raise ImportError(
+                "Exporting lab reports to Excel requires 'openpyxl'. "
+                "Install it with: pip install 'biolabcalc[excel]'"
+            )
 
         wb = openpyxl.Workbook()
         try:
@@ -311,9 +529,19 @@ class LabReport:
 
     def _build_excel_content(self, wb: Any) -> None:
         """Populate workbook with report sections and styling."""
+        try:
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            raise ImportError(
+                "Exporting lab reports to Excel requires 'openpyxl'. "
+                "Install it with: pip install 'biolabcalc[excel]'"
+            )
+
         ws = wb.active
         ws.title = "Lab_Report"
         ws.views.sheetView[0].showGridLines = True
+        _configure_print_setup(ws, orientation="landscape", fit_to_width=1, fit_to_height=0)
 
         # Styles
         navy_header = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
@@ -451,7 +679,7 @@ class LabReport:
                 val = str(cell.value or "")
                 if not cell.coordinate in ws.merged_cells:
                     max_len = max(max_len, len(val))
-            ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+            ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 50)
 
     def to_csv(self, filepath: str) -> str:
         """Export raw measurement records to CSV."""

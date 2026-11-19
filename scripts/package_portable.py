@@ -36,17 +36,28 @@ echo ===========================================================================
 echo   BIOLABCALC ZERO-INSTALL PORTABLE BENCHTOP LAUNCHER
 echo ============================================================================
 
-REM Resolve Python 3 executable
+REM Resolve Python 3 executable: python-embed -> .venv -> py -3 -> non-WindowsApps python -> python3
+if exist "%SCRIPT_DIR%python-embed\\python.exe" (
+    set "PYTHON_EXE="%SCRIPT_DIR%python-embed\\python.exe""
+    goto :run
+)
+if exist "%SCRIPT_DIR%.venv\\Scripts\\python.exe" (
+    set "PYTHON_EXE="%SCRIPT_DIR%.venv\\Scripts\\python.exe""
+    goto :run
+)
+
 where py >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     set "PYTHON_EXE=py -3"
     goto :run
 )
 
-where python >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    set "PYTHON_EXE=python"
-    goto :run
+for /f "delims=" %%I in ('where python 2^>nul') do (
+    echo %%I | findstr /i "WindowsApps" >nul
+    if errorlevel 1 (
+        set "PYTHON_EXE="%%I""
+        goto :run
+    )
 )
 
 where python3 >nul 2>&1
@@ -56,8 +67,8 @@ if %ERRORLEVEL% equ 0 (
 )
 
 echo [!] Error: Python 3 was not found in system PATH. >&2
-echo     Please ensure Python 3.8+ is installed on this workstation. >&2
-pause
+echo     Please ensure Python 3.8+ is installed on this workstation or place an embedded interpreter in python-embed\\ >&2
+if not defined CI pause
 exit /b 1
 
 :run
@@ -65,7 +76,7 @@ REM Check if config.yaml exists; if not, prompt for first-run setup wizard
 if not exist "%SCRIPT_DIR%config.yaml" (
     echo [*] First-time setup detected: config.yaml not found.
     echo [*] Launching BioLabCalc Portable Setup Wizard...
-    %PYTHON_EXE% -m biolabcalc.setup_wizard
+    %PYTHON_EXE% -m biolabcalc.setup_wizard --config-output "%SCRIPT_DIR%config.yaml"
     if %ERRORLEVEL% neq 0 (
         echo [!] Setup wizard was cancelled or failed. Proceeding with defaults.
     )
@@ -75,7 +86,7 @@ echo [*] Launching BioLabCalc ELN & Multi-Modal LIMS...
 %PYTHON_EXE% "%SCRIPT_DIR%run.py" eln %*
 if %ERRORLEVEL% neq 0 (
     echo [!] Server exited with status %ERRORLEVEL%
-    pause
+    if not defined CI pause
 )
 exit /b %ERRORLEVEL%
 """
@@ -107,7 +118,7 @@ fi
 if [ ! -f "$SCRIPT_DIR/config.yaml" ]; then
     echo "[*] First-time setup detected: config.yaml not found."
     echo "[*] Launching BioLabCalc Portable Setup Wizard..."
-    $PYTHON_CMD -m biolabcalc.setup_wizard || echo "[!] Setup wizard was cancelled or failed. Using defaults."
+    $PYTHON_CMD -m biolabcalc.setup_wizard --config-output "$SCRIPT_DIR/config.yaml" || echo "[!] Setup wizard was cancelled or failed. Using defaults."
 fi
 
 echo "[*] Launching BioLabCalc ELN & Multi-Modal LIMS..."

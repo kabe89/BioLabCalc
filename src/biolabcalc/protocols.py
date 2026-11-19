@@ -1294,6 +1294,205 @@ def format_protocol_markdown(p: LabProtocol) -> str:
     return "\n".join(lines)
 
 
+def format_protocol_html(p: LabProtocol) -> str:
+    """Format a LabProtocol object into a clean, printable HTML bench sheet."""
+    import html
+
+    def esc(s: Any) -> str:
+        return html.escape(str(s) if s is not None else "")
+
+    safety_items = "".join(f"<li><strong>Caution:</strong> {esc(s)}</li>" for s in p.safety_notes)
+    safety_html = f'<div class="safety-box"><h3 style="margin: 0 0 6px 0; font-size: 14px;">⚠️ Safety & Handling</h3><ul style="margin: 0; padding-left: 20px;">{safety_items}</ul></div>' if p.safety_notes else ""
+
+    reagent_rows = []
+    for r in p.reagents:
+        reagent_rows.append(
+            f"<tr><td><strong>{esc(r.name)}</strong></td><td>{esc(r.concentration)}</td><td>{esc(r.amount_or_volume)}</td><td>{esc(r.notes)}</td></tr>"
+        )
+    reagents_html = f"""
+    <h2 style="font-size: 16px; color: #1E293B;">🧪 Reagents & Stock Solutions</h2>
+    <table>
+      <thead><tr><th>Reagent</th><th>Working Conc</th><th>Amount / Volume</th><th>Notes</th></tr></thead>
+      <tbody>{''.join(reagent_rows)}</tbody>
+    </table>
+    """ if reagent_rows else ""
+
+    materials_items = "".join(f"<li>{esc(m)}</li>" for m in p.materials_equipment)
+    materials_html = f'<h2 style="font-size: 16px; color: #1E293B;">🛠️ Materials & Equipment Required</h2><ul>{materials_items}</ul>' if p.materials_equipment else ""
+
+    steps_html = []
+    for s in p.steps:
+        temp_dur = []
+        if s.temperature:
+            temp_dur.append(f"🌡️ {esc(s.temperature)}")
+        if s.duration:
+            temp_dur.append(f"⏱️ {esc(s.duration)}")
+        badge = f'<span style="background: #E2E8F0; color: #334155; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">{" | ".join(temp_dur)}</span>' if temp_dur else ""
+
+        tip_html = f'<div class="tip-box">💡 <strong>Pro Tip:</strong> {esc(s.tip)}</div>' if s.tip else ""
+        steps_html.append(f"""
+        <div class="step-card">
+          <div class="step-title">Step {s.step_number}: {esc(s.title)}{badge}</div>
+          <div style="font-size: 13.5px; color: #334155;">{esc(s.instruction)}</div>
+          {tip_html}
+        </div>
+        """)
+
+    trouble_rows = []
+    for t in p.troubleshooting:
+        trouble_rows.append(
+            f"<tr><td><strong>{esc(t.issue)}</strong></td><td>{esc(t.possible_cause)}</td><td>{esc(t.solution)}</td></tr>"
+        )
+    trouble_html = f"""
+    <h2 style="font-size: 16px; color: #1E293B;">🔍 Troubleshooting & Failure Analysis</h2>
+    <table>
+      <thead><tr><th>Observation / Problem</th><th>Possible Cause</th><th>Corrective Action</th></tr></thead>
+      <tbody>{''.join(trouble_rows)}</tbody>
+    </table>
+    """ if trouble_rows else ""
+
+    refs_items = "".join(f"<li>{esc(ref)}</li>" for ref in p.references)
+    refs_html = f'<h2 style="font-size: 16px; color: #1E293B;">📚 References</h2><ol>{refs_items}</ol>' if p.references else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{esc(p.title)} — BioLabCalc Protocol</title>
+<style>
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #0F172A;
+    background: #F8FAFC;
+    margin: 0;
+    padding: 24px;
+    line-height: 1.5;
+  }}
+  .container {{
+    max-width: 850px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 32px;
+  }}
+  h1 {{ margin: 0 0 8px 0; font-size: 24px; color: #1E293B; }}
+  .meta-pills {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 20px 0;
+  }}
+  .pill {{
+    background: #F1F5F9;
+    color: #475569;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+  }}
+  .safety-box {{
+    background: #FEF2F2;
+    border-left: 4px solid #EF4444;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    color: #991B1B;
+    font-size: 13.5px;
+  }}
+  table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0 24px 0;
+  }}
+  th, td {{
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #E2E8F0;
+  }}
+  th {{ background: #F8FAFC; color: #475569; font-weight: 600; }}
+  .step-card {{
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #FAFAFA;
+  }}
+  .step-title {{
+    font-weight: 600;
+    font-size: 15px;
+    color: #1E293B;
+    margin-bottom: 8px;
+  }}
+  .tip-box {{
+    margin-top: 10px;
+    background: #EFF6FF;
+    border-left: 3px solid #3B82F6;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1E40AF;
+  }}
+  .btn-print {{
+    background: #2563EB;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }}
+  .btn-print:hover {{ background: #1D4ED8; }}
+  @media print {{
+    .no-print, button {{ display: none !important; }}
+    body, .container {{
+      background: #FFFFFF !important;
+      color: #000000 !important;
+      margin: 0;
+      padding: 0;
+      box-shadow: none !important;
+      max-width: 100% !important;
+    }}
+    .step-card {{ page-break-inside: avoid; border: 1px solid #CBD5E1; background: #FFFFFF; }}
+    table {{ page-break-inside: auto; }}
+    tr {{ page-break-inside: avoid; }}
+  }}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="no-print" style="text-align: right;">
+    <button class="btn-print" onclick="window.print()">🖨️ Print Bench Protocol</button>
+  </div>
+  <h1>📋 {esc(p.title)}</h1>
+  <div class="meta-pills">
+    <span class="pill">📁 {esc(p.category)}</span>
+    <span class="pill">⏱️ {esc(p.estimated_time)}</span>
+    <span class="pill">🎯 {esc(p.skill_level)}</span>
+  </div>
+
+  <div style="font-size: 14px; color: #475569; margin-bottom: 20px;">
+    <strong>Overview:</strong> {esc(p.summary)}
+  </div>
+
+  {safety_html}
+  {reagents_html}
+  {materials_html}
+
+  <h2 style="font-size: 16px; color: #1E293B; margin-top: 24px;">📋 Step-by-Step Bench Protocol</h2>
+  {''.join(steps_html)}
+
+  {trouble_html}
+  {refs_html}
+</div>
+</body>
+</html>
+"""
+
+
 def export_all_protocols_markdown(output_filepath: str) -> None:
     """Export all protocols in the catalog into a single consolidated reference markdown file."""
     md_blocks = [

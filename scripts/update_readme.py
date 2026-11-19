@@ -51,7 +51,14 @@ def get_version() -> str:
 def get_wiki_stats() -> Tuple[int, int]:
     """Return (total_wiki_files, standalone_guides_count)."""
     if not WIKI_DIR.is_dir():
-        return (0, 0)
+        # Fallback to catalog defaults when wiki directory is not present (e.g. unpacked sdist)
+        try:
+            from update_wiki import PAGE_CATEGORIES
+            total_pages = len(PAGE_CATEGORIES)
+            guides_count = len([p for p in PAGE_CATEGORIES.keys() if not p.startswith("_")])
+            return (total_pages, guides_count)
+        except Exception:
+            return (26, 24)
     all_md = [f for f in WIKI_DIR.glob("*.md")]
     total = len(all_md)
     # Standalone guides exclude sidebars/footers
@@ -167,8 +174,8 @@ def generate_updated_readme(
     text = re.sub(wiki_toc_pattern, new_wiki_toc, text)
 
     # 5. Update Feature Comparison Matrix version: BioLabCalc (v<X.Y.Z>)
-    matrix_version_pattern = r"\|\s*\*\*Capability / Dimension\*\*\s*\|\s*BioLabCalc \(v[\d\.]+\)\s*\|"
-    new_matrix_version = f"| **Capability / Dimension** | **BioLabCalc (v{version})** |"
+    matrix_version_pattern = r"\|\s*(?:\*\*)?Capability / Dimension(?:\*\*)?\s*\|\s*(?:\*\*)?BioLabCalc \(v[\d\.]+\)(?:\*\*)?\s*\|"
+    new_matrix_version = f"| Capability / Dimension | BioLabCalc (v{version}) |"
     text = re.sub(matrix_version_pattern, new_matrix_version, text)
 
     # 6. Update Test summary block in ## 🧪 Running Tests

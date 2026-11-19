@@ -814,10 +814,14 @@ def calculate_golden_gate_assembly(
     total_dna_ng = round(v_mass + sum(insert_masses), 2)
 
     # Reagents & pipetting volumes
-    v_conc = vector_conc_ng_ul or 50.0
+    v_conc = vector_conc_ng_ul if vector_conc_ng_ul is not None else 50.0
+    if v_conc <= 0:
+        raise ValueError("vector_conc_ng_ul must be positive.")
     v_vol = round(v_mass / v_conc, 2)
 
-    ins_concs = insert_concs_ng_ul or ([25.0] * len(insert_lengths_bp))
+    ins_concs = list(insert_concs_ng_ul) if insert_concs_ng_ul is not None else [25.0] * len(insert_lengths_bp)
+    if any(c <= 0 for c in ins_concs):
+        raise ValueError("insert_concs_ng_ul entries must be positive.")
     if len(ins_concs) < len(insert_lengths_bp):
         ins_concs.extend([25.0] * (len(insert_lengths_bp) - len(ins_concs)))
 

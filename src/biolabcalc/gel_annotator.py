@@ -1,9 +1,11 @@
 """Gel Labeling Add-on: Annotate gel electrophoresis images, label lanes, map molecular weights, and export publication-ready figures."""
 
 from __future__ import annotations
+import io
 import math
 import os
 import tempfile
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 try:
@@ -52,6 +54,33 @@ THIN_BORDER = (
     if Border and Side
     else None
 )
+
+
+def _configure_print_setup(
+    ws: Any,
+    orientation: str = "landscape",
+    title_rows: Optional[str] = None,
+    fit_to_width: int = 1,
+    fit_to_height: int = 0,
+) -> None:
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = fit_to_width
+    ws.page_setup.fitToHeight = fit_to_height
+    ws.page_setup.orientation = (
+        getattr(ws, "ORIENTATION_LANDSCAPE", "landscape")
+        if orientation == "landscape"
+        else getattr(ws, "ORIENTATION_PORTRAIT", "portrait")
+    )
+    ws.page_setup.paperSize = getattr(ws, "PAPERSIZE_LETTER", 1)
+    ws.page_margins.left = 0.4
+    ws.page_margins.right = 0.4
+    ws.page_margins.top = 0.5
+    ws.page_margins.bottom = 0.5
+    if title_rows:
+        ws.print_title_rows = title_rows
+
+
+_apply_print_setup = _configure_print_setup
 
 
 class GelAnnotator:
@@ -112,6 +141,21 @@ class GelAnnotator:
         self.ladder_side: str = "left"
         self.bands: List[Dict[str, Any]] = []
         self.lane_metadata: Dict[int, LaneMetadata] = {}
+
+    def close(self) -> None:
+        """Close any open PIL image handles."""
+        if hasattr(self, "raw_image") and self.raw_image is not None:
+            try:
+                self.raw_image.close()
+            except Exception:
+                pass
+            self.raw_image = None
+
+    def __enter__(self) -> GelAnnotator:
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.close()
 
     def set_lane_metadata(self, lane_index: int, metadata: LaneMetadata) -> GelAnnotator:
         """Assign structured experimental metadata to a specific lane."""
@@ -239,6 +283,8 @@ class GelAnnotator:
     ) -> str:
         """Render the fully annotated gel figure with customizable typography and optional lane table."""
         num_lanes = len(self.lanes)
+        if num_lanes == 0:
+            raise ValueError("Cannot render gel without any lanes. Add at least one lane via add_lane().")
         ladder_info = LADDER_CATALOG.get(self.ladder_type, LADDER_CATALOG["1kb_dna"])
         ladder_bands = sorted(ladder_info["bands"], reverse=True)
         min_size = min(ladder_bands)
@@ -253,7 +299,52 @@ class GelAnnotator:
         fig_width = max(7.5, num_lanes * 1.35 + 2.5)
         fig_height = 8.5 + extra_table_h
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
+        try:
+            self._draw_figure(
+                fig=fig,
+                ax=ax,
+                fig_width=fig_width,
+                fig_height=fig_height,
+                extra_table_h=extra_table_h,
+                num_lanes=num_lanes,
+                ladder_info=ladder_info,
+                ladder_bands=ladder_bands,
+                min_size=min_size,
+                max_size=max_size,
+                unit=unit,
+                st=st,
+                f_scale=f_scale,
+                rot=rot,
+                show_ticks=show_ticks,
+                include_table=include_table,
+            )
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
+        finally:
+            plt.close(fig)
 
+        return output_path
+
+    def _draw_figure(
+        self,
+        fig: Any,
+        ax: Any,
+        fig_width: float,
+        fig_height: float,
+        extra_table_h: float,
+        num_lanes: int,
+        ladder_info: Dict[str, Any],
+        ladder_bands: List[int],
+        min_size: int,
+        max_size: int,
+        unit: str,
+        st: GelTypographyConfig,
+        f_scale: float,
+        rot: int,
+        show_ticks: bool,
+        include_table: bool,
+    ) -> None:
         # Plot background
         gel_left = 1.8
         gel_right = fig_width - 1.2
@@ -481,13 +572,6 @@ class GelAnnotator:
         ax.set_ylim(0, fig_height)
         ax.axis("off")
 
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
-        plt.close(fig)
-
-        return output_path
-
     def embed_in_excel(
         self,
         excel_path: str,
@@ -501,13 +585,18 @@ class GelAnnotator:
         st = style or GelTypographyConfig()
         f_name = "Calibri" if "sans" in st.font_family_category else ("Times New Roman" if "serif" in st.font_family_category else "Consolas")
 
-        wb = openpyxl.load_workbook(excel_path) if os.path.exists(excel_path) else openpyxl.Workbook()
+        is_new = not os.path.exists(excel_path)
+        wb = openpyxl.load_workbook(excel_path) if not is_new else openpyxl.Workbook()
         try:
-            if sheet_name in wb.sheetnames:
+            if is_new and wb.sheetnames == ["Sheet"]:
+                ws = wb.active
+                ws.title = sheet_name
+            elif sheet_name in wb.sheetnames:
                 ws = wb[sheet_name]
             else:
                 ws = wb.create_sheet(title=sheet_name)
 
+            _configure_print_setup(ws, orientation="landscape", fit_to_width=1, fit_to_height=0)
             ws.views.sheetView[0].showGridLines = True
             ws.cell(row=1, column=1, value=self.title).font = Font(name=f_name, size=16, bold=True, color="1F4E79")
             ws.cell(row=2, column=1, value=f"{self.gel_info} | Generated via BioLabCalc Gel Annotator").font = Font(name=f_name, size=9, italic=True, color="595959")
@@ -555,17 +644,23 @@ class GelAnnotator:
                     cell.alignment = Alignment(horizontal="center" if c_idx in (1, 3) else "left")
 
             # Render image to temporary directory and embed
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                temp_img = os.path.join(tmp_dir, "temp_gel_render.png")
-                self.render(temp_img, dpi=180, style=st, include_table=False)
+            bio = None
+            try:
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    temp_img = os.path.join(tmp_dir, "temp_gel_render.png")
+                    self.render(temp_img, dpi=180, style=st, include_table=False)
 
-                img_obj = OpenpyxlImage(temp_img)
-                # Position image below table
-                img_start_row = 8 + len(self.lanes)
-                ws.cell(row=img_start_row - 1, column=1, value="Electrophoresis Gel Figure").font = Font(name=f_name, size=12, bold=True, color="1F4E79")
-                ws.add_image(img_obj, f"A{img_start_row}")
+                    bio = io.BytesIO(Path(temp_img).read_bytes())
+                    img_obj = OpenpyxlImage(bio)
+                    # Position image below table
+                    img_start_row = 8 + len(self.lanes)
+                    ws.cell(row=img_start_row - 1, column=1, value="Electrophoresis Gel Figure").font = Font(name=f_name, size=12, bold=True, color="1F4E79")
+                    ws.add_image(img_obj, f"A{img_start_row}")
 
-                wb.save(excel_path)
+                    wb.save(excel_path)
+            finally:
+                if bio is not None:
+                    bio.close()
         finally:
             wb.close()
 

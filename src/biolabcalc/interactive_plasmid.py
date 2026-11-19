@@ -13,6 +13,7 @@ import html
 import http.server
 import math
 import os
+import re
 import threading
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -42,7 +43,7 @@ FEATURE_TYPE_PALETTE: Dict[str, str] = {
 
 def _get_feature_color(feat: PlasmidFeature) -> str:
     """Return hex color code for plasmid feature."""
-    if feat.color and feat.color.startswith("#"):
+    if feat.color and re.fullmatch(r"#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?", feat.color):
         return feat.color
     return FEATURE_TYPE_PALETTE.get(feat.feature_type, "#3B82F6")
 
@@ -99,8 +100,9 @@ def render_plasmid_map_svg(
     clean_name = html.escape(plasmid.name)
     svg_parts.append(f'<text x="{cx}" y="{cy - 16}" class="center-title">{clean_name}</text>')
     svg_parts.append(f'<text x="{cx}" y="{cy + 8}" class="center-sub">{total_bp:,} bp</text>')
+    clean_topology = html.escape(plasmid.topology.upper())
     svg_parts.append(
-        f'<text x="{cx}" y="{cy + 28}" class="center-meta">{plasmid.topology.upper()} • {plasmid.gc_percent:.1f}% GC</text>'
+        f'<text x="{cx}" y="{cy + 28}" class="center-meta">{clean_topology} • {plasmid.gc_percent:.1f}% GC</text>'
     )
 
     # Backbone Circle
@@ -476,15 +478,29 @@ def get_plasmid_workbench_html() -> str:
             width: 100%;
             height: 380px;
         }}
+        @media print {{
+            header, .nav-tabs, .panel:not(#mapPanel), .controls, .no-print, button {{ display: none !important; }}
+            body, main, .panel, .svg-container {{
+                background: #ffffff !important;
+                color: #000000 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                height: auto !important;
+                overflow: visible !important;
+            }}
+            svg, canvas {{ max-width: 100% !important; height: auto !important; page-break-inside: avoid; }}
+        }}
     </style>
 </head>
 <body>
     <header>
         <div class="brand">
             <span>🧬 BioLabCalc</span>
-            <span class="badge">Plasmid Workbench v0.4.0</span>
+            <span class="badge">Plasmid Workbench</span>
         </div>
         <div class="nav-tabs">
+            <button class="tab-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
             <button class="tab-btn active" onclick="switchTab('plasmid')">Circular Map</button>
             <button class="tab-btn" onclick="switchTab('gel')">Virtual Agarose Gel</button>
             <button class="tab-btn" onclick="switchTab('primers')">Cloning Primers</button>

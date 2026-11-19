@@ -16,6 +16,10 @@ from biolabcalc.eln.storage.preview_generator import (
     PreviewGenerator,
     PreviewResult,
 )
+from biolabcalc.eln.storage.sqlite_store import (
+    SQLiteStore,
+    get_sqlite_store,
+)
 
 __all__ = [
     "BlobMetadata",
@@ -25,4 +29,6 @@ __all__ = [
     "S3StorageBackend",
     "PreviewGenerator",
     "PreviewResult",
+    "SQLiteStore",
+    "get_sqlite_store",
 ]

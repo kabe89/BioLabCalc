@@ -20,8 +20,8 @@ def clean_build_artifacts():
                 os.remove(match)
 
 def run_cmd(cmd):
-    print(f"--> Running: {cmd}")
-    res = subprocess.run(cmd, shell=True)
+    print(f"--> Running: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
+    res = subprocess.run(cmd)
     if res.returncode != 0:
         print(f"Error: command failed with return code {res.returncode}")
         sys.exit(res.returncode)
@@ -41,16 +41,16 @@ def main():
 
     if args.build:
         clean_build_artifacts()
-        run_cmd(f'"{sys.executable}" setup.py sdist bdist_wheel')
+        run_cmd([sys.executable, "-m", "build"])
 
     if args.check:
-        run_cmd("twine check dist/*")
+        run_cmd([sys.executable, "-m", "twine", "check", "dist/*"])
 
     if args.test_pypi:
-        run_cmd("twine upload --repository testpypi dist/*")
+        run_cmd([sys.executable, "-m", "twine", "upload", "--repository", "testpypi", "dist/*"])
 
     if args.pypi:
-        run_cmd("twine upload dist/*")
+        run_cmd([sys.executable, "-m", "twine", "upload", "dist/*"])
 
 if __name__ == "__main__":
     main()

@@ -228,12 +228,26 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       margin-top: 8px;
     }
     .mw-val { font-size: 1.2rem; font-weight: 700; color: #065F46; }
+    @media print {
+      header, .sidebar, .toolbar, .toolbar-actions, .controls, .no-print, button { display: none !important; }
+      body, .main-container, .canvas-container {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      canvas { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>🧬 BioLabCalc <span>Gel Annotator</span> <span class="badge">Drag & Drop</span></h1>
     <div class="toolbar-actions">
+      <button onclick="window.print()">🖨️ Print / Save PDF</button>
       <button onclick="loadDemoGel()">🧪 Load Demo Gel</button>
       <button onclick="invertGelColors()">🌓 Invert B/W</button>
       <button onclick="clearAnnotations()">🗑️ Clear Bands</button>
@@ -417,6 +431,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   </div>
 
   <script>
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     const LADDERS = {
       "1kb_dna": {
         name: "1 kb DNA Ladder", unit: "bp",
@@ -709,7 +733,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         let lNum = idx + 1;
         let item = document.createElement("div");
         item.className = "lane-item";
-        item.innerHTML = `<span><strong>L${lNum}:</strong> ${name}</span><button style="padding:2px 6px; font-size:0.7rem;" onclick="renameLane(${idx})">Edit</button>`;
+        item.innerHTML = `<span><strong>L${lNum}:</strong> ${escapeHtml(name)}</span><button style="padding:2px 6px; font-size:0.7rem;" onclick="renameLane(${idx})">Edit</button>`;
         list.appendChild(item);
 
         let opt = document.createElement("option");
@@ -1099,8 +1123,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td style="font-weight:700; text-align:center; color:#1F4E79;">${formattedNum}</td>
-          <td><input type="text" value="${name}" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="lanes[${idx}]=this.value; renderCanvasOnly(); updateLaneUIOnly();"></td>
+          <td style="font-weight:700; text-align:center; color:#1F4E79;">${escapeHtml(formattedNum)}</td>
+          <td><input type="text" value="${escapeHtml(name)}" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="lanes[${idx}]=this.value; renderCanvasOnly(); updateLaneUIOnly();"></td>
           <td>
             <select style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px; font-size:0.75rem;" onchange="laneMetadata[${idx}].type=this.value;">
               <option value="sample" ${meta.type==='sample'?'selected':''}>Sample</option>
@@ -1109,10 +1133,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
               <option value="blank" ${meta.type==='blank'?'selected':''}>Blank</option>
             </select>
           </td>
-          <td><input type="text" value="${meta.loading || ''}" placeholder="e.g. 10 μL" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].loading=this.value;"></td>
-          <td><input type="text" value="${meta.mix || ''}" placeholder="e.g. Q5 Mix" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].mix=this.value;"></td>
-          <td style="font-size:0.75rem; color:#475569;">${bandSummary}</td>
-          <td><input type="text" value="${meta.notes || ''}" placeholder="Notes" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].notes=this.value;"></td>
+          <td><input type="text" value="${escapeHtml(meta.loading || '')}" placeholder="e.g. 10 μL" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].loading=this.value;"></td>
+          <td><input type="text" value="${escapeHtml(meta.mix || '')}" placeholder="e.g. Q5 Mix" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].mix=this.value;"></td>
+          <td style="font-size:0.75rem; color:#475569;">${escapeHtml(bandSummary)}</td>
+          <td><input type="text" value="${escapeHtml(meta.notes || '')}" placeholder="Notes" style="width:100%; border:1px solid #CBD5E1; border-radius:4px; padding:3px 6px; font-size:0.8rem;" oninput="laneMetadata[${idx}].notes=this.value;"></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1132,7 +1156,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         let lNum = idx + 1;
         let item = document.createElement("div");
         item.className = "lane-item";
-        item.innerHTML = `<span><strong>L${lNum}:</strong> ${name}</span><button style="padding:2px 6px; font-size:0.7rem;" onclick="renameLane(${idx})">Edit</button>`;
+        item.innerHTML = `<span><strong>L${lNum}:</strong> ${escapeHtml(name)}</span><button style="padding:2px 6px; font-size:0.7rem;" onclick="renameLane(${idx})">Edit</button>`;
         list.appendChild(item);
 
         let opt = document.createElement("option");

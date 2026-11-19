@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biolabcalc"
-version = "1.1.1"
+version = "1.1.2"
 description = "A multifaceted Python library and Excel extension for daily molecular biology research, PCR stoichiometry, IVT yields, protein quantification, and primer design."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -68,6 +68,13 @@ dev = [
     "openpyxl>=3.0.0",
     "matplotlib>=3.5.0",
     "Pillow>=9.0.0",
+    "uvicorn>=0.20.0",
+    "fastapi>=0.100.0",
+    "sqlalchemy>=2.0.0",
+    "PyYAML>=6.0",
+    "build",
+    "twine",
+    "wheel",
 ]
 
 [project.urls]

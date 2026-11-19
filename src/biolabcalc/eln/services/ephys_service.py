@@ -13,13 +13,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..parsers.abf_parser import ABFData, ABFParser
 from ..storage.preview_generator import PreviewGenerator, PreviewResult
+from ..storage.sqlite_store import SQLiteStore, get_sqlite_store
 
 
 class EphysService:
     """Service governing electrophysiology current recordings and kinetic analysis."""
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, store: Optional[SQLiteStore] = None) -> None:
+        self._store = store or get_sqlite_store()
 
     def parse_and_analyze_abf(
         self,

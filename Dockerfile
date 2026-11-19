@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml setup.py README.md LICENSE MANIFEST.in ./
 COPY src/ ./src/
 
-RUN pip install --no-cache-dir --upgrade pip build \
-    && pip wheel --no-cache-dir --no-deps --wheel-dir /wheels .
+RUN pip install --no-cache-dir --upgrade pip build wheel \
+    && pip wheel --no-cache-dir --wheel-dir /wheels ".[eln,gel]"
 
 # Stage 2: Runtime
 FROM python:3.11-slim AS runner
@@ -41,4 +41,7 @@ EXPOSE 8080
 
 VOLUME ["/data"]
 
-ENTRYPOINT ["biolabcalc", "eln", "--host", "0.0.0.0", "--port", "8080", "--quiet"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+
+ENTRYPOINT ["biolabcalc", "eln", "--host", "0.0.0.0", "--port", "8080", "--quiet", "--no-browser"]

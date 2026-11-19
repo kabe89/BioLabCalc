@@ -430,11 +430,13 @@ def find_restriction_sites(
             if not is_circ:
                 top_cut_idx = start_0 + o_top
                 bot_cut_idx = start_0 + o_bot
-                if top_cut_idx < 0 or top_cut_idx > L or bot_cut_idx < 0 or bot_cut_idx > L:
+                if top_cut_idx <= 0 or top_cut_idx >= L or bot_cut_idx <= 0 or bot_cut_idx >= L:
                     continue
-
-            top_cut_1based = ((start_0 + o_top - 1) % L) + 1
-            bot_cut_1based = ((start_0 + o_bot - 1) % L) + 1
+                top_cut_1based = top_cut_idx
+                bot_cut_1based = bot_cut_idx
+            else:
+                top_cut_1based = ((start_0 + o_top - 1) % L) + 1
+                bot_cut_1based = ((start_0 + o_bot - 1) % L) + 1
             rec_start_1based = (start_0 % L) + 1
             rec_end_1based = (end_0 % L) + 1
 
@@ -507,11 +509,13 @@ def find_restriction_sites(
                 if not is_circ:
                     top_cut_idx = start_0 - d_top
                     bot_cut_idx = start_0 - d_bot
-                    if top_cut_idx < 0 or top_cut_idx > L or bot_cut_idx < 0 or bot_cut_idx > L:
+                    if top_cut_idx <= 0 or top_cut_idx >= L or bot_cut_idx <= 0 or bot_cut_idx >= L:
                         continue
-
-                top_cut_1based = ((start_0 - d_top - 1) % L) + 1
-                bot_cut_1based = ((start_0 - d_bot - 1) % L) + 1
+                    top_cut_1based = top_cut_idx
+                    bot_cut_1based = bot_cut_idx
+                else:
+                    top_cut_1based = ((start_0 - d_top - 1) % L) + 1
+                    bot_cut_1based = ((start_0 - d_bot - 1) % L) + 1
                 rec_start_1based = (start_0 % L) + 1
                 rec_end_1based = (end_0 % L) + 1
 

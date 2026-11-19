@@ -1831,3 +1831,34 @@ a:hover {
     bottom: 12px;
   }
 }
+
+/* ==========================================================================
+   Print Stylesheet (@media print)
+   ========================================================================== */
+@media print {
+  .sidebar, .toolbar, .controls, .no-print, button, nav, .header-actions, .modal-backdrop, .modal, .toast-container {
+    display: none !important;
+  }
+  body, .main, .main-content, .canvas-container, .tab-pane, .app-layout {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  th, td {
+    border: 1px solid #d1d5db !important;
+    padding: 6px 8px !important;
+  }
+  svg, canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+}

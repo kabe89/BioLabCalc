@@ -222,7 +222,18 @@ DEFAULT_SEQUENCE_CATALOG: Dict[str, SequenceRecord] = {
 # JSON Persistence Helpers
 # ---------------------------------------------------------------------------
 
-DEFAULT_SEQUENCES_PATH: str = os.path.expanduser("~/.biolabcalc/sequences.json")
+def get_default_sequences_path() -> str:
+    env_path = os.environ.get("BIOLABCALC_SEQUENCE_PATH")
+    if env_path:
+        return env_path
+    try:
+        from .profile import get_profile_dir
+        return str(get_profile_dir() / "sequences.json")
+    except Exception:
+        return os.path.expanduser("~/.biolabcalc/sequences.json")
+
+
+DEFAULT_SEQUENCES_PATH: str = get_default_sequences_path()
 
 
 def _annotation_to_dict(ann: SequenceAnnotation) -> Dict[str, Any]:
@@ -281,7 +292,7 @@ def _record_from_dict(d: Dict[str, Any]) -> SequenceRecord:
 
 
 def _load_user_records(filepath: Optional[str] = None) -> Dict[str, SequenceRecord]:
-    target_path = filepath if filepath is not None else DEFAULT_SEQUENCES_PATH
+    target_path = filepath if filepath is not None else get_default_sequences_path()
     if not os.path.exists(target_path):
         return {}
     try:
@@ -304,7 +315,7 @@ def _load_user_records(filepath: Optional[str] = None) -> Dict[str, SequenceReco
 
 
 def _save_user_records(records: Dict[str, SequenceRecord], filepath: Optional[str] = None) -> None:
-    target_path = filepath if filepath is not None else DEFAULT_SEQUENCES_PATH
+    target_path = filepath if filepath is not None else get_default_sequences_path()
     dir_name = os.path.dirname(os.path.abspath(target_path))
     if dir_name and not os.path.exists(dir_name):
         os.makedirs(dir_name, exist_ok=True)

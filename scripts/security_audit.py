@@ -156,10 +156,14 @@ def check_tracked_files() -> List[str]:
     """Inspect all git-tracked files for PII, local paths, and secrets."""
     errors = []
     code, files_out = run_git(["ls-files"])
-    if code != 0:
-        return ["Failed to list git tracked files."]
-
-    tracked_files = [f for f in files_out.splitlines() if f.strip()]
+    if code != 0 or not (REPO_ROOT / ".git").exists():
+        # Fallback to filesystem walk when .git is absent (e.g. unpacked sdist)
+        tracked_files = []
+        for p in REPO_ROOT.glob("**/*"):
+            if p.is_file() and not any(part in (".git", "__pycache__", ".venv", "dist", "build", ".egg-info") for part in p.parts):
+                tracked_files.append(str(p.relative_to(REPO_ROOT)))
+    else:
+        tracked_files = [f for f in files_out.splitlines() if f.strip()]
 
     # Patterns
     email_regex = re.compile(r"\b([A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,}))\b", re.IGNORECASE)
@@ -206,13 +210,15 @@ def main() -> None:
     import argparse
     parser = argparse.ArgumentParser(description="Git Security & PII Compliance Auditor")
     parser.add_argument("--strict", action="store_true", help="Fail without auto-configuring git privacy email")
+    parser.add_argument("--fix-git-identity", action="store_true", help="Auto-configure local git privacy identity (kabe89 / noreply)")
     args = parser.parse_args()
 
     print("======================================================================")
     print("  BIOLABCALC GIT SECURITY & PII COMPLIANCE AUDIT")
     print("======================================================================")
 
-    config_errors, actions = check_and_shore_up_git_config(auto_fix=not args.strict)
+    auto_fix = args.fix_git_identity and not args.strict
+    config_errors, actions = check_and_shore_up_git_config(auto_fix=auto_fix)
     unpushed_errors = check_unpushed_commits()
     tracked_errors = check_tracked_files()
 

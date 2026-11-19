@@ -62,8 +62,69 @@ export class AppController {
     this._initModals();
     this._loadCampaignDay(this.state.currentDayIndex);
     this._initEventListeners();
+    this._loadInitialBackendData();
 
     console.info('[BioLabCalc ELN] SPA Initialized successfully.');
+  }
+
+  /**
+   * Lightweight API client for backend persistence with JSON and error handling.
+   * @param {string} endpoint - API endpoint starting with /api/
+   * @param {Object} options - Fetch options (method, headers, body)
+   * @returns {Promise<any>} Response JSON data
+   */
+  async apiFetch(endpoint, options = {}) {
+    const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const headers = {
+      'Accept': 'application/json',
+      ...(options.headers || {})
+    };
+    if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(options.body);
+    }
+    try {
+      const response = await fetch(url, { ...options, headers });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn(`[apiFetch] ${options.method || 'GET'} ${url} notice:`, err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Loads initial campaign, SOP, and sequence entities from the backend REST API.
+   * @private
+   */
+  async _loadInitialBackendData() {
+    try {
+      const campaigns = await this.apiFetch('/api/campaigns');
+      if (campaigns && Array.isArray(campaigns) && campaigns.length > 0) {
+        console.log('[ELN] Loaded persistent campaigns from /api/campaigns:', campaigns.length);
+      }
+      const sops = await this.apiFetch('/api/sops');
+      if (sops) {
+        console.log('[ELN] Loaded SOPs from /api/sops');
+      }
+      const sequences = await this.apiFetch('/api/sequences');
+      if (sequences) {
+        console.log('[ELN] Loaded sequences from /api/sequences');
+      }
+    } catch (e) {
+      console.warn('[ELN] Backend API initial load notice:', e);
+    }
+  }
+
+  /**
+   * Loads pre-built 5-day T7 RNA Polymerase demo campaign.
+   */
+  loadDemoData() {
+    this.campaignData = this._initCampaignDatabase();
+    this._loadCampaignDay(this.state.currentDayIndex);
+    console.info('[BioLabCalc ELN] Loaded pre-built demo campaign data.');
   }
 
   /**

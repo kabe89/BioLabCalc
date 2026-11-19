@@ -30,7 +30,7 @@ from .buffers import calculate_hepes_ivt_buffer
 from .precipitation import calculate_precipitation
 
 
-@dataclass
+@dataclass(frozen=True)
 class CloningWorkflowResult:
     """Consolidated outcome of an end-to-end molecular cloning workflow."""
     primer_analysis: Optional[Dict[str, Any]]
@@ -56,7 +56,7 @@ class CloningWorkflowResult:
         return "\n".join(lines)
 
 
-@dataclass
+@dataclass(frozen=True)
 class IVTWorkflowResult:
     """Consolidated outcome of an end-to-end In Vitro Transcription synthesis workflow."""
     template_analysis: Any

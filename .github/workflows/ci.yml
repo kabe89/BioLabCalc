@@ -59,8 +59,13 @@ jobs:
         run: |
           python scripts/security_audit.py
 
+      - name: Run CI Guardrails & Architecture Check
+        run: |
+          python scripts/ci_guard.py
+
       - name: Verify Documentation Synchronization
         run: |
+          python scripts/update_ai_docs.py --check
           python scripts/update_readme.py --check
           python scripts/update_wiki.py --check
 

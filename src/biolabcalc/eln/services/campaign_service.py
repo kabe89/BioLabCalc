@@ -8,6 +8,7 @@ daily rollup aggregations, and standardized yield calculations.
 
 from __future__ import annotations
 
+import logging
 import math
 import threading
 import uuid
@@ -16,6 +17,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from .audit_service import get_audit_service
+from ..storage.sqlite_store import SQLiteStore, get_sqlite_store
+
+logger = logging.getLogger("biolabcalc.eln.services.campaign_service")
 
 
 @dataclass
@@ -125,14 +129,52 @@ class CampaignService:
     computes deterministic reagent formulations based on prior day outputs, and logs audit events.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, store: Optional[SQLiteStore] = None) -> None:
         """
-        Initialize CampaignService in-memory repository with thread synchronization.
-
+        Initialize CampaignService with SQLite persistence and thread synchronization.
         """
         self._lock = threading.RLock()
+        self._store = store or get_sqlite_store()
         self._campaigns: Dict[str, Campaign] = {}
         self._audit_service = get_audit_service()
+        self._load_from_store()
+
+    def _load_from_store(self) -> None:
+        try:
+            items = self._store.list_entities("campaign")
+            for item in items:
+                entries = []
+                for e in item.get("daily_entries", []):
+                    if isinstance(e, dict):
+                        entries.append(DailyEntry(**e))
+                    elif isinstance(e, DailyEntry):
+                        entries.append(e)
+                y_data = item.get("yields", {})
+                y_obj = CampaignYields(**y_data) if isinstance(y_data, dict) else CampaignYields()
+                cmp_obj = Campaign(
+                    campaign_id=item["campaign_id"],
+                    title=item.get("title", ""),
+                    description=item.get("description", ""),
+                    construct_id=item.get("construct_id", ""),
+                    status=item.get("status", "planned"),
+                    created_by=item.get("created_by", "unknown"),
+                    created_at=item.get("created_at", ""),
+                    start_date=item.get("start_date"),
+                    completion_date=item.get("completion_date"),
+                    target_organism=item.get("target_organism", "E. coli BL21(DE3)"),
+                    daily_entries=entries,
+                    yields=y_obj,
+                )
+                self._campaigns[cmp_obj.campaign_id] = cmp_obj
+        except Exception as e:
+            logger.warning(f"Error restoring campaigns from SQLite: {e}")
+
+    def _save_campaign(self, campaign: Campaign) -> None:
+        self._campaigns[campaign.campaign_id] = campaign
+        try:
+            self._store.put_entity("campaign", campaign.campaign_id, campaign.to_dict())
+        except Exception as e:
+            logger.warning(f"Error persisting campaign {campaign.campaign_id}: {e}")
 
     def create_campaign(
         self,
@@ -170,7 +212,7 @@ class CampaignService:
                 daily_entries=[],
                 yields=CampaignYields(),
             )
-            self._campaigns[campaign_id] = campaign
+            self._save_campaign(campaign)
 
             self._audit_service.record_event(
                 entity_type="campaign",
@@ -258,6 +300,7 @@ class CampaignService:
                 updated_at=now_iso,
             )
             campaign.daily_entries.append(entry)
+            self._save_campaign(campaign)
 
             self._audit_service.record_event(
                 entity_type="daily_entry",
@@ -314,6 +357,7 @@ class CampaignService:
             if status is not None:
                 target_entry.status = status
             target_entry.updated_at = now_iso
+            self._save_campaign(campaign)
 
             self._audit_service.record_event(
                 entity_type="daily_entry",
@@ -611,6 +655,7 @@ class CampaignService:
             )
             campaign.status = "completed"
             campaign.completion_date = now_iso
+            self._save_campaign(campaign)
 
             self._audit_service.record_event(
                 entity_type="campaign",
@@ -633,6 +678,11 @@ class CampaignService:
 
         """
         with self._lock:
+            for cid in list(self._campaigns.keys()):
+                try:
+                    self._store.delete_entity("campaign", cid)
+                except Exception:
+                    pass
             self._campaigns.clear()
 
 

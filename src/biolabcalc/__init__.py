@@ -8,7 +8,7 @@ try:
 except Exception:
     mimetypes.inited = True
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 from .seq_utils import (
     clean_sequence,
