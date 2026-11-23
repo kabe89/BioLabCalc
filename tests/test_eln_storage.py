@@ -99,7 +99,7 @@ class TestBlobStore(unittest.TestCase):
         self.assertEqual(len(blobs), 3)
 
     def test_s3_backend_simulation(self):
-        s3_backend = S3StorageBackend(bucket_name="lims-test-bucket")
+        s3_backend = S3StorageBackend(bucket_name="lims-test-bucket", simulate=True)
         s3_store = BlobStore(backend=s3_backend)
 
         data = b"S3 object contents"
@@ -118,6 +118,43 @@ class TestBlobStore(unittest.TestCase):
         deleted = s3_store.delete(meta.sha256)
         self.assertTrue(deleted)
         self.assertFalse(s3_store.exists(meta.sha256))
+
+    def test_s3_backend_auto_detect_simulation(self):
+        # Auto-detect simulation when operating without AWS credentials or boto3
+        s3_backend = S3StorageBackend(bucket_name="lims-test-bucket")
+        s3_store = BlobStore(backend=s3_backend)
+
+        data = b"Auto-detect S3 contents"
+        meta = s3_store.store_bytes(data, filename="data.bin")
+
+        self.assertEqual(meta.backend, "s3")
+        self.assertTrue(s3_store.exists(meta.sha256))
+        self.assertEqual(s3_store.get_bytes(meta.sha256), data)
+
+    def test_s3_backend_no_credentials_runtime_fallback(self):
+        from unittest.mock import MagicMock
+
+        # Simulate boto3 client throwing NoCredentialsError at runtime
+        class FakeNoCredentialsError(Exception):
+            pass
+
+        fake_botocore = MagicMock()
+        fake_botocore.exceptions.NoCredentialsError = FakeNoCredentialsError
+
+        backend = S3StorageBackend(bucket_name="lims-test-bucket", simulate=True)
+        # Manually attach mock client to simulate runtime failure
+        mock_client = MagicMock()
+        mock_client.put_object.side_effect = FakeNoCredentialsError("Unable to locate credentials")
+        backend._s3_client = mock_client
+
+        with unittest.mock.patch.dict("sys.modules", {"botocore": fake_botocore, "botocore.exceptions": fake_botocore.exceptions}):
+            store = BlobStore(backend=backend)
+            data = b"Payload for fallback"
+            meta = store.store_bytes(data, filename="fallback.bin")
+            self.assertEqual(meta.backend, "s3")
+            self.assertIsNone(backend._s3_client)  # Client disabled after NoCredentialsError
+            self.assertTrue(store.exists(meta.sha256))
+            self.assertEqual(store.get_bytes(meta.sha256), data)
 
 
 class TestPreviewGenerator(unittest.TestCase):

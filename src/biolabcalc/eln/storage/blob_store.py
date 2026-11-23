@@ -502,6 +502,7 @@ class S3StorageBackend(StorageBackend):
         access_key: Optional[str] = None,
         secret_key: Optional[str] = None,
         prefix: str = "cas_blobs/",
+        simulate: Optional[bool] = None,
     ):
         """
         Initialize S3/MinIO backend.
@@ -513,6 +514,9 @@ class S3StorageBackend(StorageBackend):
             access_key (Optional[str]): Access key identifier.
             secret_key (Optional[str]): Secret access key.
             prefix (str): Object key prefix inside bucket.
+            simulate (Optional[bool]): If True, forces in-memory simulated mode.
+                If None (default), automatically enables simulated mode when
+                operating without AWS credentials or boto3.
         """
         self.bucket_name = bucket_name
         self.endpoint_url = endpoint_url
@@ -524,17 +528,28 @@ class S3StorageBackend(StorageBackend):
         self._simulated_store: Dict[str, bytes] = {}
         self._simulated_meta: Dict[str, BlobMetadata] = {}
 
-        # Attempt to initialize boto3 client if installed
+        if simulate is True:
+            return
+
+        # Attempt to initialize boto3 client if installed and credentials/endpoint available
         try:
             import boto3  # type: ignore
 
-            self._s3_client = boto3.client(
-                "s3",
-                endpoint_url=self.endpoint_url,
+            session = boto3.session.Session(
                 region_name=self.region_name,
                 aws_access_key_id=self.access_key,
                 aws_secret_access_key=self.secret_key,
             )
+            has_creds = session.get_credentials() is not None
+            has_endpoint = bool(self.endpoint_url)
+
+            if simulate is False or has_creds or has_endpoint:
+                self._s3_client = session.client(
+                    "s3",
+                    endpoint_url=self.endpoint_url,
+                )
+            else:
+                self._s3_client = None
         except Exception:
             self._s3_client = None
 
@@ -570,15 +585,29 @@ class S3StorageBackend(StorageBackend):
             import json as py_json
 
             meta_json = py_json.dumps(metadata.to_dict())
-            response = self._s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=key,
-                Body=data,
-                ContentType=metadata.mime_type,
-                Metadata={"cas-meta": meta_json},
-            )
-            metadata.etag = response.get("ETag", "").strip('"')
-            return metadata
+            try:
+                response = self._s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=key,
+                    Body=data,
+                    ContentType=metadata.mime_type,
+                    Metadata={"cas-meta": meta_json},
+                )
+                metadata.etag = response.get("ETag", "").strip('"')
+                return metadata
+            except Exception as e:
+                try:
+                    import botocore.exceptions  # type: ignore
+
+                    if isinstance(e, botocore.exceptions.NoCredentialsError):
+                        self._s3_client = None
+                        self._simulated_store[sha256] = data
+                        metadata.etag = f'"{sha256[:16]}"'
+                        self._simulated_meta[sha256] = metadata
+                        return metadata
+                except Exception:
+                    pass
+                raise
 
         # Resilient simulation mode
         self._simulated_store[sha256] = data
@@ -605,6 +634,15 @@ class S3StorageBackend(StorageBackend):
                 response = self._s3_client.get_object(Bucket=self.bucket_name, Key=key)
                 return response["Body"].read()
             except Exception as e:
+                try:
+                    import botocore.exceptions  # type: ignore
+
+                    if isinstance(e, botocore.exceptions.NoCredentialsError):
+                        self._s3_client = None
+                        if sha256 in self._simulated_store:
+                            return self._simulated_store[sha256]
+                except Exception:
+                    pass
                 raise FileNotFoundError(f"S3 blob {key} could not be retrieved: {e}") from e
 
         if sha256 in self._simulated_store:
@@ -638,8 +676,15 @@ class S3StorageBackend(StorageBackend):
             try:
                 self._s3_client.head_object(Bucket=self.bucket_name, Key=key)
                 return True
-            except Exception:
-                return False
+            except Exception as e:
+                try:
+                    import botocore.exceptions  # type: ignore
+
+                    if isinstance(e, botocore.exceptions.NoCredentialsError):
+                        self._s3_client = None
+                except Exception:
+                    pass
+                return sha256 in self._simulated_store
         return sha256 in self._simulated_store
 
     def delete(self, sha256: str) -> bool:
@@ -657,7 +702,18 @@ class S3StorageBackend(StorageBackend):
             try:
                 self._s3_client.delete_object(Bucket=self.bucket_name, Key=key)
                 return True
-            except Exception:
+            except Exception as e:
+                try:
+                    import botocore.exceptions  # type: ignore
+
+                    if isinstance(e, botocore.exceptions.NoCredentialsError):
+                        self._s3_client = None
+                except Exception:
+                    pass
+                if sha256 in self._simulated_store:
+                    del self._simulated_store[sha256]
+                    self._simulated_meta.pop(sha256, None)
+                    return True
                 return False
         if sha256 in self._simulated_store:
             del self._simulated_store[sha256]
@@ -693,8 +749,15 @@ class S3StorageBackend(StorageBackend):
                     etag=head.get("ETag", "").strip('"'),
                     backend="s3",
                 )
-            except Exception:
-                return None
+            except Exception as e:
+                try:
+                    import botocore.exceptions  # type: ignore
+
+                    if isinstance(e, botocore.exceptions.NoCredentialsError):
+                        self._s3_client = None
+                except Exception:
+                    pass
+                return self._simulated_meta.get(sha256)
         return self._simulated_meta.get(sha256)
 
     def list_blobs(self, limit: Optional[int] = None, offset: int = 0) -> List[BlobMetadata]:
@@ -716,9 +779,16 @@ class S3StorageBackend(StorageBackend):
                         meta = self.get_metadata(sha256)
                         if meta:
                             results.append(meta)
-            except Exception:
-                pass
-            res = sorted(results, key=lambda m: m.created_at, reverse=True)
+                res = sorted(results, key=lambda m: m.created_at, reverse=True)
+            except Exception as e:
+                try:
+                    import botocore.exceptions  # type: ignore
+
+                    if isinstance(e, botocore.exceptions.NoCredentialsError):
+                        self._s3_client = None
+                except Exception:
+                    pass
+                res = sorted(list(self._simulated_meta.values()), key=lambda m: m.created_at, reverse=True)
         else:
             res = sorted(list(self._simulated_meta.values()), key=lambda m: m.created_at, reverse=True)
 
