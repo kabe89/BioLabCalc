@@ -34,11 +34,12 @@ def list_logs(
 def create_log(payload: Dict[str, Any], current_user: Optional[UserSession] = None) -> Dict[str, Any]:
     """Create a new custom structured log entry."""
     user = current_user.username if current_user else payload.get("author", "active_researcher")
+    body = payload.get("body_md") or payload.get("content", "")
     entry = report_service.create_log_entry(
         title=payload["title"],
         category=payload.get("category", "bench_daily"),
         author=user,
-        body_md=payload.get("body_md", ""),
+        body_md=body,
         tags=payload.get("tags"),
         metrics=payload.get("metrics"),
         linked_entity_ids=payload.get("linked_entity_ids"),

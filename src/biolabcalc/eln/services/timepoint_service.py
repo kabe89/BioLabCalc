@@ -237,7 +237,9 @@ class TimepointService:
 
     def _load_from_store(self) -> None:
         try:
-            for item in self._store.list_entities("timepoint"):
+            all_tps = self._store.list_entities("timepoint")
+            # Cache up to the most recent 500 timepoints in memory to prevent unbounded RAM usage
+            for item in all_tps[-500:]:
                 tp = Timepoint(**item)
                 self._timepoints[tp.timepoint_id] = tp
             for item in self._store.list_entities("live_timer"):
@@ -248,6 +250,9 @@ class TimepointService:
 
     def _save_timepoint(self, timepoint: Timepoint) -> None:
         self._timepoints[timepoint.timepoint_id] = timepoint
+        if len(self._timepoints) > 500:
+            oldest_key = next(iter(self._timepoints))
+            del self._timepoints[oldest_key]
         try:
             self._store.put_entity("timepoint", timepoint.timepoint_id, timepoint.to_dict())
         except Exception as e:
@@ -416,7 +421,15 @@ class TimepointService:
         Return Type: List[Timepoint]
         """
         with self._lock:
-            return [tp for tp in self._timepoints.values() if tp.entry_id == entry_id]
+            try:
+                stored = self._store.list_entities("timepoint")
+                entry_points = [Timepoint(**item) for item in stored if item.get("entry_id") == entry_id]
+                if entry_points:
+                    return sorted(entry_points, key=lambda x: str(x.timestamp))
+            except Exception:
+                pass
+            cached = [tp for tp in self._timepoints.values() if tp.entry_id == entry_id]
+            return sorted(cached, key=lambda x: str(x.timestamp))
 
     def clear_for_testing(self) -> None:
         """

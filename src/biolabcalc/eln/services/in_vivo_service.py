@@ -272,9 +272,19 @@ class InVivoService:
                     )
                 )
 
+        # Collect observations efficiently: query store once and group by subject ID
+        subject_id_set = {s.subject_id for s in subjects}
+        all_obs = self._store.list_entities("mouse_observation")
+        obs_by_subject: Dict[str, List[Dict[str, Any]]] = {}
+        for o in all_obs:
+            sid = o.get("subject_id")
+            if sid in subject_id_set:
+                obs_by_subject.setdefault(sid, []).append(o)
+
         observations = []
         for s in subjects:
-            for o_dict in self.list_observations(s.subject_id):
+            s_obs = sorted(obs_by_subject.get(s.subject_id, []), key=lambda x: x.get("timestamp", ""))
+            for o_dict in s_obs:
                 observations.append(
                     MouseObservation(
                         observation_id=o_dict["observation_id"],

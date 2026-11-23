@@ -8,7 +8,7 @@
 [![Conda Environment](https://img.shields.io/badge/conda-environment.yml-green.svg)](environment.yml)
 [![Security: CodeQL](https://img.shields.io/badge/security-CodeQL%20passed-success.svg)](https://github.com/kabe89/BioLabCalc/security)
 [![Wiki: 24 Guides](https://img.shields.io/badge/wiki-24%20guides-blue.svg)](https://github.com/kabe89/BioLabCalc/wiki)
-[![Tests](https://img.shields.io/badge/tests-621%20passed-brightgreen.svg)](#-running-tests)
+[![Tests](https://img.shields.io/badge/tests-626%20passed-brightgreen.svg)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -819,10 +819,10 @@ pytest tests/
 ```
 
 ```text
-======================= 621 passed, 6 skipped in 3.35s =======================
+======================= 626 passed, 6 skipped in 3.35s =======================
 ```
 
-All 621 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
+All 626 automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy.
 
 ```bash
 # Run Git Security & PII Compliance Audit

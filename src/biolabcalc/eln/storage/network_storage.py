@@ -561,18 +561,30 @@ def apply_network_pragmas(
     """
     cursor = conn.cursor()
     try:
+        # Whitelist validation for PRAGMA statements
+        allowed_journals = {"DELETE", "TRUNCATE", "WAL", "MEMORY", "OFF"}
+        allowed_lockings = {"NORMAL", "EXCLUSIVE"}
+
+        journal_clean = str(journal_mode).strip().upper()
+        if journal_clean not in allowed_journals:
+            raise ValueError(f"Invalid journal_mode '{journal_mode}'. Must be one of {sorted(allowed_journals)}.")
+
+        locking_clean = str(locking_mode).strip().upper()
+        if locking_clean not in allowed_lockings:
+            raise ValueError(f"Invalid locking_mode '{locking_mode}'. Must be one of {sorted(allowed_lockings)}.")
+
         # 1. Apply journal_mode
-        cursor.execute(f"PRAGMA journal_mode = {journal_mode.upper()};")
+        cursor.execute(f"PRAGMA journal_mode = {journal_clean};")
         row = cursor.fetchone()
-        applied_journal = row[0] if row else journal_mode
+        applied_journal = row[0] if row else journal_clean
 
         # 2. Apply busy_timeout
         cursor.execute(f"PRAGMA busy_timeout = {int(busy_timeout)};")
 
         # 3. Apply locking_mode
-        cursor.execute(f"PRAGMA locking_mode = {locking_mode.upper()};")
+        cursor.execute(f"PRAGMA locking_mode = {locking_clean};")
         row = cursor.fetchone()
-        applied_locking = row[0] if row else locking_mode
+        applied_locking = row[0] if row else locking_clean
 
         # 4. Verify busy_timeout
         cursor.execute("PRAGMA busy_timeout;")

@@ -516,7 +516,7 @@ export class AppController {
 
         await this.apiFetch('/api/v1/logs', {
           method: 'POST',
-          body: { category: cat, title: title, content: content, author: 'Dr. Elena Rostova' }
+          body: { category: cat, title: title, content: content, body_md: content, author: 'Dr. Elena Rostova' }
         });
 
         const tbody = document.querySelector('#progress-logs-table tbody');
@@ -541,7 +541,14 @@ export class AppController {
       genRollupBtn.addEventListener('click', async () => {
         const start = document.getElementById('rollup-start-date')?.value || '2026-11-01';
         const end = document.getElementById('rollup-end-date')?.value || '2026-11-30';
-        await this.apiFetch(`/api/v1/reports/progress?start_date=${start}&end_date=${end}`);
+        await this.apiFetch('/api/v1/reports/progress', {
+          method: 'POST',
+          body: {
+            title: `Progress Rollup (${start} to ${end})`,
+            period_start: start,
+            period_end: end
+          }
+        });
         this.showToast(`🗓️ Generated unified lab progress rollup from ${start} to ${end}.`);
       });
     }

@@ -60,6 +60,8 @@ def search(
     # 1. Search Campaigns
     if entity_type is None or entity_type in ("campaign", "campaigns"):
         for cmp in campaign_service.list_campaigns():
+            if len(results["campaigns"]) >= limit:
+                break
             if (
                 query in cmp.campaign_id.lower()
                 or query in cmp.title.lower()
@@ -71,6 +73,8 @@ def search(
     # 2. Search Sequences
     if entity_type is None or entity_type in ("sequence", "sequences", "construct"):
         for seq in sequence_service.list_sequences():
+            if len(results["sequences"]) >= limit:
+                break
             if (
                 query in seq.entity_id.lower()
                 or query in seq.name.lower()
@@ -83,6 +87,8 @@ def search(
     if entity_type is None or entity_type in ("tube", "tubes", "inventory"):
         with inventory_service._lock:
             for tube in inventory_service._tubes.values():
+                if len(results["tubes"]) >= limit:
+                    break
                 if (
                     query in tube.tube_id.lower()
                     or query in tube.barcode.lower()
@@ -95,6 +101,8 @@ def search(
     if entity_type is None or entity_type in ("fplc", "pool", "fraction_pools"):
         with fplc_service._lock:
             for pool in fplc_service._pools.values():
+                if len(results["fraction_pools"]) >= limit:
+                    break
                 if (
                     query in pool.pool_id.lower()
                     or query in pool.run_id.lower()
@@ -106,6 +114,8 @@ def search(
     if entity_type is None or entity_type in ("gel", "gels"):
         with gel_service._lock:
             for gel in gel_service._gels.values():
+                if len(results["gels"]) >= limit:
+                    break
                 if query in gel.gel_id.lower() or query in gel.title.lower():
                     results["gels"].append(gel.to_dict())
 

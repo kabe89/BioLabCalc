@@ -64,53 +64,47 @@ class SQLiteStore:
                 self._conn.execute("PRAGMA foreign_keys = ON;")
             return self._conn
 
-        try:
-            conn = sqlite3.connect(self._db_path, check_same_thread=False, timeout=10.0)
+        if self._conn is None:
             try:
-                conn.execute("PRAGMA journal_mode = WAL;")
-                conn.execute("PRAGMA busy_timeout = 5000;")
-                conn.execute("PRAGMA foreign_keys = ON;")
-            except Exception:
-                pass
-            return conn
-        except (sqlite3.OperationalError, OSError) as e:
-            logger.warning(f"Unable to open SQLite database at '{self._db_path}' ({e}); falling back to in-memory store.")
-            self._is_memory = True
-            if self._conn is None:
-                self._conn = sqlite3.connect(":memory:", check_same_thread=False)
-                self._conn.execute("PRAGMA foreign_keys = ON;")
-            return self._conn
+                conn = sqlite3.connect(self._db_path, check_same_thread=False, timeout=10.0)
+                try:
+                    conn.execute("PRAGMA journal_mode = WAL;")
+                    conn.execute("PRAGMA busy_timeout = 5000;")
+                    conn.execute("PRAGMA foreign_keys = ON;")
+                except Exception:
+                    pass
+                self._conn = conn
+            except (sqlite3.OperationalError, OSError) as e:
+                logger.error(f"Unable to open SQLite database at '{self._db_path}': {e}")
+                raise
+        return self._conn
 
     def _init_db(self) -> None:
         """Initialize core persistence tables if they do not exist."""
         with self._lock:
             conn = self._get_connection()
-            try:
-                with conn:
-                    conn.execute("""
-                        CREATE TABLE IF NOT EXISTS entity_store (
-                            entity_type TEXT NOT NULL,
-                            entity_id TEXT NOT NULL,
-                            data_json TEXT NOT NULL,
-                            created_at TEXT NOT NULL,
-                            updated_at TEXT NOT NULL,
-                            PRIMARY KEY (entity_type, entity_id)
-                        );
-                    """)
-                    conn.execute("""
-                        CREATE INDEX IF NOT EXISTS idx_entity_type 
-                        ON entity_store (entity_type);
-                    """)
-                    conn.execute("""
-                        CREATE TABLE IF NOT EXISTS kv_store (
-                            key TEXT PRIMARY KEY,
-                            value_json TEXT NOT NULL,
-                            updated_at TEXT NOT NULL
-                        );
-                    """)
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            with conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS entity_store (
+                        entity_type TEXT NOT NULL,
+                        entity_id TEXT NOT NULL,
+                        data_json TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        PRIMARY KEY (entity_type, entity_id)
+                    );
+                """)
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_entity_type 
+                    ON entity_store (entity_type);
+                """)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS kv_store (
+                        key TEXT PRIMARY KEY,
+                        value_json TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    );
+                """)
 
     def put_entity(self, entity_type: str, entity_id: str, data: Dict[str, Any]) -> None:
         """
@@ -125,74 +119,58 @@ class SQLiteStore:
         payload = json.dumps(data, ensure_ascii=False)
         with self._lock:
             conn = self._get_connection()
-            try:
-                with conn:
-                    conn.execute("""
-                        INSERT INTO entity_store (entity_type, entity_id, data_json, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?)
-                        ON CONFLICT(entity_type, entity_id) DO UPDATE SET
-                            data_json = excluded.data_json,
-                            updated_at = excluded.updated_at;
-                    """, (entity_type, entity_id, payload, now_iso, now_iso))
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            with conn:
+                conn.execute("""
+                    INSERT INTO entity_store (entity_type, entity_id, data_json, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+                        data_json = excluded.data_json,
+                        updated_at = excluded.updated_at;
+                """, (entity_type, entity_id, payload, now_iso, now_iso))
 
     def get_entity(self, entity_type: str, entity_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve a single entity by type and ID."""
         with self._lock:
             conn = self._get_connection()
-            try:
-                cur = conn.cursor()
-                cur.execute("""
-                    SELECT data_json FROM entity_store 
-                    WHERE entity_type = ? AND entity_id = ?;
-                """, (entity_type, entity_id))
-                row = cur.fetchone()
-                if row and row[0]:
-                    return json.loads(row[0])
-                return None
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT data_json FROM entity_store 
+                WHERE entity_type = ? AND entity_id = ?;
+            """, (entity_type, entity_id))
+            row = cur.fetchone()
+            if row and row[0]:
+                return json.loads(row[0])
+            return None
 
     def list_entities(self, entity_type: str) -> List[Dict[str, Any]]:
         """Retrieve all entities of a given type."""
         with self._lock:
             conn = self._get_connection()
-            try:
-                cur = conn.cursor()
-                cur.execute("""
-                    SELECT data_json FROM entity_store 
-                    WHERE entity_type = ?
-                    ORDER BY updated_at ASC;
-                """, (entity_type,))
-                results: List[Dict[str, Any]] = []
-                for row in cur.fetchall():
-                    if row and row[0]:
-                        try:
-                            results.append(json.loads(row[0]))
-                        except Exception:
-                            pass
-                return results
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT data_json FROM entity_store 
+                WHERE entity_type = ?
+                ORDER BY updated_at ASC;
+            """, (entity_type,))
+            results: List[Dict[str, Any]] = []
+            for row in cur.fetchall():
+                if row and row[0]:
+                    try:
+                        results.append(json.loads(row[0]))
+                    except Exception:
+                        pass
+            return results
 
     def delete_entity(self, entity_type: str, entity_id: str) -> bool:
         """Delete an entity by type and ID. Returns True if a record was removed."""
         with self._lock:
             conn = self._get_connection()
-            try:
-                with conn:
-                    cur = conn.execute("""
-                        DELETE FROM entity_store 
-                        WHERE entity_type = ? AND entity_id = ?;
-                    """, (entity_type, entity_id))
-                    return cur.rowcount > 0
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            with conn:
+                cur = conn.execute("""
+                    DELETE FROM entity_store 
+                    WHERE entity_type = ? AND entity_id = ?;
+                """, (entity_type, entity_id))
+                return cur.rowcount > 0
 
     def set_kv(self, key: str, value: Any) -> None:
         """Store arbitrary key-value data."""
@@ -200,45 +178,33 @@ class SQLiteStore:
         payload = json.dumps(value, ensure_ascii=False)
         with self._lock:
             conn = self._get_connection()
-            try:
-                with conn:
-                    conn.execute("""
-                        INSERT INTO kv_store (key, value_json, updated_at)
-                        VALUES (?, ?, ?)
-                        ON CONFLICT(key) DO UPDATE SET
-                            value_json = excluded.value_json,
-                            updated_at = excluded.updated_at;
-                    """, (key, payload, now_iso))
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            with conn:
+                conn.execute("""
+                    INSERT INTO kv_store (key, value_json, updated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(key) DO UPDATE SET
+                        value_json = excluded.value_json,
+                        updated_at = excluded.updated_at;
+                """, (key, payload, now_iso))
 
     def get_kv(self, key: str, default: Any = None) -> Any:
         """Retrieve value by key."""
         with self._lock:
             conn = self._get_connection()
-            try:
-                cur = conn.cursor()
-                cur.execute("SELECT value_json FROM kv_store WHERE key = ?;", (key,))
-                row = cur.fetchone()
-                if row and row[0]:
-                    return json.loads(row[0])
-                return default
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            cur = conn.cursor()
+            cur.execute("SELECT value_json FROM kv_store WHERE key = ?;", (key,))
+            row = cur.fetchone()
+            if row and row[0]:
+                return json.loads(row[0])
+            return default
 
     def delete_kv(self, key: str) -> bool:
         """Delete key from kv_store. Returns True if deleted."""
         with self._lock:
             conn = self._get_connection()
-            try:
-                with conn:
-                    cur = conn.execute("DELETE FROM kv_store WHERE key = ?;", (key,))
-                    return cur.rowcount > 0
-            finally:
-                if not self._is_memory:
-                    conn.close()
+            with conn:
+                cur = conn.execute("DELETE FROM kv_store WHERE key = ?;", (key,))
+                return cur.rowcount > 0
 
     def close(self) -> None:
         """Close active database connection if open."""

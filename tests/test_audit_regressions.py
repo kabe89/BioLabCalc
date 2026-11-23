@@ -183,6 +183,67 @@ class TestAuditRegressions(unittest.TestCase):
                 os.environ.pop("BIOLABCALC_STORAGE_DIR", None)
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def test_sqlite_store_no_silent_fallback_on_unopenable_path(self) -> None:
+        """Verify SQLiteStore raises an exception on invalid path rather than silently falling back to in-memory."""
+        from biolabcalc.eln.storage.sqlite_store import SQLiteStore
+        import sqlite3
+
+        invalid_path = "/nonexistent_invalid_dir/forbidden/eln.db"
+        with self.assertRaises((sqlite3.OperationalError, OSError, RuntimeError)):
+            SQLiteStore(invalid_path)
+
+    def test_search_endpoint_limits_results(self) -> None:
+        """Verify /api/search enforces limit across campaigns, sequences, and tubes."""
+        from biolabcalc.eln.api.routes.search import search
+        from biolabcalc.eln.services.sequence_service import get_sequence_service
+
+        seq_svc = get_sequence_service()
+        seq_svc.register_sequence("s1", "tag_match_alpha", "DNA", "ATGC")
+        seq_svc.register_sequence("s2", "tag_match_beta", "DNA", "ATGC")
+        seq_svc.register_sequence("s3", "tag_match_gamma", "DNA", "ATGC")
+
+        res = search(q="tag_match", limit=1, entity_type="sequence")
+        self.assertEqual(res["status"], "success")
+        self.assertLessEqual(len(res["results"]["sequences"]), 1)
+
+    def test_network_storage_pragma_validation(self) -> None:
+        """Verify apply_network_pragmas rejects invalid journal and locking modes."""
+        from biolabcalc.eln.storage.network_storage import apply_network_pragmas
+        import sqlite3
+
+        conn = sqlite3.connect(":memory:")
+        try:
+            with self.assertRaises(ValueError):
+                apply_network_pragmas(conn, journal_mode="INJECTION; DROP TABLE;")
+            with self.assertRaises(ValueError):
+                apply_network_pragmas(conn, locking_mode="DANGEROUS;")
+        finally:
+            conn.close()
+
+    def test_protease_alias_catalog_mapping(self) -> None:
+        """Verify PROTEASE_ALIAS_MAP is accessible as module constant and maps aliases correctly."""
+        from biolabcalc.gels import PROTEASE_ALIAS_MAP, get_protease_enzyme
+
+        self.assertIn("tev", PROTEASE_ALIAS_MAP)
+        self.assertIn("hrv3c", PROTEASE_ALIAS_MAP)
+        spec = get_protease_enzyme("tev_protease")
+        self.assertIsNotNone(spec)
+        self.assertEqual(spec.name, "TEV")
+
+    def test_create_log_entry_accepts_content_or_body_md(self) -> None:
+        """Verify create_log accepts both body_md and content field names."""
+        from biolabcalc.eln.api.routes.progress_reports import create_log
+
+        payload1 = {"title": "Test Log 1", "content": "Text in content field"}
+        res1 = create_log(payload1)
+        self.assertEqual(res1["status"], "success")
+        self.assertEqual(res1["log"]["body_md"], "Text in content field")
+
+        payload2 = {"title": "Test Log 2", "body_md": "Text in body_md field"}
+        res2 = create_log(payload2)
+        self.assertEqual(res2["status"], "success")
+        self.assertEqual(res2["log"]["body_md"], "Text in body_md field")
+
 
 if __name__ == "__main__":
     unittest.main()

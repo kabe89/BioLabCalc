@@ -439,34 +439,36 @@ PROTEASE_ENZYME_CATALOG: Dict[str, ProteaseSpec] = {
 }
 
 
+PROTEASE_ALIAS_MAP: Dict[str, str] = {
+    "tev": "TEV",
+    "tev_protease": "TEV",
+    "hrv": "HRV_3C",
+    "hrv3c": "HRV_3C",
+    "hrv_3c": "HRV_3C",
+    "prescission": "HRV_3C",
+    "thrombin": "Thrombin",
+    "factor_xa": "Factor_Xa",
+    "factorxa": "Factor_Xa",
+    "enterokinase": "Enterokinase",
+    "ek": "Enterokinase",
+    "ulp1": "Ulp1_SUMO",
+    "sumo": "Ulp1_SUMO",
+    "sumo_protease": "Ulp1_SUMO",
+    "ulp1_sumo": "Ulp1_SUMO",
+    "trypsin": "Trypsin",
+    "chymotrypsin": "Chymotrypsin",
+    "lysc": "LysC",
+    "lys_c": "LysC",
+    "pngase": "PNGase_F",
+    "pngase_f": "PNGase_F",
+    "pngasef": "PNGase_F",
+}
+
+
 def get_protease_enzyme(name: str) -> Optional[ProteaseSpec]:
     """Retrieve protease enzyme specification by name or alias (case-insensitive)."""
     norm = name.strip().lower().replace("-", "_").replace(" ", "_")
-    alias_map = {
-        "tev": "TEV",
-        "tev_protease": "TEV",
-        "hrv": "HRV_3C",
-        "hrv3c": "HRV_3C",
-        "hrv_3c": "HRV_3C",
-        "prescission": "HRV_3C",
-        "thrombin": "Thrombin",
-        "factor_xa": "Factor_Xa",
-        "factorxa": "Factor_Xa",
-        "enterokinase": "Enterokinase",
-        "ek": "Enterokinase",
-        "ulp1": "Ulp1_SUMO",
-        "sumo": "Ulp1_SUMO",
-        "sumo_protease": "Ulp1_SUMO",
-        "ulp1_sumo": "Ulp1_SUMO",
-        "trypsin": "Trypsin",
-        "chymotrypsin": "Chymotrypsin",
-        "lysc": "LysC",
-        "lys_c": "LysC",
-        "pngase": "PNGase_F",
-        "pngase_f": "PNGase_F",
-        "pngasef": "PNGase_F",
-    }
-    key = alias_map.get(norm, None)
+    key = PROTEASE_ALIAS_MAP.get(norm, None)
     if key and key in PROTEASE_ENZYME_CATALOG:
         return PROTEASE_ENZYME_CATALOG[key]
     return PROTEASE_ENZYME_CATALOG.get(name.strip(), None)

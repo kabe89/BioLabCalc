@@ -8,6 +8,7 @@ and 21 CFR Part 11 audit history retrieval.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ...services.approval_service import (
@@ -19,6 +20,8 @@ from ...services.approval_service import (
 from ..auth import (
     PERM_AUDIT_VERIFY,
     PERM_AUDIT_VIEW,
+    ROLE_GUEST,
+    ROLE_PI_ADMIN,
     AuthorizationError,
     UserSession,
     get_auth_service,
@@ -106,17 +109,26 @@ def sign_and_approve_endpoint(
 
     reviewer_id = payload.get("reviewer_id")
     if not reviewer_id or not str(reviewer_id).strip():
-        if current_user:
+        if current_user and current_user.role != ROLE_GUEST:
             reviewer_id = current_user.username or current_user.user_id
         else:
             reviewer_id = "active_researcher"
 
     reviewer_role = payload.get("reviewer_role")
     if not reviewer_role or not str(reviewer_role).strip():
-        if current_user:
+        if current_user and current_user.role != ROLE_GUEST:
             reviewer_role = current_user.role
         else:
             reviewer_role = "active_researcher"
+
+    # In production environments, strictly enforce identity and role from current_user
+    is_prod = os.environ.get("BIOLABCALC_ENV") == "production"
+    if is_prod and current_user and current_user.role != ROLE_GUEST:
+        reviewer_id = current_user.username or current_user.user_id
+        reviewer_role = current_user.role
+    elif current_user and current_user.role != ROLE_GUEST and current_user.username == reviewer_id:
+        if current_user.role != ROLE_PI_ADMIN and str(reviewer_role).strip().lower() in (ROLE_PI_ADMIN, "pi_admin", "pi"):
+            reviewer_role = current_user.role
 
     review_notes = payload.get("review_notes", "")
     checklists_verified = payload.get("checklists_verified", True)
@@ -168,17 +180,26 @@ def request_changes_endpoint(
 
     reviewer_id = payload.get("reviewer_id")
     if not reviewer_id or not str(reviewer_id).strip():
-        if current_user:
+        if current_user and current_user.role != ROLE_GUEST:
             reviewer_id = current_user.username or current_user.user_id
         else:
             reviewer_id = "active_researcher"
 
     reviewer_role = payload.get("reviewer_role")
     if not reviewer_role or not str(reviewer_role).strip():
-        if current_user:
+        if current_user and current_user.role != ROLE_GUEST:
             reviewer_role = current_user.role
         else:
             reviewer_role = "active_researcher"
+
+    # In production environments, strictly enforce identity and role from current_user
+    is_prod = os.environ.get("BIOLABCALC_ENV") == "production"
+    if is_prod and current_user and current_user.role != ROLE_GUEST:
+        reviewer_id = current_user.username or current_user.user_id
+        reviewer_role = current_user.role
+    elif current_user and current_user.role != ROLE_GUEST and current_user.username == reviewer_id:
+        if current_user.role != ROLE_PI_ADMIN and str(reviewer_role).strip().lower() in (ROLE_PI_ADMIN, "pi_admin", "pi"):
+            reviewer_role = current_user.role
 
     try:
         record = approval_service.request_changes(
