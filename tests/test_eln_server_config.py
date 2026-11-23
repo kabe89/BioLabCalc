@@ -232,6 +232,7 @@ class TestConfigureScript(unittest.TestCase):
         self.assertIsInstance(caps, dict)
         self.assertIn("uvicorn", caps)
         self.assertIn("openpyxl", caps)
+        self.assertIn("boto3", caps)
 
 
 if __name__ == "__main__":

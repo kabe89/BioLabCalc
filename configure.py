@@ -56,6 +56,7 @@ def detect_environment_capabilities() -> dict:
         "pyyaml": False,
         "pillow": False,
         "openpyxl": False,
+        "boto3": False,
     }
     try:
         import uvicorn
@@ -91,6 +92,12 @@ def detect_environment_capabilities() -> dict:
         import openpyxl
         caps["openpyxl"] = True
     except Exception:
+        pass
+
+    try:
+        import boto3
+        caps["boto3"] = True
+    except ImportError:
         pass
 
     return caps
@@ -158,6 +165,7 @@ def configure_environment(
         print(f"  - Database ORM:         {'Full SQLAlchemy 2.0+ Engine' if caps['sqlalchemy'] else 'Zero-Dependency SQLite CAS Adapter'}")
         print(f"  - YAML Serialization:   {'PyYAML 6+' if caps['pyyaml'] else 'Zero-Dependency Simple YAML Engine'}")
         print(f"  - Scientific Imaging:   {'Pillow Engine Active' if caps['pillow'] else 'Vector SVG Engine Active'}")
+        print(f"  - Cloud Object Storage: {'AWS S3 / MinIO (boto3) Active' if caps['boto3'] else 'Local Content-Addressable Storage (CAS)'}")
         print("=" * 72)
         print("[OK] Environment successfully configured. Start ELN using:")
         print("    biolabcalc eln")

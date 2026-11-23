@@ -166,6 +166,12 @@ pip install "biolabcalc[gel]"
 # Install complete ELN server dependencies (FastAPI, Uvicorn, SQLAlchemy)
 pip install "biolabcalc[eln]"
 
+# Install cloud S3 / MinIO storage support
+pip install "biolabcalc[s3]"
+
+# Install all optional extensions (Excel, imaging, ELN, S3)
+pip install "biolabcalc[all]"
+
 # Install all development and testing dependencies
 pip install "biolabcalc[dev]"
 ```

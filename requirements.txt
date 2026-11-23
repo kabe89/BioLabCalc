@@ -1,3 +1,3 @@
 # BioLabCalc — Core editable install pointing to pyproject.toml
-# Zero mandatory runtime dependencies. Optional extras: [excel], [gel], [eln], [all], [dev].
+# Zero mandatory runtime dependencies. Optional extras: [excel], [gel], [eln], [s3], [all], [dev].
 -e .

@@ -37,11 +37,17 @@ pip install "biolabcalc[excel]"
 # Install with image processing and gel plot annotation support
 pip install "biolabcalc[gel]"
 
-# Install full development and testing suite (pytest, flake8, black)
-pip install "biolabcalc[dev]"
+# Install complete ELN server dependencies (FastAPI, Uvicorn, SQLAlchemy, PyYAML)
+pip install "biolabcalc[eln]"
+
+# Install cloud S3 / MinIO storage support
+pip install "biolabcalc[s3]"
 
 # Install all optional components simultaneously
-pip install "biolabcalc[excel,gel]"
+pip install "biolabcalc[all]"
+
+# Install full development and testing suite (pytest, flake8)
+pip install "biolabcalc[dev]"
 ```
 
 ### 3. Installing from GitHub Source (Development Mode)

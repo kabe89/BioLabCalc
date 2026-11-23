@@ -56,6 +56,9 @@ eln = [
     "sqlalchemy>=2.0.0",
     "PyYAML>=6.0",
 ]
+s3 = [
+    "boto3>=1.26.0",
+]
 all = [
     "openpyxl>=3.0.0",
     "matplotlib>=3.5.0",
@@ -64,6 +67,7 @@ all = [
     "fastapi>=0.100.0",
     "sqlalchemy>=2.0.0",
     "PyYAML>=6.0",
+    "boto3>=1.26.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -75,6 +79,7 @@ dev = [
     "fastapi>=0.100.0",
     "sqlalchemy>=2.0.0",
     "PyYAML>=6.0",
+    "boto3>=1.26.0",
     "build",
     "twine",
     "wheel",
