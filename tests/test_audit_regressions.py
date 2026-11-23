@@ -188,9 +188,10 @@ class TestAuditRegressions(unittest.TestCase):
         from biolabcalc.eln.storage.sqlite_store import SQLiteStore
         import sqlite3
 
-        invalid_path = "/nonexistent_invalid_dir/forbidden/eln.db"
-        with self.assertRaises((sqlite3.OperationalError, OSError, RuntimeError)):
-            SQLiteStore(invalid_path)
+        with tempfile.NamedTemporaryFile() as tmp:
+            invalid_path = os.path.join(tmp.name, "cannot_be_a_dir", "eln.db")
+            with self.assertRaises((sqlite3.OperationalError, OSError, RuntimeError)):
+                SQLiteStore(invalid_path)
 
     def test_search_endpoint_limits_results(self) -> None:
         """Verify /api/search enforces limit across campaigns, sequences, and tubes."""
