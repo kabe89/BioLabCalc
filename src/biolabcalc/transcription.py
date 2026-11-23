@@ -527,7 +527,7 @@ def calculate_ivt_yield(
                 f"Detected and trimmed upstream {promoter_name} promoter sequence ({trimmed_nt} nt). "
                 "Calculated transcript begins at +1 initiation site."
             )
-            p_base = promoter_name.split()[0].upper()
+            p_base = promoter_name.split()[0].split("_")[0].upper()
             if p_base not in poly_spec.name.upper() and not poly_spec.name.upper().startswith(p_base):
                 warnings.append(
                     f"Promoter mismatch: Detected '{promoter_name}' promoter in template sequence, but selected polymerase is {poly_spec.name}."
@@ -631,8 +631,8 @@ def calculate_ivt_yield(
         warnings.append(f"Unrecognized cap analog '{cap_analog}'.")
 
     if cap_name and poly_spec:
-        supported_lower = [c.lower() for c in poly_spec.supported_caps]
-        if not any(sl in cap_str or cap_str in sl for sl in supported_lower):
+        supported_norm = [c.lower().replace("-", "").replace("_", "") for c in poly_spec.supported_caps]
+        if not any(sn == cap_str or sn in cap_str or cap_str in sn for sn in supported_norm):
             warnings.append(
                 f"Cap analog '{cap_analog}' may have reduced incorporation with {poly_spec.name}. Recommended caps for {poly_spec.name}: {', '.join(poly_spec.supported_caps)}."
             )

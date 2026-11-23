@@ -153,6 +153,20 @@ class TestMultiRNAPolymeraseIVT(unittest.TestCase):
         self.assertEqual(res.polymerase, "T7_G47A")
         self.assertIn("CleanCap AG", res.cap_analog or "")
         self.assertEqual(res.predicted_capping_efficiency_percent, 95.0)
+        self.assertFalse(any("reduced incorporation" in w for w in res.warnings))
+
+    def test_ivt_with_t7_short_promoter_no_mismatch(self) -> None:
+        # 16-mer T7_short promoter variant with T7 polymerase
+        seq = "AATACGACTCACTATAGGGAAACCC"
+        res = calculate_ivt_yield(rna_seq=seq, polymerase="T7")
+        self.assertTrue(res.promoter_detected)
+        self.assertIn("T7_short", res.promoter_detected)
+        self.assertFalse(any("Promoter mismatch" in w for w in res.warnings))
+
+    def test_ivt_cleancap_ag_with_wt_t7_no_incorporation_warning(self) -> None:
+        seq = "GGGAGACCCAAGCT"
+        res = calculate_ivt_yield(rna_seq=seq, cap_analog="CleanCap_AG", polymerase="T7")
+        self.assertFalse(any("reduced incorporation" in w for w in res.warnings))
 
     def test_ivt_with_sp6_and_cleancap_au(self) -> None:
         seq = "ATTTAGGTGACACTATAGAAGAUCCCAAGCU"

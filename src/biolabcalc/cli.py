@@ -611,6 +611,7 @@ def handle_pcr(args: argparse.Namespace) -> None:
         template_ng=tmpl,
         cycles=args.cycles,
         reaction_volume_ul=vol,
+        polymerase=getattr(args, "polymerase", "Taq"),
     )
 
     _maybe_log_report(res, args)
@@ -621,6 +622,7 @@ def handle_pcr(args: argparse.Namespace) -> None:
         print("=" * 65)
         print("PCR KINETICS & REACTION STOICHIOMETRY")
         print("=" * 65)
+    print(f"Polymerase:                 {res.polymerase}")
     print(f"Amplicon Length:            {res.amplicon_length_bp} bp (MW: {res.amplicon_mw:,.2f} Da)")
     print(f"Initial Template:           {res.template_initial_ng} ng ({res.template_initial_copies:,.0f} copies)")
     print(f"Cycles Run:                 {res.cycles_run} (Efficiency: {res.efficiency_percent:.1f}%)")
@@ -2863,6 +2865,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pcr.add_argument("-v", "--volume", default="50.0 uL", help="Reaction volume in µL (default: 50 uL)")
     p_pcr.add_argument("-t", "--template-ng", required=True, help="Template input in ng (e.g. '10 ng', '0.5 ug', 10)")
     p_pcr.add_argument("-c", "--cycles", type=int, default=30, help="PCR cycles")
+    p_pcr.add_argument("-p", "--polymerase", default="Taq", help="Polymerase type (Taq, Q5, Phusion, KAPA_HiFi, OneTaq, PrimeSTAR)")
     p_pcr.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     p_pcr.add_argument("--compact", action="store_true", help="Compact JSON without indentation")
 
@@ -3311,7 +3314,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # 41. pcr-protocol (PCR Bench Protocol & Master Mix Generator)
     p_pcrp = subparsers.add_parser("pcr-protocol", parents=[common], help="Generate ready-to-bench PCR pipetting protocol and thermocycler program")
-    p_pcrp.add_argument("-l", "--template-len", type=int, default=1000, help="Amplicon target length in base pairs (default: 1000)")
+    p_pcrp.add_argument("-l", "--template-len", "--amplicon", "--length", dest="template_len", type=int, default=1000, help="Amplicon target length in base pairs (default: 1000)")
     p_pcrp.add_argument("-p", "--polymerase", default="Q5", help="Polymerase name (Q5, Phusion, KAPA_HiFi, Taq, OneTaq, PrimeSTAR)")
     p_pcrp.add_argument("--fwd-tm", type=float, default=60.0, help="Forward primer melting temperature Tm in Celsius (default: 60.0)")
     p_pcrp.add_argument("--rev-tm", type=float, default=60.0, help="Reverse primer melting temperature Tm in Celsius (default: 60.0)")

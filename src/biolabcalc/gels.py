@@ -734,7 +734,12 @@ def simulate_sds_page(
             else:
                 # Non-reducing
                 if cys_count > 0:
-                    apparent_monomer_kda = intact_mw_kda * 0.95
+                    if cys_count >= 2:
+                        apparent_monomer_kda = intact_mw_kda * 0.95
+                        mono_notes = f"Compact monomer ({cys_count} Cys intra-chain disulfides)"
+                    else:
+                        apparent_monomer_kda = intact_mw_kda
+                        mono_notes = f"Unpaired Cys ({cys_count} Cys; monomer)"
                     rf_mono = calculate_rf(apparent_monomer_kda, min_size, max_size)
                     lane_bands.append(
                         SDSPageBand(
@@ -743,7 +748,7 @@ def simulate_sds_page(
                             label=f"{sample_name} (monomer)",
                             intensity=0.8,
                             is_cleaved=False,
-                            notes=f"Compact monomer ({cys_count} Cys intra-chain disulfides)",
+                            notes=mono_notes,
                         )
                     )
                     dimer_kda = intact_mw_kda * 2.0

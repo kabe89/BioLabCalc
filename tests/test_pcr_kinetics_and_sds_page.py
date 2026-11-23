@@ -160,6 +160,14 @@ class TestPCRKineticsAndSDSPage(unittest.TestCase):
         self.assertTrue(any("monomer" in l for l in band_labels))
         self.assertTrue(any("dimer" in l for l in band_labels))
 
+        # Sequence with 1 Cysteine: monomer with unpaired Cys and disulfide dimer
+        seq_1cys = "MKWVTFISLLLLCFSSAYSRGVFRRDTHKSEIAHRFKDLGE"
+        res_1cys = simulate_sds_page(seq_1cys, reducing=False)
+        lane_1cys = res_1cys.sample_lanes[0]
+        self.assertEqual(len(lane_1cys.bands), 2)
+        mono_band = next(b for b in lane_1cys.bands if "monomer" in b.label)
+        self.assertIn("Unpaired Cys", mono_band.notes)
+
         # Sequence with 0 Cysteines: unaffected by non-reducing
         seq_nocys = "MKWVTFISLLLLFSSAYSRGVFRRDTHKSEIAHRFKDLGE"
         res_nocys = simulate_sds_page(seq_nocys, reducing=False)
@@ -230,6 +238,18 @@ class TestPCRKineticsAndSDSPage(unittest.TestCase):
         output = buf.getvalue()
         self.assertIn('"protocol_id":', output)
         self.assertIn("pcr_q5_600bp", output)
+
+        # pcr-protocol with --amplicon alias
+        buf_amp = io.StringIO()
+        with patch("sys.stdout", buf_amp):
+            cli_main(["pcr-protocol", "--amplicon", "800", "--polymerase", "Q5", "--json"])
+        self.assertIn("pcr_q5_800bp", buf_amp.getvalue())
+
+        # pcr with --polymerase flag
+        buf_poly = io.StringIO()
+        with patch("sys.stdout", buf_poly):
+            cli_main(["pcr", "-l", "1000", "-t", "5 ng", "-p", "Q5"])
+        self.assertIn("Polymerase:                 Q5", buf_poly.getvalue())
 
         # sds-page json
         buf2 = io.StringIO()
