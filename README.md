@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/kabe89/BioLabCalc/actions/workflows/ci.yml/badge.svg)](https://github.com/kabe89/BioLabCalc/actions)
 [![PyPI Version](https://img.shields.io/pypi/v/biolabcalc.svg)](https://pypi.org/project/biolabcalc/)
-[![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/biolabcalc/)
+[![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue)](https://pypi.org/project/biolabcalc/)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?logo=github)](https://kabe89.github.io/BioLabCalc/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kabe89/BioLabCalc/blob/main/examples/quickstart_cookbook.ipynb)
 [![Conda Environment](https://img.shields.io/badge/conda-environment.yml-green.svg)](environment.yml)
@@ -87,7 +87,7 @@ Modern life science research laboratories operate under significant friction:
 
 ## 📊 Feature Comparison Matrix
 
-| Capability / Dimension | BioLabCalc (v1.5.0a1) | Proprietary Cloud ELNs (Benchling, LabArchives) | Generic Spreadsheets (Excel / Sheets) |
+| Capability / Dimension | BioLabCalc (v1.5.0) | Proprietary Cloud ELNs (Benchling, LabArchives) | Generic Spreadsheets (Excel / Sheets) |
 | :--- | :---: | :---: | :---: |
 | **Server Requirements** | **Zero (Runs locally / offline)** | Dedicated cloud infrastructure | Local application |
 | **Offline / Air-Gapped Support**| **100% Native (No internet needed)** | Requires active internet connection | Local only |
@@ -787,23 +787,27 @@ Comprehensive documentation, scientific derivations, and deployment guides are h
 
 ## 🔮 Planned Features & Strategic Roadmap
 
-We are actively expanding BioLabCalc to support broader wet-lab assays, enterprise authentication, and hardware automation:
+With **v1.5.0** delivering the minimalist theme system, plugin architecture, multi-polymerase IVT, DNA backbone customization, protein expression recommender, PCR kinetics/protocols, enzyme-supported SDS-PAGE, ARRIVE 2.0 in vivo mouse tracking, ELN progress reports, and purchase logging, the consolidated remaining roadmap focuses on four tracks:
 
-### 1. Expanded Preloaded Experiment Templates (Community Brainstorming)
+### 1. ELN Security, Routing & QA Hardening (Next Patch)
+* **Route & RBAC Hardening**: Fix `/api/timepoints/timers` route ordering before `/{entry_id}`, enforce `@auth_service.require_permission` on timer/approval mutations, tighten `BlobStore` 64-hex SHA-256 path validation, enforce configured `cors_origins` in `api/app.py`, and remove synthetic OCR fallback text when OCR backends are unavailable.
+* **Developer & Browser QA**: Add Ruff + `pre-commit` hooks and optional Playwright headless browser smoke tests (`[qa]`) for theme switching, REST persistence, and `@media print` layouts.
+
+### 2. Expanded Scientific Assay Modules (`v1.6.0+`)
 * **Next-Generation Sequencing (NGS) Library Prep**: Automated fragmentation sizing, adapter-to-insert molar ratios, magnetic SPRI bead double-sided cleanup ratios, and Bioanalyzer QC pooling.
+* **CRISPR-Cas9 sgRNA Guide Design**: On-target and off-target scoring with Doench (2016) heuristics.
 * **ELISA 4-Parameter Logistic (4PL) Regression**: Sigmoidal standard curve fitting, $EC_{50}$ calculation, and automated concentration interpolation for immunoassays.
-* **Isothermal Nucleic Acid Amplification**: Protocol calculators for Loop-Mediated Isothermal Amplification (LAMP/RT-LAMP) and Rolling Circle Amplification (RCA).
 * **Cell Viability & Cytotoxicity Regressions**: Background-corrected MTT, CCK-8, and AlamarBlue survival curves with automatic $IC_{50}$ estimation.
+* **Isothermal Nucleic Acid Amplification**: Protocol calculators for Loop-Mediated Isothermal Amplification (LAMP/RT-LAMP) and Rolling Circle Amplification (RCA).
 * **Quantitative Western Blot Densitometry**: Normalized densitometric ratio calculation against housekeeping controls (GAPDH, β-actin, α-tubulin).
 * **Proteomics Enzymatic Digestion**: Trypsin and Lys-C cleavage scheduling, missed cleavage tracking, and stage-tip desalting calculations.
 
-### 2. Granular User Privileges, RBAC & Enterprise Authentication
+### 3. Enterprise Authentication & Access Control
 * **Credential-Based Session Logins**: Form-based authentication (`/login`) with secure session tokens and password rotation.
-* **Role-Based Access Control (RBAC)**: Fine-grained permission matrices across Lab Director / PI, Senior Postdoc, Graduate Student, Core Facility Staff, and External Auditor.
+* **Granular RBAC & Project ACLs**: Fine-grained permission matrices across Lab Director / PI, Senior Postdoc, Graduate Student, Core Facility Staff, and External Auditor, plus confidential campaign isolation.
 * **Institutional Single Sign-On (SSO)**: Lightweight LDAP and Active Directory integration for university and research hospital networks.
-* **Project-Level Access Control Lists (ACLs)**: Confidential campaign isolation to restrict read/write visibility between collaborative or proprietary industry research teams.
 
-### 3. Real-Time Collaboration & Hardware Integration
+### 4. Real-Time Collaboration & Hardware Integration
 * **Mobile-Optimized Optical 2D Barcode Scanner**: WebRTC camera integration to scan cryogenic tube DataMatrix codes directly at the freezer.
 * **WebSocket Real-Time Co-Authoring**: Live presence indicators and section locking for multi-user notebook sessions.
 
@@ -876,7 +880,7 @@ If you use BioLabCalc in your scientific research, molecular biology calculation
   title = {BioLabCalc: A Pure-Python Molecular Biology, Biophysics, and Laboratory Automation Engine},
   year = {2026},
   url = {https://github.com/kabe89/BioLabCalc},
-  version = {1.1.2}
+  version = {1.5.0}
 }
 ```
 

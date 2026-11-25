@@ -174,7 +174,7 @@ def generate_updated_readme(
     text = re.sub(wiki_toc_pattern, new_wiki_toc, text)
 
     # 5. Update Feature Comparison Matrix version: BioLabCalc (v<X.Y.Z>)
-    matrix_version_pattern = r"\|\s*(?:\*\*)?Capability / Dimension(?:\*\*)?\s*\|\s*(?:\*\*)?BioLabCalc \(v[\d\.]+\)(?:\*\*)?\s*\|"
+    matrix_version_pattern = r"\|\s*(?:\*\*)?Capability / Dimension(?:\*\*)?\s*\|\s*(?:\*\*)?BioLabCalc \(v[0-9A-Za-z\.\-]+\)(?:\*\*)?\s*\|"
     new_matrix_version = f"| Capability / Dimension | BioLabCalc (v{version}) |"
     text = re.sub(matrix_version_pattern, new_matrix_version, text)
 
@@ -187,6 +187,10 @@ def generate_updated_readme(
     test_sentence_pattern = r"All \d+ automated test items execute cleanly across Python 3\.8, 3\.9, 3\.10, 3\.11, and 3\.12 with 100% mathematical accuracy\."
     new_test_sentence = f"All {test_count} automated test items execute cleanly across Python 3.8, 3.9, 3.10, 3.11, and 3.12 with 100% mathematical accuracy."
     text = re.sub(test_sentence_pattern, new_test_sentence, text)
+
+    # 8. Update BibTeX citation version: version = {X.Y.Z}
+    bibtex_version_pattern = r"(@software\{biolabcalc\d+,\s*[\s\S]*?\bversion\s*=\s*\{)[^\}]+(\})"
+    text = re.sub(bibtex_version_pattern, rf"\g<1>{version}\g<2>", text)
 
     return text
 

@@ -1,7 +1,7 @@
 # BioLabCalc Version Documentation & Architecture Evolution
 
-**Document Version:** 1.0.0  
-**Latest Software Release:** `v0.4.0`  
+**Document Version:** 1.5.0  
+**Latest Software Release:** `v1.5.0`  
 **License:** MIT License  
 **Maintainers:** BioLabCalc Contributors (`kabe89/BioLabCalc`)  
 
@@ -43,7 +43,9 @@
 | **`v0.2.0`** | Oct 2026 | In Vitro Transcription & Gels | `transcription.py`, `gels.py`, `fluorescence.py`, `interactive_gel.py` | 260 tests |
 | **`v0.3.0`** | Nov 2026 | Browser-Based Offline ELN | `eln/` (Server, CAS, Audit Logs, Storage, Services, Web UI) | 385 tests |
 | **`v0.3.5`** | Nov 2026 | Multi-User Network Storage & LIMS | `network_storage.py`, `inventory_service.py`, `setup_wizard.py` | 415 tests |
-| **`v0.4.0`** | Nov 2026 | Plasmid Engineering & TEA Engine | `tea_runtime.py`, `sequence_store.py`, `plasmid.py`, `restriction_engine.py`, `plasmid_engineering.py`, `interactive_plasmid.py`, `protocols.py` | **473 tests** |
+| **`v0.4.0`** | Nov 2026 | Plasmid Engineering & TEA Engine | `tea_runtime.py`, `sequence_store.py`, `plasmid.py`, `restriction_engine.py`, `plasmid_engineering.py`, `interactive_plasmid.py`, `protocols.py` | 473 tests |
+| **`v1.0.0–v1.1.2`** | Nov 2026 | Automation, Interop & Portability | `automation.py`, `allostery.py`, `aptamers.py`, `gel_annotator.py`, `printable_protocol.py`, `profile.py`, `sqlite_store.py` | 543 tests |
+| **`v1.5.0`** | Nov 2026 | Minimalist UI, Science Expansions & ELN LIMS | `theme.py`, `plugins.py`, `protein_recommender.py`, `in_vivo.py`, multi-Pol IVT, PCR kinetics, enzyme SDS-PAGE, `progress_report_service.py`, `purchase_service.py` | **628 tests** |
 
 ---
 
@@ -243,8 +245,13 @@ from biolabcalc.protocols import list_protocols, get_protocol, format_protocol_m
 
 ## 9. Future Strategic Roadmap
 
-1. **Next-Generation Sequencing (NGS) Multiplexing:** Automated fragmentation sizing, adapter-to-insert molar ratios, and SPRI magnetic bead double-sided selection.
-2. **CRISPR-Cas9 sgRNA Guide Design:** On-target and off-target scoring with Doench (2016) heuristics.
-3. **Automated Immunoassay Regressions:** 4-Parameter Logistic (4PL) sigmoidal standard curve fitting for ELISA.
-4. **Cell Viability Assays:** Normalized $IC_{50}$ estimation for MTT, CCK-8, and AlamarBlue assays.
-5. **Proteomics Digestion Engine:** Trypsin and Lys-C cleavage scheduling with missed-cleavage tracking.
+The consolidated post-v1.5.0 roadmap spans four prioritized tracks (see [README.md](../README.md#-planned-features--strategic-roadmap) for full details):
+
+1. **Immediate Hardening (`v1.5.x` Patch):** Fix ELN `/api/timepoints/timers` route shadowing, tighten RBAC decorators on `approvals.py` and `timepoints.py`, add 64-hex SHA-256 validation in `BlobStore`, enforce configured `cors_origins` in `api/app.py`, replace synthetic OCR fallback text with an explicit unavailable flag, and add Ruff/`pre-commit` + Playwright `[qa]` smoke tests.
+2. **Next-Generation Scientific Modules (`v1.6.0+`):**
+   - **NGS Library Prep:** Automated fragmentation sizing, adapter-to-insert molar ratios, and SPRI magnetic bead double-sided selection.
+   - **CRISPR-Cas9 sgRNA Guide Design:** On-target and off-target scoring with Doench (2016) heuristics.
+   - **Immunoassays & Cell Viability:** ELISA 4-Parameter Logistic (4PL) sigmoidal curve fitting ($EC_{50}$) and normalized $IC_{50}$ estimation (MTT, CCK-8, AlamarBlue).
+   - **Isothermal Amplification & Proteomics:** LAMP/RT-LAMP/RCA calculators, quantitative Western blot densitometry, and Trypsin/Lys-C digestion scheduling with missed-cleavage tracking.
+3. **Enterprise Authentication & ACLs:** Credential-based `/login`, full RBAC permission matrices, project-level ACLs, and lightweight LDAP/Active Directory SSO.
+4. **Real-Time Collaboration & Hardware Integration:** WebRTC mobile 2D DataMatrix barcode scanning and WebSocket co-authoring presence/section locks.
