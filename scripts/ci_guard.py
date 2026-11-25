@@ -262,18 +262,23 @@ def check_github_actions_tags(root: Path) -> list[str]:
     if not workflows_dir.exists():
         return errors
 
-    invalid_tags = {
-        "download-artifact@v8": "actions/download-artifact@v4",
-        "configure-pages@v6": "actions/configure-pages@v5",
-        "upload-pages-artifact@v5": "actions/upload-pages-artifact@v3",
-        "deploy-pages@v5": "actions/deploy-pages@v4",
-    }
+    floating_refs = {"main", "master", "head", "latest"}
+    uses_re = re.compile(r"uses:\s*([A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+)@([^\s#]+)")
 
-    for wf in workflows_dir.glob("*.yml"):
+    for wf in sorted(workflows_dir.glob("*.yml")):
         content = wf.read_text(encoding="utf-8")
-        for bad, good in invalid_tags.items():
-            if bad in content:
-                errors.append(f"{wf}: uses unreleased/invalid action tag '{bad}' (should be '{good}')")
+        for line_no, line in enumerate(content.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                continue
+            m = uses_re.search(line)
+            if not m:
+                continue
+            action_name, ref = m.group(1), m.group(2).strip("'\"")
+            if ref.lower() in floating_refs:
+                errors.append(
+                    f"{wf}:{line_no}: action '{action_name}@{ref}' uses a floating branch ref; pin to a release tag or commit SHA"
+                )
     return errors
 
 

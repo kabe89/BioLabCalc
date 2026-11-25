@@ -47,7 +47,7 @@ Genuine Bio-Rad Image Lab `.scn` files are MIME multipart/mixed streams (`Genera
 Check these four portability rules on every release:
 - **Windows .bat launchers**: `biolabcalc.bat`, `configure.bat`, and `package_portable.py`'s `run_lab.bat` must set `PYTHONPATH=%~dp0src;%PYTHONPATH%`, check for a local `python-embed\python.exe` or `.venv\Scripts\python.exe` before falling back to system PATH Python, and pause on error so double-clicking never closes silently.
 - **Docker**: Install `.[eln,gel]` (never `--no-deps` alone) so `uvicorn`, `fastapi`, `sqlalchemy`, and `PyYAML` are present in the container, and confirm `GET /health` returns HTTP 200.
-- **GitHub Actions versions**: Use only published action tags (`actions/checkout@v4`, `actions/setup-python@v5`, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`).
+- **GitHub Actions versions**: Use only published, pinned action tags (`actions/checkout@v4`, `actions/setup-python@v5`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`, `actions/configure-pages@v6`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v5`, `softprops/action-gh-release@v3`).
 - **Isolated sdist verification**: Build with `python -m build`, unpack `dist/biolabcalc-*.tar.gz` into a temporary directory, and run `PYTHONPATH=src python -m unittest discover -s tests` inside the unpacked folder.
 
 ## Gotchas
